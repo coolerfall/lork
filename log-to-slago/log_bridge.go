@@ -13,10 +13,10 @@ type logBridge struct {
 }
 
 func init() {
-	slago.Install(newGologBridge())
+	slago.Install(newLogBridge())
 }
 
-func newGologBridge() *logBridge {
+func newLogBridge() *logBridge {
 	bridge := &logBridge{}
 	log.SetOutput(bridge)
 	log.SetFlags(0)
@@ -29,7 +29,7 @@ func (b *logBridge) Name() string {
 }
 
 func (b *logBridge) ParseLevel(lvl string) slago.Level {
-	return slago.DebugLevel
+	return slago.TraceLevel
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {

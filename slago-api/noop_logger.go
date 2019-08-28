@@ -14,10 +14,6 @@
 
 package slago
 
-import (
-	"io"
-)
-
 type noopLogger struct {
 }
 
@@ -31,7 +27,7 @@ func (l *noopLogger) Name() string {
 	return "noop"
 }
 
-func (l *noopLogger) AddWriter(w io.Writer) {
+func (l *noopLogger) AddWriter(w ...Writer) {
 }
 
 func (l *noopLogger) SetLevel(lvl Level) {
@@ -73,4 +69,7 @@ func (l *noopLogger) Print(v ...interface{}) {
 }
 
 func (l *noopLogger) Printf(format string, v ...interface{}) {
+}
+
+func (l *noopLogger) WriteRaw(p []byte) {
 }

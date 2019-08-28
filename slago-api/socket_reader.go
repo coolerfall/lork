@@ -15,8 +15,6 @@
 package slago
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -56,7 +54,11 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		Logger().Error().Err(err).Msg("read log upgrade error")
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			Logger().Error().Err(err)
+		}
+	}()
 
 	for {
 		if !sr.isRunning {
@@ -73,17 +75,7 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			var evt map[string]interface{}
-			d := json.NewDecoder(bytes.NewReader(data))
-			d.UseNumber()
-			if err := d.Decode(&evt); err != nil {
-				Logger().Error().Err(err).Msg("socket log decode error")
-				continue
-			}
-
+			Logger().WriteRaw(data)
 		}
 	}
-}
-
-func (sr *SocketReader) writeLog(evt map[string]interface{}) {
 }

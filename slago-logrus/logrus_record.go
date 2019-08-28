@@ -1,13 +1,22 @@
 // Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
 
-package slagologrus
+package slalogrus
 
 import (
 	"encoding/hex"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago/slago-api"
+)
+
+var (
+	recordPool = &sync.Pool{
+		New: func() interface{} {
+			return &logrusRecord{}
+		},
+	}
 )
 
 type logrusRecord struct {
@@ -16,10 +25,11 @@ type logrusRecord struct {
 }
 
 func newLogrusRecord(lvl logrus.Level) *logrusRecord {
-	return &logrusRecord{
-		entry: logrus.NewEntry(logrus.StandardLogger()),
-		level: lvl,
-	}
+	r := recordPool.Get().(*logrusRecord)
+	r.entry = logrus.NewEntry(logrus.StandardLogger())
+	r.level = lvl
+
+	return r
 }
 
 func (r *logrusRecord) Str(key, val string) slago.Record {
@@ -209,8 +219,10 @@ func (r *logrusRecord) Interface(key string, val interface{}) slago.Record {
 
 func (r *logrusRecord) Msg(msg string) {
 	r.entry.Log(r.level, msg)
+	recordPool.Put(r)
 }
 
 func (r *logrusRecord) Msgf(format string, msg string) {
 	r.entry.Logf(r.level, format, msg)
+	recordPool.Put(r)
 }

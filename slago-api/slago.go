@@ -3,18 +3,30 @@
 package slago
 
 import (
-	"io"
+	"strings"
 	"sync"
 )
 
 const (
-	TraceLevel = iota
+	TraceLevel Level = iota
 	DebugLevel
 	InfoLevel
 	WarnLevel
 	ErrorLevel
 	FatalLevel
 	PanicLevel
+)
+
+var (
+	levelMap = map[string]Level{
+		"TRACE":  TraceLevel,
+		"DEBUG":  DebugLevel,
+		"INFO":   InfoLevel,
+		"WARN":   WarnLevel,
+		"ERROR":  ErrorLevel,
+		"FALTAL": FatalLevel,
+		"PANIC":  PanicLevel,
+	}
 )
 
 type Level int8
@@ -24,8 +36,8 @@ type SlaLogger interface {
 	// Name returns the name of current slago logger implementation.
 	Name() string
 
-	// AddWriter add a writer to this logger.
-	AddWriter(w io.Writer)
+	// AddWriter add one or more writer to this logger.
+	AddWriter(w ...Writer)
 
 	// SetLevel sets global level for root logger.
 	SetLevel(lvl Level)
@@ -59,6 +71,9 @@ type SlaLogger interface {
 
 	// Printf prints with given format and args.
 	Printf(format string, args ...interface{})
+
+	// WriteRaw writes raw logging event.
+	WriteRaw(p []byte)
 }
 
 // Bridge represents bridge between other logging framework and slago logger.
@@ -111,4 +126,35 @@ func Bind(logger SlaLogger) {
 // will be delegated to slagto if the logging framework bridge was installed.
 func Install(bridge Bridge) {
 	bridges = append(bridges, bridge)
+}
+
+func (l Level) String() string {
+	switch l {
+	case DebugLevel:
+		return "DEBUG"
+	case InfoLevel:
+		return "INFO"
+	case WarnLevel:
+		return "WARN"
+	case ErrorLevel:
+		return "ERROR"
+	case FatalLevel:
+		return "FALTAL"
+	case PanicLevel:
+		return "PANIC"
+	case TraceLevel:
+		fallthrough
+	default:
+		return "TRACE"
+	}
+}
+
+// ParseLevel converts a level string into slago level value.
+func ParseLevel(lvl string) Level {
+	level, ok := levelMap[strings.ToUpper(lvl)]
+	if !ok {
+		return TraceLevel
+	}
+
+	return level
 }
