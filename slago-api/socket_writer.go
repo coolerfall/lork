@@ -22,10 +22,12 @@ import (
 )
 
 type socketWriter struct {
-	conn  *websocket.Conn
-	mutex sync.Mutex
+	conn    *websocket.Conn
+	mutex   sync.Mutex
+	encoder Encoder
 }
 
+// TODO: reconnection
 // NewSocketWriter create a logging writter via socket.
 func NewSocketWriter(u *url.URL) *socketWriter {
 	if u == nil {
@@ -39,7 +41,8 @@ func NewSocketWriter(u *url.URL) *socketWriter {
 	}
 
 	return &socketWriter{
-		conn: conn,
+		conn:    conn,
+		encoder: NewJsonEncoder(),
 	}
 }
 
@@ -50,6 +53,14 @@ func (w *socketWriter) Write(p []byte) (n int, err error) {
 	return len(p), err
 }
 
-func (w *socketWriter) Close() {
-	w.conn.Close()
+func (w *socketWriter) Close() error {
+	return w.conn.Close()
+}
+
+func (w *socketWriter) Encoder() Encoder {
+	return w.encoder
+}
+
+func (w *socketWriter) Filter() *Filter {
+	return nil
 }

@@ -14,5 +14,24 @@
 
 package slago
 
-type FileWriter struct {
-}
+const (
+	colorBlack = iota + 30
+	colorRed
+	colorGreen
+	colorYellow
+	colorBlue
+	colorMagenta
+	colorCyan
+	colorWhite
+)
+
+const (
+	colorBrightBlack = iota + 90
+	colorBrightRed
+	colorBrightGreen
+	colorBrightYellow
+	colorBrightBlue
+	colorBrightMagenta
+	colorBrightCyan
+	colorBrightWhite
+)

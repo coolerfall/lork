@@ -18,6 +18,7 @@ import (
 	"time"
 )
 
+// Record represents a log record to hold the data to log.
 type Record interface {
 	Str(key, val string) Record
 

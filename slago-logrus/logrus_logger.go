@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slagologrus
+package slalogrus
 
 import (
-	"io"
-	"io/ioutil"
-
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago/slago-api"
 )
@@ -35,7 +32,7 @@ var (
 )
 
 type logrusLogger struct {
-	writers []io.Writer
+	syncMultiWriter *slago.SyncMultiWriter
 }
 
 func init() {
@@ -43,12 +40,21 @@ func init() {
 }
 
 func newLogrusLogger() *logrusLogger {
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: slago.TimestampFormat,
+		FieldMap: logrus.FieldMap{
+			logrus.FieldKeyLevel: slago.LevelFieldKey,
+			logrus.FieldKeyTime:  slago.TimestampFieldKey,
+			logrus.FieldKeyMsg:   slago.MessageFieldKey,
+		},
+	})
 	logrus.SetLevel(logrus.DebugLevel)
-	logrus.SetOutput(ioutil.Discard)
+
+	writer := slago.NewSyncMultiWriter()
+	logrus.SetOutput(writer)
 
 	return &logrusLogger{
-		writers: make([]io.Writer, 0),
+		syncMultiWriter: writer,
 	}
 }
 
@@ -56,9 +62,8 @@ func (l *logrusLogger) Name() string {
 	return "logrus"
 }
 
-func (l *logrusLogger) AddWriter(w io.Writer) {
-	l.writers = append(l.writers, w)
-	logrus.SetOutput(io.MultiWriter(l.writers...))
+func (l *logrusLogger) AddWriter(w ...slago.Writer) {
+	l.syncMultiWriter.AddWriter(w...)
 }
 
 func (l *logrusLogger) SetLevel(lvl slago.Level) {
@@ -122,4 +127,11 @@ func (l *logrusLogger) Print(args ...interface{}) {
 
 func (l *logrusLogger) Printf(format string, args ...interface{}) {
 	logrus.Printf(format, args...)
+}
+
+func (l *logrusLogger) WriteRaw(p []byte) {
+	_, err := l.syncMultiWriter.Write(p)
+	if err != nil {
+		l.Error().Err(err).Msg("write raw error")
+	}
 }

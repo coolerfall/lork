@@ -6,7 +6,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/anbillon/slago/slago-api"
-	"gitlab.com/anbillon/slago/slago-api/helpers"
 )
 
 var (
@@ -31,9 +30,9 @@ func newZerologBridge() slago.Bridge {
 	bridge := &zerologBridge{}
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
-	zerolog.LevelFieldName = helpers.LevelFieldKey
-	zerolog.TimestampFieldName = helpers.TimestampFieldKey
-	zerolog.MessageFieldName = helpers.MessageFieldKey
+	zerolog.LevelFieldName = slago.LevelFieldKey
+	zerolog.TimestampFieldName = slago.TimestampFieldKey
+	zerolog.MessageFieldName = slago.MessageFieldKey
 	logger := zerolog.New(bridge).With().Timestamp().Logger()
 	log.Logger = logger
 
@@ -55,7 +54,7 @@ func (b *zerologBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {
-	err := helpers.BrigeWrite(b, p)
+	err := slago.BrigeWrite(b, p)
 	if err != nil {
 		slago.Reportf("zerolog bridge write error", err)
 	}

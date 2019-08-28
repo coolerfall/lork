@@ -14,34 +14,19 @@
 
 package slago
 
-import (
-	"os"
-)
-
-type consoleWriter struct {
-	encoder Encoder
-	filter  *Filter
+// Filter represents a level filter.
+type Filter struct {
+	level Level
 }
 
-func NewConsoleWriter(e Encoder, f *Filter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
-	}
-
-	return &consoleWriter{
-		encoder: e,
-		filter:  f,
+// NewFilter creates a new instance of filter.
+func NewFilter(lvl Level) *Filter {
+	return &Filter{
+		level: lvl,
 	}
 }
 
-func (w *consoleWriter) Write(p []byte) (n int, err error) {
-	return os.Stdout.Write(p)
-}
-
-func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
-}
-
-func (w *consoleWriter) Filter() *Filter {
-	return w.filter
+// Do will do the filter.
+func (f *Filter) Do(level Level) bool {
+	return f.level > level
 }

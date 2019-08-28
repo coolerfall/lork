@@ -4,7 +4,6 @@ package zapslago
 
 import (
 	"gitlab.com/anbillon/slago/slago-api"
-	"gitlab.com/anbillon/slago/slago-api/helpers"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -29,13 +28,14 @@ func init() {
 func newZapBrige() *zapBridge {
 	bridge := &zapBridge{}
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.LevelKey = helpers.LevelFieldKey
-	encoderConfig.TimeKey = helpers.TimestampFieldKey
-	encoderConfig.MessageKey = helpers.MessageFieldKey
+	encoderConfig.LevelKey = slago.LevelFieldKey
+	encoderConfig.TimeKey = slago.TimestampFieldKey
+	encoderConfig.MessageKey = slago.MessageFieldKey
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	atomicLevel := zap.NewAtomicLevel()
+	atomicLevel.SetLevel(zapcore.DebugLevel)
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(bridge),
-		zap.DebugLevel)
+		zapcore.AddSync(bridge), atomicLevel)
 	zap.ReplaceGlobals(zap.New(core))
 
 	return bridge
@@ -55,9 +55,9 @@ func (b *zapBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	err := helpers.BrigeWrite(b, p)
+	err := slago.BrigeWrite(b, p)
 	if err != nil {
-		slago.Reportf("logrus bridge write error", err)
+		slago.Reportf("zap bridge write error", err)
 	}
 
 	return len(p), err

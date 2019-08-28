@@ -14,24 +14,8 @@
 
 package slago
 
-import (
-	jsoniter "github.com/json-iterator/go"
-	"io"
-)
-
-type FilterWriter struct {
-	originWirters []io.Writer
-}
-
-func NewFilterWriter(w ...io.Writer) *FilterWriter {
-	return &FilterWriter{
-		originWirters: w,
-	}
-}
-
-func (w *FilterWriter) Write(p []byte) (int, error) {
-	var event map[string]interface{}
-	jsoniter.Unmarshal(p, &event)
-
-	return len(p), nil
+// Encoder represents an encoder to encode logging event into different format.
+type Encoder interface {
+	// Encode encodes origin data to formatted data.
+	Encode(p []byte) (data []byte, err error)
 }
