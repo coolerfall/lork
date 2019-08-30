@@ -25,19 +25,20 @@ var (
 	version = []byte(`"@version":"1"`)
 )
 
-// LogstashEncoder encodes logging event into logstash json format.
-type LogstashEncoder struct {
+// logstashEncoder encodes logging event into logstash json format.
+type logstashEncoder struct {
 	mutex sync.Mutex
 	buf   *bytes.Buffer
 }
 
-func NewLogstashEncoder() *LogstashEncoder {
-	return &LogstashEncoder{
+// NewLogstashEncoder creates a new instance of logstash encoder.
+func NewLogstashEncoder() *logstashEncoder {
+	return &logstashEncoder{
 		buf: &bytes.Buffer{},
 	}
 }
 
-func (e *LogstashEncoder) Encode(p []byte) (data []byte, err error) {
+func (e *logstashEncoder) Encode(p []byte) (data []byte, err error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 

@@ -36,7 +36,7 @@ var (
 
 type zeroLogger struct {
 	logger          zerolog.Logger
-	syncMultiWriter *slago.SyncMultiWriter
+	syncMultiWriter *slago.MultiWriter
 }
 
 func init() {
@@ -53,7 +53,7 @@ func newZeroLogger() *zeroLogger {
 		return strings.ToUpper(l.String())
 	}
 
-	ioWriterWrapper := slago.NewSyncMultiWriter()
+	ioWriterWrapper := slago.NewMultiWriter()
 	logger := zerolog.New(ioWriterWrapper).With().Timestamp().Logger()
 	log.Logger = logger
 

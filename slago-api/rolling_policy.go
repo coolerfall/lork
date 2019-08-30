@@ -24,14 +24,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 )
 
 // RollingPolicy represents policy for log rolling.
 type RollingPolicy interface {
-	// Start starts rolling config
-	Start() error
+	// Prepare prepares current rolling policy
+	Prepare() error
 
 	// Attach attaches file writer.
 	Attach(w *fileWriter)
@@ -39,14 +38,19 @@ type RollingPolicy interface {
 	// ShouldTrigger check if there's necessary to trigger rolling.
 	ShouldTrigger(fileSize int64) bool
 
-	// Rotate starts log rolling.
-	Rotate(filename string) error
+	// Rotate does the log rolling.
+	Rotate() error
 }
 
 type noopRollingPolicy struct {
 }
 
-func (rp *noopRollingPolicy) Start() error {
+// NewNoopRollingPolicy creates a new instance of rolling policy which will do nothing.
+func NewNoopRollingPolicy() *noopRollingPolicy {
+	return &noopRollingPolicy{}
+}
+
+func (rp *noopRollingPolicy) Prepare() error {
 	return nil
 }
 
@@ -57,23 +61,67 @@ func (rp *noopRollingPolicy) ShouldTrigger(fileSize int64) bool {
 	return false
 }
 
-func (rp *noopRollingPolicy) Rotate(filename string) error {
+func (rp *noopRollingPolicy) Rotate() error {
 	return nil
-}
-
-type timeBasedRollingPolicy struct {
 }
 
 type sizeBasedRollingPolicy struct {
 }
 
-type sizeAndTimeBasedRollingPolicy struct {
+type timeBasedRollingPolicy struct {
 	fileWriter      *fileWriter
-	triggerSize     int64
 	filenamePattern string
-	tpl             *template.Template
-	index           int
 	nextCheck       time.Time
+}
+
+func NewTimeBasedRollingPolicy(filenamePattern string) *timeBasedRollingPolicy {
+	return &timeBasedRollingPolicy{
+		filenamePattern: filenamePattern,
+	}
+}
+
+func (rp *timeBasedRollingPolicy) Prepare() error {
+	rp.filenamePattern = strings.TrimSpace(rp.filenamePattern)
+	if len(rp.filenamePattern) == 0 {
+		return errors.New("no valid filename pattern for this policy")
+	}
+
+	rp.calcNextCheck()
+	return nil
+}
+
+func (rp *timeBasedRollingPolicy) Attach(w *fileWriter) {
+	rp.fileWriter = w
+}
+
+func (rp *timeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
+	if time.Now().After(rp.nextCheck) {
+		rp.calcNextCheck()
+		return true
+	}
+
+	return false
+}
+
+func (rp *timeBasedRollingPolicy) Rotate() error {
+	panic("implement me")
+}
+
+func (rp *timeBasedRollingPolicy) calcNextCheck() {
+	now := time.Now()
+	rp.nextCheck = time.Date(
+		now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+}
+
+type sizeAndTimeBasedRollingPolicy struct {
+	fileWriter  *fileWriter
+	triggerSize int64
+	index       int
+	nextCheck   time.Time
+
+	patternParser *patternParser
+	converter     Converter
+	rollingDate   *rollingDate
 }
 
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
@@ -87,26 +135,40 @@ func NewSizeAndTimeBasedRollingPolicy(filenamePattern string,
 	}
 
 	return &sizeAndTimeBasedRollingPolicy{
-		triggerSize:     fileSize,
-		filenamePattern: filenamePattern,
+		triggerSize:   fileSize,
+		patternParser: NewPatternParser(filenamePattern),
 	}
 }
 
-func (rp *sizeAndTimeBasedRollingPolicy) Start() error {
-	rp.filenamePattern = strings.TrimSpace(rp.filenamePattern)
-	if len(rp.filenamePattern) == 0 {
-		return errors.New("no valid filename pattern for this policy")
-	}
-
-	funcs := make(template.FuncMap)
-	funcs[dateKey] = func(format string) string {
-		return time.Now().Format(format)
-	}
-	tpl, err := template.New("").Funcs(funcs).Parse(rp.filenamePattern)
+func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
+	node, err := rp.patternParser.Parse()
 	if err != nil {
 		return err
 	}
-	rp.tpl = tpl
+
+	converters := map[string]NewConverter{
+		"index": newIndexConverter,
+		"date":  newDateConverter,
+	}
+	converter, err := NewPatternCompiler(node, converters).Compile()
+	if err != nil {
+		return err
+	}
+	rp.converter = converter
+
+	var datePattern string
+	for c := rp.converter; c != nil; c = c.Next() {
+		if dc, ok := c.(*dateConverter); ok {
+			datePattern = dc.DatePattern()
+			break
+		}
+	}
+
+	if len(datePattern) == 0 {
+		return errors.New("invalid file name pattern, missing date pattern")
+	}
+
+	rp.rollingDate = newRollingDate(datePattern)
 
 	rp.calcNextCheck()
 	return rp.calcIndex()
@@ -119,7 +181,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Attach(w *fileWriter) {
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 	if time.Now().After(rp.nextCheck) {
 		rp.calcNextCheck()
-		rp.index = 0
+		rp.index = 1
 		return true
 	}
 
@@ -130,18 +192,28 @@ func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 	return false
 }
 
-func (rp *sizeAndTimeBasedRollingPolicy) Rotate(filename string) (err error) {
+func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 	var rollingFilename string
 	buf := &bytes.Buffer{}
 
-	if err = rp.tpl.Execute(buf, map[string]interface{}{
-		indexKey: rp.index,
-	}); err != nil {
-		rollingFilename = fmt.Sprintf("slago.%s.log", time.Now().Format("2006-01-02"))
+	for c := rp.converter; c != nil; c = c.Next() {
+		if _, ok := c.(*literalConverter); ok {
+			buf.WriteString(c.Convert(""))
+		}
+		if _, ok := c.(*dateConverter); ok {
+			buf.WriteString(c.Convert(time.Now()))
+		}
+		if _, ok := c.(*indexConverter); ok {
+			buf.WriteString(c.Convert(rp.index))
+		}
 	}
 
 	rollingFilename = buf.String()
 	buf.Reset()
+	if len(rollingFilename) == 0 {
+		rollingFilename = fmt.Sprintf("slago-%s.%v.log",
+			time.Now().Format("2006-01-02"), rp.index)
+	}
 
 	dir := filepath.Dir(rollingFilename)
 	err = os.MkdirAll(dir, os.FileMode(0666))
@@ -149,7 +221,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate(filename string) (err error) {
 		return
 	}
 
-	err = os.Rename(filename, rollingFilename)
+	err = os.Rename(rp.fileWriter.Filename(), rollingFilename)
 	if err != nil {
 		return
 	}
@@ -160,9 +232,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate(filename string) (err error) {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) calcNextCheck() {
-	now := time.Now()
-	rp.nextCheck = time.Date(
-		now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	rp.nextCheck = rp.rollingDate.next()
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
@@ -171,30 +241,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 		return err
 	}
 
-	var lastModTime time.Time
-	fi, err := os.Stat(rp.fileWriter.Filename())
-	if err != nil {
-		lastModTime = time.Now()
-	} else {
-		lastModTime = fi.ModTime()
-	}
-
-	var buf = &bytes.Buffer{}
-	funcs := make(template.FuncMap)
-	funcs[dateKey] = func(format string) string {
-		return lastModTime.Format(format)
-	}
-	tpl, err := template.New("").Funcs(funcs).Parse(rp.filenamePattern)
-	if err != nil {
-		return err
-	}
-	if err := tpl.Execute(buf, map[string]interface{}{
-		indexKey: "(\\d{1,3})",
-	}); err != nil {
-		return err
-	}
-
-	filenameRegex, err := regexp.Compile(buf.String())
+	reg := rp.toFilenameRegex()
+	filenameRegex, err := regexp.Compile(reg)
 	if err != nil {
 		return err
 	}
@@ -222,4 +270,96 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 	rp.index = latestIndex + 1
 
 	return nil
+}
+
+func (rp *sizeAndTimeBasedRollingPolicy) toFilenameRegex() string {
+	var buf = &bytes.Buffer{}
+	for c := rp.converter; c != nil; c = c.Next() {
+		if _, ok := c.(*literalConverter); ok {
+			buf.WriteString(c.Convert(""))
+		}
+		if _, ok := c.(*dateConverter); ok {
+			buf.WriteString(c.Convert(time.Now()))
+		}
+		if _, ok := c.(*indexConverter); ok {
+			buf.WriteString("(\\d{1,3})")
+		}
+	}
+
+	reg := buf.String()
+	buf.Reset()
+
+	return reg
+}
+
+const (
+	topOfSecond periodType = iota + 1
+	topOfMinute
+	topOfHour
+	topOfDay
+	topOfMonth
+)
+
+var (
+	periods = []periodType{
+		topOfSecond, topOfMinute, topOfHour, topOfDay, topOfMonth,
+	}
+)
+
+type periodType int8
+
+type rollingDate struct {
+	datePattern string
+	_type       periodType
+}
+
+func newRollingDate(datePattern string) *rollingDate {
+	rd := &rollingDate{
+		datePattern: datePattern,
+	}
+	rd._type = rd.calcPeriodType()
+
+	return rd
+}
+
+func (rd *rollingDate) calcPeriodType() periodType {
+	now := time.Now()
+	for _, t := range periods {
+		tl := now.Format(rd.datePattern)
+		next := rd.endOfPeriod(t, now)
+		tr := next.Format(rd.datePattern)
+		if tl == tr {
+			return t
+		}
+	}
+
+	return topOfSecond
+}
+
+func (rd *rollingDate) endOfPeriod(pt periodType, now time.Time) time.Time {
+	switch pt {
+	case topOfMinute:
+		return time.Date(
+			now.Year(), now.Month(), now.Day(), now.Hour(),
+			now.Minute()+1, 0, 0, now.Location())
+	case topOfHour:
+		return time.Date(
+			now.Year(), now.Month(), now.Day(), now.Hour()+1, 0, 0, 0, now.Location())
+	case topOfDay:
+		return time.Date(
+			now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	case topOfMonth:
+		return time.Date(
+			now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location())
+	case topOfSecond:
+		fallthrough
+	default:
+		return time.Date(
+			now.Year(), now.Month(), now.Day(), now.Hour(),
+			now.Minute(), now.Second()+1, 0, now.Location())
+	}
+}
+
+func (rd *rollingDate) next() time.Time {
+	return rd.endOfPeriod(rd._type, time.Now())
 }

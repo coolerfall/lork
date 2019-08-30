@@ -21,46 +21,46 @@ import (
 )
 
 // Writer is the interface that wraps the io.Writer, add adds
-// Encoder and Filter func for slago to ecnode and filter logs.
+// Encoder and LevelFilter func for slago to ecnode and filter logs.
 type Writer interface {
 	io.Writer
 
 	// Encoder returns encoder used in current writer.
 	Encoder() Encoder
 
-	// Filter returns filter used in current writer.
-	Filter() *Filter
+	// LevelFilter returns filter used in current writer.
+	Filter() *LevelFilter
 }
 
-// SyncMultiWriter represents synchronous multi writer which implements io.Writer.
+// MultiWriter represents multiple writer which implements slago.Writer.
 // This writer is used as output which will implement SlaLogger.
-type SyncMultiWriter struct {
+type MultiWriter struct {
 	writers []Writer
 	mutex   sync.Mutex
 	buf     *bytes.Buffer
 }
 
-// NewSyncMultiWriter creates a new synchronous multi writer.
-func NewSyncMultiWriter() *SyncMultiWriter {
-	return &SyncMultiWriter{
+// NewMultiWriter creates a new multiple writer.
+func NewMultiWriter() *MultiWriter {
+	return &MultiWriter{
 		writers: make([]Writer, 0),
 		buf:     new(bytes.Buffer),
 	}
 }
 
-// AddWriter adds a slago writer into sync multi writer.
-func (smw *SyncMultiWriter) AddWriter(w ...Writer) {
-	smw.writers = append(smw.writers, w...)
+// AddWriter adds a slago writer into multi writer.
+func (mw *MultiWriter) AddWriter(w ...Writer) {
+	mw.writers = append(mw.writers, w...)
 }
 
-func (smw *SyncMultiWriter) Write(p []byte) (n int, err error) {
-	smw.mutex.Lock()
-	findValue(p, LevelFieldKey, smw.buf)
-	level := ParseLevel(smw.buf.String())
-	smw.buf.Reset()
-	smw.mutex.Unlock()
+func (mw *MultiWriter) Write(p []byte) (n int, err error) {
+	mw.mutex.Lock()
+	findValue(p, LevelFieldKey, mw.buf)
+	level := ParseLevel(mw.buf.String())
+	mw.buf.Reset()
+	mw.mutex.Unlock()
 
-	for _, w := range smw.writers {
+	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(level) {
 			return
 		}

@@ -15,33 +15,16 @@
 package slago
 
 import (
-	"os"
+	"github.com/davecgh/go-spew/spew"
+	"testing"
 )
 
-type consoleWriter struct {
-	encoder Encoder
-	filter  *LevelFilter
-}
-
-func NewConsoleWriter(e Encoder, f *LevelFilter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
+func TestPatternParserParse(t *testing.T) {
+	parser := NewPatternParser(
+		`archive-#color(#date{2016-01-02 15:04:05.000}){cyan}.#index.log`)
+	if node, err := parser.Parse(); err != nil {
+		t.Logf("parse err: %v", err)
+	} else {
+		spew.Dump(node)
 	}
-
-	return &consoleWriter{
-		encoder: e,
-		filter:  f,
-	}
-}
-
-func (w *consoleWriter) Write(p []byte) (n int, err error) {
-	return os.Stdout.Write(p)
-}
-
-func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
-}
-
-func (w *consoleWriter) Filter() *LevelFilter {
-	return w.filter
 }
