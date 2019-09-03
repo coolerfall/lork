@@ -31,8 +31,8 @@ import (
 
 func main() {
 	slago.Logger().AddWriter(slago.NewConsoleWriter(
-		slago.NewPatternEncoder(""),
-		nil))
+		slago.NewPatternEncoder(
+			"#color(#date{2006-01-02}){cyan} #color(#level) #message #fields"), nil))
 	fw := slago.NewFileWriter(&slago.FileWriterOption{
 		Encoder:  slago.NewLogstashEncoder(),
 		Filter:   slago.NewLevelFilter(slago.InfoLevel),
@@ -43,7 +43,7 @@ func main() {
 	slago.Logger().AddWriter(fw)
 
 	slago.Logger().Trace().Msg("slago")
-	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("slago")
+	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().Warn("this is zap")
 

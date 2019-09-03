@@ -124,6 +124,7 @@ func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
 	for c := pe.converter; c != nil; c = c.Next() {
 		pe.buf.WriteString(c.Convert(event))
 	}
+	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
 	pe.buf.Reset()
 
@@ -307,12 +308,12 @@ func (mc *messageConverter) AttachOptions(opts []string) {
 func (mc *messageConverter) Convert(event interface{}) string {
 	logEvent, ok := event.(logEvent)
 	if !ok {
-		return ""
+		return "-"
 	}
 
 	message := logEvent.message
 	if len(message) == 0 {
-		return " "
+		return "-"
 	}
 
 	return message
@@ -353,7 +354,6 @@ func (fc *fieldsConverter) Convert(event interface{}) string {
 	for k, v := range fields {
 		fc.buf.WriteString(fmt.Sprintf("%s=%v ", k, v))
 	}
-	fc.buf.WriteByte('\n')
 	data := fc.buf.String()
 	fc.buf.Reset()
 

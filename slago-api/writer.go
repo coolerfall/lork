@@ -53,6 +53,13 @@ func (mw *MultiWriter) AddWriter(w ...Writer) {
 	mw.writers = append(mw.writers, w...)
 }
 
+// Reset will remove all writers.
+func (mw *MultiWriter) Reset() {
+	mw.mutex.Lock()
+	defer mw.mutex.Unlock()
+	mw.writers = make([]Writer, 0)
+}
+
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.mutex.Lock()
 	findValue(p, LevelFieldKey, mw.buf)

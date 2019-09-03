@@ -35,8 +35,8 @@ var (
 )
 
 type zeroLogger struct {
-	logger          zerolog.Logger
-	syncMultiWriter *slago.MultiWriter
+	logger      zerolog.Logger
+	multiWriter *slago.MultiWriter
 }
 
 func init() {
@@ -58,8 +58,8 @@ func newZeroLogger() *zeroLogger {
 	log.Logger = logger
 
 	return &zeroLogger{
-		logger:          logger,
-		syncMultiWriter: ioWriterWrapper,
+		logger:      logger,
+		multiWriter: ioWriterWrapper,
 	}
 }
 
@@ -68,7 +68,11 @@ func (l *zeroLogger) Name() string {
 }
 
 func (l *zeroLogger) AddWriter(w ...slago.Writer) {
-	l.syncMultiWriter.AddWriter(w...)
+	l.multiWriter.AddWriter(w...)
+}
+
+func (l *zeroLogger) ResetWriter() {
+	l.multiWriter.Reset()
 }
 
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
@@ -127,7 +131,7 @@ func (l *zeroLogger) Printf(format string, v ...interface{}) {
 }
 
 func (l *zeroLogger) WriteRaw(p []byte) {
-	_, err := l.syncMultiWriter.Write(p)
+	_, err := l.multiWriter.Write(p)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

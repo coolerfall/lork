@@ -39,6 +39,9 @@ type SlaLogger interface {
 	// AddWriter add one or more writer to this logger.
 	AddWriter(w ...Writer)
 
+	// ResetWriter remove all writers added before.
+	ResetWriter()
+
 	// SetLevel sets global level for root logger.
 	SetLevel(lvl Level)
 
