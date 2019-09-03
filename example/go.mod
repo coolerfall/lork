@@ -8,7 +8,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	gitlab.com/anbillon/slago/log-to-slago v0.0.0-00010101000000-000000000000
 	gitlab.com/anbillon/slago/logrus-to-slago v0.0.0-00010101000000-000000000000
-	gitlab.com/anbillon/slago/slago-api v0.0.0-00010101000000-000000000000
+	gitlab.com/anbillon/slago/slago-api v0.1.0
 	gitlab.com/anbillon/slago/slago-zerolog v0.0.0-00010101000000-000000000000
 	gitlab.com/anbillon/slago/zap-to-slago v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.10.0
