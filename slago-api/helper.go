@@ -109,7 +109,7 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 
 // Report reports message in stdout.
 func Report(msg string) {
-	fmt.Printf("slago: %v\n", msg)
+	fmt.Println(colorize(colorRed, fmt.Sprintf("slago: %v", msg)))
 }
 
 // Reportf reports message with arguments in stdout.

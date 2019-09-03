@@ -43,13 +43,15 @@ type FileWriterOption struct {
 }
 
 // NewFileWriter creates a new instance of file writer.
-func NewFileWriter(opts *FileWriterOption) *fileWriter {
-	if opts.RollingPolicy == nil {
-		opts.RollingPolicy = NewNoopRollingPolicy()
+func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
+	opts := &FileWriterOption{
+		RollingPolicy: NewNoopRollingPolicy(),
+		Filename:      defaultLogFilename,
+		Encoder:       NewJsonEncoder(),
 	}
 
-	if len(opts.Filename) == 0 {
-		opts.Filename = defaultLogFilename
+	for _, f := range options {
+		f(opts)
 	}
 
 	fw := &fileWriter{

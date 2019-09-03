@@ -65,9 +65,12 @@ type PatternEncoder struct {
 	converter Converter
 }
 
-func NewPatternEncoder(layout string) *PatternEncoder {
-	if len(layout) == 0 {
+func NewPatternEncoder(layouts ...string) *PatternEncoder {
+	var layout string
+	if len(layouts) == 0 || len(layouts[0]) == 0 {
 		layout = DefaultLayout
+	} else {
+		layout = layouts[0]
 	}
 
 	patternParser := NewPatternParser(layout)

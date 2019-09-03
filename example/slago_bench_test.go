@@ -21,12 +21,12 @@ import (
 )
 
 func init() {
-	fw := slago.NewFileWriter(&slago.FileWriterOption{
-		Encoder:  slago.NewPatternEncoder(""),
-		Filter:   slago.NewLevelFilter(slago.InfoLevel),
-		Filename: "slago-test.log",
-		RollingPolicy: slago.NewSizeAndTimeBasedRollingPolicy(
-			"slago-archive.#date{2006-01-02}.#index.log", "10MB"),
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		o.Encoder = slago.NewLogstashEncoder()
+		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
+		o.Filename = "slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			"slago-archive.#date{2006-01-02}.#index.log", "10MB")
 	})
 
 	//cw := slago.NewConsoleWriter(slago.NewPatternEncoder(""), nil)
