@@ -30,6 +30,9 @@ func (l *noopLogger) Name() string {
 func (l *noopLogger) AddWriter(w ...Writer) {
 }
 
+func (l *noopLogger) ResetWriter() {
+}
+
 func (l *noopLogger) SetLevel(lvl Level) {
 }
 
