@@ -3,9 +3,10 @@
 package logrusslago
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago/slago-api"
-	"gitlab.com/anbillon/slago/slago-api/helpers"
 )
 
 var (
@@ -29,10 +30,11 @@ func init() {
 func newLogrusBridge() slago.Bridge {
 	bridge := &logrusBridge{}
 	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat: time.RFC3339,
 		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyLevel: helpers.LevelFieldKey,
-			logrus.FieldKeyTime:  helpers.TimestampFieldKey,
-			logrus.FieldKeyMsg:   helpers.MessageFieldKey,
+			logrus.FieldKeyLevel: slago.LevelFieldKey,
+			logrus.FieldKeyTime:  slago.TimestampFieldKey,
+			logrus.FieldKeyMsg:   slago.MessageFieldKey,
 		},
 	})
 	logrus.SetLevel(logrus.DebugLevel)
@@ -56,7 +58,7 @@ func (b *logrusBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *logrusBridge) Write(p []byte) (int, error) {
-	err := helpers.BrigeWrite(b, p)
+	err := slago.BrigeWrite(b, p)
 	if err != nil {
 		slago.Reportf("logrus bridge write error", err)
 	}

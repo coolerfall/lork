@@ -14,16 +14,16 @@
 
 package slago
 
-import (
-	"fmt"
-)
-
-// Report reports message in stdout.
-func Report(msg string) {
-	fmt.Printf("slago: %v\n", msg)
+// jsonEncoder encodes logging event into json format.
+type jsonEncoder struct {
 }
 
-func Reportf(format string, args ...interface{}) {
-	format = "slago: "+format+"\n"
-	fmt.Printf(format, args...)
+// NewJsonEncoder creates a new instance of encoder to encode data to json.
+func NewJsonEncoder() *jsonEncoder {
+	return &jsonEncoder{}
+}
+
+func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
+	// the default encoder is json, just return origin data
+	return p, nil
 }

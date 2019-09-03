@@ -16,13 +16,13 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/sirupsen/logrus"
 	_ "gitlab.com/anbillon/slago/log-to-slago"
 	_ "gitlab.com/anbillon/slago/logrus-to-slago"
 	"gitlab.com/anbillon/slago/slago-api"
 	_ "gitlab.com/anbillon/slago/slago-zerolog"
+	_ "gitlab.com/anbillon/slago/zap-to-slago"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slago-logrus"
 	//_ "gitlab.com/anbillon/slago/slago-zap"
@@ -30,11 +30,22 @@ import (
 )
 
 func main() {
-	slago.Logger().AddWriter(os.Stdout)
-	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
-	logrus.WithField("logrus", "yes").Debug("this is from logrus")
+	slago.Logger().AddWriter(slago.NewConsoleWriter(
+		slago.NewPatternEncoder(""),
+		nil))
+	fw := slago.NewFileWriter(&slago.FileWriterOption{
+		Encoder:  slago.NewLogstashEncoder(),
+		Filter:   slago.NewLevelFilter(slago.InfoLevel),
+		Filename: "slago-test.log",
+		RollingPolicy: slago.NewSizeAndTimeBasedRollingPolicy(
+			"slago-archive.#date{2006-01-02}.#index.log", "10MB"),
+	})
+	slago.Logger().AddWriter(fw)
 
-	zap.L().Info("this is zap")
+	slago.Logger().Trace().Msg("slago")
+	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("slago")
+	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
+	zap.L().Warn("this is zap")
 
 	log.Printf("this is builtin logger")
 }

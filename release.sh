@@ -15,4 +15,13 @@ git tag -a "logrus-to-slago/$version" -m "$version"
 git tag -a "zap-to-slago/$version" -m "$version"
 git tag -a "zerolog-to-slago/$version" -m "$version"
 
+git push -u origin "slago-api/$version"
+git push -u origin "salgo-logrus/$version"
+git push -u origin "slago-zap/$version"
+git push -u origin "slago-zerolog/$version"
+git push -u origin "log-to-slago/$version"
+git push -u origin "logrus-to-slago/$version"
+git push -u origin "zap-to-slago/$version"
+git push -u origin "zerolog-to-slago/$version"
+
 echo "release tag complete"

@@ -15,33 +15,14 @@
 package slago
 
 import (
-	"os"
+	"testing"
 )
 
-type consoleWriter struct {
-	encoder Encoder
-	filter  *LevelFilter
-}
-
-func NewConsoleWriter(e Encoder, f *LevelFilter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
+func TestFileSize(t *testing.T) {
+	fs, err := parseFileSize("10 kB")
+	if err != nil {
+		t.Logf("parse error: %v", err)
+	} else {
+		t.Logf("real size: %v", fs)
 	}
-
-	return &consoleWriter{
-		encoder: e,
-		filter:  f,
-	}
-}
-
-func (w *consoleWriter) Write(p []byte) (n int, err error) {
-	return os.Stdout.Write(p)
-}
-
-func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
-}
-
-func (w *consoleWriter) Filter() *LevelFilter {
-	return w.filter
 }

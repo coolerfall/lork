@@ -15,15 +15,11 @@
 package salzerolog
 
 import (
-	"io"
-	"io/ioutil"
 	"strings"
-	"sync"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gitlab.com/anbillon/slago/slago-api"
-	"gitlab.com/anbillon/slago/slago-api/helpers"
 )
 
 var (
@@ -39,9 +35,8 @@ var (
 )
 
 type zeroLogger struct {
-	mutex   sync.Mutex
-	logger  zerolog.Logger
-	writers []io.Writer
+	logger          zerolog.Logger
+	syncMultiWriter *slago.MultiWriter
 }
 
 func init() {
@@ -50,19 +45,21 @@ func init() {
 
 func newZeroLogger() *zeroLogger {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
-	zerolog.LevelFieldName = helpers.LevelFieldKey
-	zerolog.TimestampFieldName = helpers.TimestampFieldKey
-	zerolog.MessageFieldName = helpers.MessageFieldKey
+	zerolog.TimeFieldFormat = slago.TimestampFormat
+	zerolog.LevelFieldName = slago.LevelFieldKey
+	zerolog.TimestampFieldName = slago.TimestampFieldKey
+	zerolog.MessageFieldName = slago.MessageFieldKey
 	zerolog.LevelFieldMarshalFunc = func(l zerolog.Level) string {
 		return strings.ToUpper(l.String())
 	}
-	logger := zerolog.New(ioutil.Discard).With().Timestamp().Logger()
+
+	ioWriterWrapper := slago.NewMultiWriter()
+	logger := zerolog.New(ioWriterWrapper).With().Timestamp().Logger()
 	log.Logger = logger
 
 	return &zeroLogger{
-		logger:  logger,
-		writers: make([]io.Writer, 0),
+		logger:          logger,
+		syncMultiWriter: ioWriterWrapper,
 	}
 }
 
@@ -70,25 +67,31 @@ func (l *zeroLogger) Name() string {
 	return "zerolog"
 }
 
-func (l *zeroLogger) AddWriter(w io.Writer) {
-	l.mutex.Lock()
-	l.writers = append(l.writers, w)
-	mw := zerolog.MultiLevelWriter(l.writers...)
-	l.logger = l.logger.Output(mw)
-	log.Logger = l.logger
-	l.mutex.Unlock()
+func (l *zeroLogger) AddWriter(w ...slago.Writer) {
+	l.syncMultiWriter.AddWriter(w...)
 }
 
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
+	zeroLevel := slagoLvlToZeroLvl[lvl]
+	if zeroLevel == zerolog.NoLevel {
+		zeroLevel = zerolog.DebugLevel
+	}
+
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
 }
 
 func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
-	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
+	zeroLevel := slagoLvlToZeroLvl[lvl]
+	if zeroLevel == zerolog.NoLevel {
+		return l.Trace()
+	}
+
+	return newZeroRecord(l.logger.WithLevel(zeroLevel))
 }
 
 func (l *zeroLogger) Trace() slago.Record {
-	return newZeroRecord(l.logger.WithLevel(zerolog.NoLevel))
+	return newZeroRecord(l.logger.WithLevel(zerolog.NoLevel).
+		Str(slago.LevelFieldKey, "TRACE"))
 }
 
 func (l *zeroLogger) Debug() slago.Record {
@@ -121,4 +124,11 @@ func (l *zeroLogger) Print(v ...interface{}) {
 
 func (l *zeroLogger) Printf(format string, v ...interface{}) {
 	l.logger.Printf(format, v...)
+}
+
+func (l *zeroLogger) WriteRaw(p []byte) {
+	_, err := l.syncMultiWriter.Write(p)
+	if err != nil {
+		l.Error().Err(err).Msg("write raw error")
+	}
 }

@@ -5,11 +5,20 @@ package salzap
 import (
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"time"
 
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+var (
+	recordPool = &sync.Pool{
+		New: func() interface{} {
+			return &zapRecord{}
+		},
+	}
 )
 
 type zapRecord struct {
@@ -18,10 +27,11 @@ type zapRecord struct {
 }
 
 func newZapRecord(lvl zapcore.Level) *zapRecord {
-	return &zapRecord{
-		logger: zap.L(),
-		level:  lvl,
-	}
+	r := recordPool.Get().(*zapRecord)
+	r.logger = zap.L()
+	r.level = lvl
+
+	return r
 }
 
 func (r *zapRecord) Str(key, val string) slago.Record {
@@ -260,6 +270,8 @@ func (r *zapRecord) Msg(msg string) {
 	case zapcore.PanicLevel:
 		r.logger.Panic(msg)
 	}
+
+	recordPool.Put(r)
 }
 
 func (r *zapRecord) Msgf(format string, msg string) {
@@ -279,4 +291,6 @@ func (r *zapRecord) Msgf(format string, msg string) {
 	case zapcore.PanicLevel:
 		sl.Panicf(format, msg)
 	}
+
+	recordPool.Put(r)
 }

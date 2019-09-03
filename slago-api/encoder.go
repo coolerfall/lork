@@ -14,34 +14,8 @@
 
 package slago
 
-import (
-	"os"
-)
-
-type consoleWriter struct {
-	encoder Encoder
-	filter  *LevelFilter
-}
-
-func NewConsoleWriter(e Encoder, f *LevelFilter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
-	}
-
-	return &consoleWriter{
-		encoder: e,
-		filter:  f,
-	}
-}
-
-func (w *consoleWriter) Write(p []byte) (n int, err error) {
-	return os.Stdout.Write(p)
-}
-
-func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
-}
-
-func (w *consoleWriter) Filter() *LevelFilter {
-	return w.filter
+// Encoder represents an encoder to encode logging event into different format.
+type Encoder interface {
+	// Encode encodes origin data to formatted data.
+	Encode(p []byte) (data []byte, err error)
 }

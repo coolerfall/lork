@@ -14,24 +14,24 @@
 
 package slago
 
-import (
-	jsoniter "github.com/json-iterator/go"
-	"io"
+const (
+	colorBlack = iota + 30
+	colorRed
+	colorGreen
+	colorYellow
+	colorBlue
+	colorMagenta
+	colorCyan
+	colorWhite
 )
 
-type FilterWriter struct {
-	originWirters []io.Writer
-}
-
-func NewFilterWriter(w ...io.Writer) *FilterWriter {
-	return &FilterWriter{
-		originWirters: w,
-	}
-}
-
-func (w *FilterWriter) Write(p []byte) (int, error) {
-	var event map[string]interface{}
-	jsoniter.Unmarshal(p, &event)
-
-	return len(p), nil
-}
+const (
+	colorBrightBlack = iota + 90
+	colorBrightRed
+	colorBrightGreen
+	colorBrightYellow
+	colorBrightBlue
+	colorBrightMagenta
+	colorBrightCyan
+	colorBrightWhite
+)
