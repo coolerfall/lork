@@ -14,19 +14,23 @@
 
 package slago
 
-// Filter represents a level filter.
-type Filter struct {
+type Filter interface {
+	Do() bool
+}
+
+// LevelFilter represents a level filter.
+type LevelFilter struct {
 	level Level
 }
 
-// NewFilter creates a new instance of filter.
-func NewFilter(lvl Level) *Filter {
-	return &Filter{
+// NewLevelFilter creates a new instance of filter.
+func NewLevelFilter(lvl Level) *LevelFilter {
+	return &LevelFilter{
 		level: lvl,
 	}
 }
 
 // Do will do the filter.
-func (f *Filter) Do(level Level) bool {
+func (f *LevelFilter) Do(level Level) bool {
 	return f.level > level
 }

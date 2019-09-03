@@ -31,15 +31,14 @@ import (
 
 func main() {
 	slago.Logger().AddWriter(slago.NewConsoleWriter(
-		slago.NewTemplateEncoder(`{{ clr "cyan" .timestamp }} {{ clr "lvl" .level }}`+
-			"\t"+`--- {{ .message }}`),
+		slago.NewPatternEncoder(""),
 		nil))
 	fw := slago.NewFileWriter(&slago.FileWriterOption{
 		Encoder:  slago.NewLogstashEncoder(),
-		Filter:   slago.NewFilter(slago.InfoLevel),
+		Filter:   slago.NewLevelFilter(slago.InfoLevel),
 		Filename: "slago-test.log",
 		RollingPolicy: slago.NewSizeAndTimeBasedRollingPolicy(
-			`slago-arch.{{date "2006-01-02"}}.{{.index}}.log`, "5MB"),
+			"slago-archive.#date{2006-01-02}.#index.log", "10MB"),
 	})
 	slago.Logger().AddWriter(fw)
 

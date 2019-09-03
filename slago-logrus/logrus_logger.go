@@ -32,7 +32,7 @@ var (
 )
 
 type logrusLogger struct {
-	syncMultiWriter *slago.SyncMultiWriter
+	syncMultiWriter *slago.MultiWriter
 }
 
 func init() {
@@ -50,7 +50,7 @@ func newLogrusLogger() *logrusLogger {
 	})
 	logrus.SetLevel(logrus.DebugLevel)
 
-	writer := slago.NewSyncMultiWriter()
+	writer := slago.NewMultiWriter()
 	logrus.SetOutput(writer)
 
 	return &logrusLogger{

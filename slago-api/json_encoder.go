@@ -14,16 +14,16 @@
 
 package slago
 
-// JsonEncoder encodes logging event into json format.
-type JsonEncoder struct {
+// jsonEncoder encodes logging event into json format.
+type jsonEncoder struct {
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
-func NewJsonEncoder() *JsonEncoder {
-	return &JsonEncoder{}
+func NewJsonEncoder() *jsonEncoder {
+	return &jsonEncoder{}
 }
 
-func (e *JsonEncoder) Encode(p []byte) ([]byte, error) {
+func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	// the default encoder is json, just return origin data
 	return p, nil
 }

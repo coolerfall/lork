@@ -61,6 +61,6 @@ func (w *socketWriter) Encoder() Encoder {
 	return w.encoder
 }
 
-func (w *socketWriter) Filter() *Filter {
+func (w *socketWriter) Filter() *LevelFilter {
 	return nil
 }

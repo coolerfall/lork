@@ -16,18 +16,15 @@ package slago
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sync"
 )
 
 var (
-	_ io.WriteCloser = (*fileWriter)(nil)
+	_ Writer = (*fileWriter)(nil)
 
 	defaultLogFilename = "slago.log"
-	dateKey            = "date"
-	indexKey           = "index"
 )
 
 type fileWriter struct {
@@ -39,7 +36,7 @@ type fileWriter struct {
 }
 
 type FileWriterOption struct {
-	Filter        *Filter
+	Filter        *LevelFilter
 	Encoder       Encoder
 	RollingPolicy RollingPolicy
 	Filename      string
@@ -48,7 +45,7 @@ type FileWriterOption struct {
 // NewFileWriter creates a new instance of file writer.
 func NewFileWriter(opts *FileWriterOption) *fileWriter {
 	if opts.RollingPolicy == nil {
-		opts.RollingPolicy = &noopRollingPolicy{}
+		opts.RollingPolicy = NewNoopRollingPolicy()
 	}
 
 	if len(opts.Filename) == 0 {
@@ -59,7 +56,7 @@ func NewFileWriter(opts *FileWriterOption) *fileWriter {
 		opts: opts,
 	}
 	opts.RollingPolicy.Attach(fw)
-	if err := opts.RollingPolicy.Start(); err != nil {
+	if err := opts.RollingPolicy.Prepare(); err != nil {
 		Reportf("start rolling policy error: %v", err)
 		os.Exit(0)
 	}
@@ -98,7 +95,7 @@ func (fw *fileWriter) Encoder() Encoder {
 	return fw.opts.Encoder
 }
 
-func (fw *fileWriter) Filter() *Filter {
+func (fw *fileWriter) Filter() *LevelFilter {
 	return fw.opts.Filter
 }
 
@@ -178,7 +175,7 @@ func (fw *fileWriter) rotate() (err error) {
 		return err
 	}
 
-	err = fw.opts.RollingPolicy.Rotate(fw.opts.Filename)
+	err = fw.opts.RollingPolicy.Rotate()
 	if err != nil {
 		return
 	}

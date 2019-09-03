@@ -34,7 +34,7 @@ var (
 
 type zapLogger struct {
 	atomicLevel     zap.AtomicLevel
-	syncMultiWriter *slago.SyncMultiWriter
+	syncMultiWriter *slago.MultiWriter
 }
 
 func init() {
@@ -52,7 +52,7 @@ func newZapLogger() *zapLogger {
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
-	writer := slago.NewSyncMultiWriter()
+	writer := slago.NewMultiWriter()
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(writer),
