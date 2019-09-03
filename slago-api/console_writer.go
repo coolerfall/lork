@@ -23,14 +23,23 @@ type consoleWriter struct {
 	filter  *LevelFilter
 }
 
-func NewConsoleWriter(e Encoder, f *LevelFilter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
+type ConsoleWriterOption struct {
+	Encoder Encoder
+	Filter  *LevelFilter
+}
+
+func NewConsoleWriter(options ...func(*ConsoleWriterOption)) *consoleWriter {
+	opt := &ConsoleWriterOption{
+		Encoder: NewJsonEncoder(),
+	}
+
+	for _, f := range options {
+		f(opt)
 	}
 
 	return &consoleWriter{
-		encoder: e,
-		filter:  f,
+		encoder: opt.Encoder,
+		filter:  opt.Filter,
 	}
 }
 

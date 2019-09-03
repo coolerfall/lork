@@ -36,7 +36,7 @@ func parseFileSize(fileSizeStr string) (int64, error) {
 	}
 	result := sizeRegex.FindStringSubmatch(fileSizeStr)
 	if len(result) != 3 {
-		return 0, errors.New("not a valid file size string ")
+		return 0, errors.New("not a valid file size string")
 	}
 
 	var coefficient int64
