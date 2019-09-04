@@ -124,19 +124,34 @@ type sizeAndTimeBasedRollingPolicy struct {
 	rollingDate   *rollingDate
 }
 
+// SizeAndTimeBasedRPOption represents available options for size and time
+// based rolling policy.
+type SizeAndTimeBasedRPOption struct {
+	FilenamePattern string
+	MaxFileSize     string
+}
+
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
 // based rolling policy for file writer.
-func NewSizeAndTimeBasedRollingPolicy(filenamePattern string,
-	maxSize string) *sizeAndTimeBasedRollingPolicy {
-	fileSize, err := parseFileSize(maxSize)
+func NewSizeAndTimeBasedRollingPolicy(options ...func(
+	*SizeAndTimeBasedRPOption)) *sizeAndTimeBasedRollingPolicy {
+	opt := &SizeAndTimeBasedRPOption{
+		MaxFileSize:     "128MB",
+		FilenamePattern: "slago-archive.#date{2006-01-02}.#index.log",
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
+	fileSize, err := parseFileSize(opt.MaxFileSize)
 	if err != nil {
-		Reportf("parse file size error: %v", err)
-		os.Exit(0)
+		ReportfExit("parse file size error: %v", err)
 	}
 
 	return &sizeAndTimeBasedRollingPolicy{
 		triggerSize:   fileSize,
-		patternParser: NewPatternParser(filenamePattern),
+		patternParser: NewPatternParser(opt.FilenamePattern),
 	}
 }
 
@@ -156,16 +171,23 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	}
 	rp.converter = converter
 
+	var gotIndex bool
 	var datePattern string
 	for c := rp.converter; c != nil; c = c.Next() {
 		if dc, ok := c.(*dateConverter); ok {
 			datePattern = dc.DatePattern()
-			break
+		}
+		if _, ok := c.(*indexConverter); ok {
+			gotIndex = true
 		}
 	}
 
+	if !gotIndex {
+		return errors.New("invalid filename pattern, missing index pattern")
+	}
+
 	if len(datePattern) == 0 {
-		return errors.New("invalid file name pattern, missing date pattern")
+		return errors.New("invalid filename pattern, missing date pattern")
 	}
 
 	rp.rollingDate = newRollingDate(datePattern)

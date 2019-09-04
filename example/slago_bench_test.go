@@ -26,7 +26,10 @@ func init() {
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			"slago-archive.#date{2006-01-02}.#index.log", "10MB")
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
 	})
 
 	//cw := slago.NewConsoleWriter(slago.NewPatternEncoder(""), nil)

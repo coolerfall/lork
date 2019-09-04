@@ -23,14 +23,16 @@ type consoleWriter struct {
 	filter  *LevelFilter
 }
 
+// ConsoleWriterOption represents available options for console writer.
 type ConsoleWriterOption struct {
 	Encoder Encoder
 	Filter  *LevelFilter
 }
 
+// NewConsoleWriter creates a new instance of console writer.
 func NewConsoleWriter(options ...func(*ConsoleWriterOption)) *consoleWriter {
 	opt := &ConsoleWriterOption{
-		Encoder: NewJsonEncoder(),
+		Encoder: NewPatternEncoder(),
 	}
 
 	for _, f := range options {

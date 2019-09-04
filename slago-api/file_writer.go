@@ -35,6 +35,7 @@ type fileWriter struct {
 	size  int64
 }
 
+// FileWriterOption represents available options for file wirter.
 type FileWriterOption struct {
 	Filter        *LevelFilter
 	Encoder       Encoder
@@ -59,8 +60,7 @@ func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
 	}
 	opts.RollingPolicy.Attach(fw)
 	if err := opts.RollingPolicy.Prepare(); err != nil {
-		Reportf("start rolling policy error: %v", err)
-		os.Exit(0)
+		ReportfExit("start rolling policy error: \n%v", err)
 	}
 
 	return fw
