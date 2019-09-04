@@ -44,12 +44,14 @@ type patternParser struct {
 	tail *node
 }
 
+// NewPatternParser creates a new instance of pattern parser.
 func NewPatternParser(pattern string) *patternParser {
 	return &patternParser{
 		pattern: pattern,
 	}
 }
 
+// Parse parses pattern to pattern node chain.
 func (p *patternParser) Parse() (*node, error) {
 	var buf = &bytes.Buffer{}
 	var keywordStart bool
@@ -180,6 +182,7 @@ type patternCompiler struct {
 	tail Converter
 }
 
+// NewPatternCompiler creates a new instance of pattern compiler.
 func NewPatternCompiler(node *node, converterMap map[string]NewConverter) *patternCompiler {
 	return &patternCompiler{
 		node:         node,
@@ -187,6 +190,7 @@ func NewPatternCompiler(node *node, converterMap map[string]NewConverter) *patte
 	}
 }
 
+// Compile will compile pattern to converter.
 func (p *patternCompiler) Compile() (Converter, error) {
 	for n := p.node; n != nil; n = n.next {
 		switch n._type {

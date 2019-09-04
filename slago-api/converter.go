@@ -19,11 +19,21 @@ import (
 	"time"
 )
 
+// Converter represents a pattern converter which will convert pattern to string.
 type Converter interface {
+	// AttatchNext attatches next converter to the chain.
 	AttatchNext(next Converter)
+
+	// Next gets next from the chain.
 	Next() Converter
+
+	// AttachChild attaches child converter to current converter.
 	AttachChild(child Converter)
+
+	// AttachOptions attaches options to current converter.
 	AttachOptions(opts []string)
+
+	// Convert converts given events to string.
 	Convert(event interface{}) string
 }
 

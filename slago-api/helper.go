@@ -17,6 +17,7 @@ package slago
 import (
 	"bytes"
 	"fmt"
+	"os"
 
 	"github.com/json-iterator/go"
 )
@@ -116,6 +117,12 @@ func Report(msg string) {
 func Reportf(format string, args ...interface{}) {
 	format = "slago: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
+}
+
+// ReportfExit reportes message with arguments in stdout and exit process.
+func ReportfExit(format string, args ...interface{}) {
+	Reportf(format, args)
+	os.Exit(0)
 }
 
 // colorize adds ANSI color for given string.

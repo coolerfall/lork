@@ -30,16 +30,16 @@ import (
 )
 
 func main() {
-	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(
-			"#color(#date{2006-01-02}){cyan} #color(#level) #message #fields")
-	}))
+	slago.Logger().AddWriter(slago.NewConsoleWriter())
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewLogstashEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			"slago-archive.#date{2006-01-02}.#index.log", "10MB")
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
 	})
 	slago.Logger().AddWriter(fw)
 

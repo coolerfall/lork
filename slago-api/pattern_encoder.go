@@ -17,7 +17,6 @@ package slago
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -48,7 +47,7 @@ var (
 	}
 
 	levelColorMap = map[string]int{
-		"TRACE": colorBrightWhite,
+		"TRACE": colorWhite,
 		"DEBUG": colorBlue,
 		"INFO":  colorGreen,
 		"WARN":  colorYellow,
@@ -65,6 +64,7 @@ type PatternEncoder struct {
 	converter Converter
 }
 
+// NewPatternEncoder creates a new instance of pattern encoder.
 func NewPatternEncoder(layouts ...string) *PatternEncoder {
 	var layout string
 	if len(layouts) == 0 || len(layouts[0]) == 0 {
@@ -76,8 +76,7 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 	patternParser := NewPatternParser(layout)
 	node, err := patternParser.Parse()
 	if err != nil {
-		Reportf("parse pattern error, %v", err)
-		os.Exit(0)
+		ReportfExit("parse pattern error, %v", err)
 	}
 
 	converters := map[string]NewConverter{
@@ -89,8 +88,7 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 	}
 	converter, err := NewPatternCompiler(node, converters).Compile()
 	if err != nil {
-		Reportf("compile pattern error, %v", err)
-		os.Exit(0)
+		ReportfExit("compile pattern error, %v", err)
 	}
 
 	return &PatternEncoder{
