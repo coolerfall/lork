@@ -6,6 +6,7 @@ import (
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"time"
 )
 
 var (
@@ -21,17 +22,14 @@ var (
 type zapBridge struct {
 }
 
-func init() {
-	slago.Install(newZapBrige())
-}
-
-func newZapBrige() *zapBridge {
+// NewZapBrige creates a new slago bridge for zap.
+func NewZapBrige() *zapBridge {
 	bridge := &zapBridge{}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.LevelKey = slago.LevelFieldKey
 	encoderConfig.TimeKey = slago.TimestampFieldKey
 	encoderConfig.MessageKey = slago.MessageFieldKey
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeTime = rf3339Encoder
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig),
@@ -61,4 +59,8 @@ func (b *zapBridge) Write(p []byte) (int, error) {
 	}
 
 	return len(p), err
+}
+
+func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format(slago.TimestampFormat))
 }

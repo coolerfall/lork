@@ -16,14 +16,16 @@ package slago
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/buger/jsonparser"
 )
 
 const (
-	DefaultLayout = "#color(#date{2006-01-02}){cyan} #color(#level) #message #fields"
+	DefaultLayout = "#color(#date{2006-01-02 15:04:05}){cyan} " +
+		"#color(#level) #message #fields"
 )
 
 var (
@@ -98,15 +100,14 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 }
 
 func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
-	var eventMap map[string]interface{}
-	err = json.Unmarshal(p, &eventMap)
-	if err != nil {
-		return nil, err
-	}
+	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
+	ts, _ := jsonparser.GetString(p, TimestampFieldKey)
+	msg, _ := jsonparser.GetString(p, MessageFieldKey)
 
-	lvl := getAndRemove(LevelFieldKey, eventMap)
-	ts := getAndRemove(TimestampFieldKey, eventMap)
-	msg := getAndRemove(MessageFieldKey, eventMap)
+	lp := jsonparser.Delete(p, LevelFieldKey)
+	lp = jsonparser.Delete(lp, TimestampFieldKey)
+	lp = jsonparser.Delete(lp, MessageFieldKey)
+
 	t, err := time.Parse(time.RFC3339, ts)
 	if err != nil {
 		return nil, err
@@ -114,10 +115,10 @@ func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
 	level := ParseLevel(lvl)
 
 	event := logEvent{
-		level:     level,
-		timestamp: t,
-		message:   msg,
-		fields:    eventMap,
+		level:      level,
+		timestamp:  t,
+		message:    msg,
+		fieldsJson: lp,
 	}
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
@@ -133,10 +134,11 @@ func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
 }
 
 type logEvent struct {
-	level     Level
-	timestamp time.Time
-	message   string
-	fields    map[string]interface{}
+	level      Level
+	timestamp  time.Time
+	message    string
+	fieldsJson []byte
+	fields     map[string]interface{}
 }
 
 type colorConverter struct {
@@ -351,10 +353,14 @@ func (fc *fieldsConverter) Convert(event interface{}) string {
 		return ""
 	}
 
-	fields := logEvent.fields
-	for k, v := range fields {
-		fc.buf.WriteString(fmt.Sprintf("%s=%v ", k, v))
-	}
+	_ = jsonparser.ObjectEach(logEvent.fieldsJson, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, offset int) error {
+		fc.buf.Write(key)
+		fc.buf.WriteString("=")
+		fc.buf.Write(value)
+		fc.buf.WriteByte(' ')
+		return nil
+	})
 	data := fc.buf.String()
 	fc.buf.Reset()
 

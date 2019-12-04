@@ -22,7 +22,7 @@ import (
 
 func init() {
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewLogstashEncoder()
+		o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(

@@ -23,11 +23,8 @@ var (
 type logrusBridge struct {
 }
 
-func init() {
-	slago.Install(newLogrusBridge())
-}
-
-func newLogrusBridge() slago.Bridge {
+// NewLogrusBridge creates a new slago bridge for logrus.
+func NewLogrusBridge() slago.Bridge {
 	bridge := &logrusBridge{}
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339,
