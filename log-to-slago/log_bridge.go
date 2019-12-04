@@ -12,13 +12,11 @@ import (
 type logBridge struct {
 }
 
-func init() {
-	slago.Install(newLogBridge())
-}
-
-func newLogBridge() *logBridge {
+// NewLogBridge creates a new slago bridge for standard log.
+func NewLogBridge() *logBridge {
 	bridge := &logBridge{}
 	log.SetOutput(bridge)
+	// clear all flags, just output message
 	log.SetFlags(0)
 
 	return bridge

@@ -15,9 +15,10 @@
 package slago
 
 import (
-	"bytes"
 	"io"
 	"sync"
+
+	"github.com/buger/jsonparser"
 )
 
 // Writer is the interface that wraps the io.Writer, add adds
@@ -37,14 +38,12 @@ type Writer interface {
 type MultiWriter struct {
 	writers []Writer
 	mutex   sync.Mutex
-	buf     *bytes.Buffer
 }
 
 // NewMultiWriter creates a new multiple writer.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
 		writers: make([]Writer, 0),
-		buf:     new(bytes.Buffer),
 	}
 }
 
@@ -62,9 +61,13 @@ func (mw *MultiWriter) Reset() {
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.mutex.Lock()
-	findValue(p, LevelFieldKey, mw.buf)
-	level := ParseLevel(mw.buf.String())
-	mw.buf.Reset()
+	lvlValue, _, _, err := jsonparser.Get(p, LevelFieldKey)
+	var level Level
+	if err != nil {
+		level = DebugLevel
+	} else {
+		level = ParseLevel(string(lvlValue))
+	}
 	mw.mutex.Unlock()
 
 	for _, w := range mw.writers {
@@ -76,7 +79,7 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 		if w.Encoder() != nil {
 			encoded, err = w.Encoder().Encode(p)
 			if err != nil {
-				return
+				return 0, err
 			}
 		}
 		n, err = w.Write(encoded)

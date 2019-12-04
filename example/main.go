@@ -18,11 +18,11 @@ import (
 	"log"
 
 	"github.com/sirupsen/logrus"
-	_ "gitlab.com/anbillon/slago/log-to-slago"
-	_ "gitlab.com/anbillon/slago/logrus-to-slago"
+	"gitlab.com/anbillon/slago/log-to-slago"
+	"gitlab.com/anbillon/slago/logrus-to-slago"
 	"gitlab.com/anbillon/slago/slago-api"
 	_ "gitlab.com/anbillon/slago/slago-zerolog"
-	_ "gitlab.com/anbillon/slago/zap-to-slago"
+	"gitlab.com/anbillon/slago/zap-to-slago"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slago-logrus"
 	//_ "gitlab.com/anbillon/slago/slago-zap"
@@ -30,10 +30,14 @@ import (
 )
 
 func main() {
+	slago.Install(gologslago.NewLogBridge())
+	slago.Install(logrusslago.NewLogrusBridge())
+	slago.Install(zapslago.NewZapBrige())
+
 	slago.Logger().AddWriter(slago.NewConsoleWriter())
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewLogstashEncoder()
-		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
+		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
@@ -46,7 +50,7 @@ func main() {
 	slago.Logger().Trace().Msg("slago")
 	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
-	zap.L().Warn("this is zap")
+	zap.L().With().Warn("this is zap")
 
 	log.Printf("this is builtin logger")
 }

@@ -22,14 +22,11 @@ var (
 type zerologBridge struct {
 }
 
-func init() {
-	slago.Install(newZerologBridge())
-}
-
-func newZerologBridge() slago.Bridge {
+// NewZerologBridge creates a new slago bridge for zerolog.
+func NewZerologBridge() slago.Bridge {
 	bridge := &zerologBridge{}
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = "2006-01-02T15:04:05.000Z07:00"
+	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey
 	zerolog.TimestampFieldName = slago.TimestampFieldKey
 	zerolog.MessageFieldName = slago.MessageFieldKey
