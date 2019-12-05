@@ -3,10 +3,11 @@
 package zapslago
 
 import (
+	"time"
+
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"time"
 )
 
 var (

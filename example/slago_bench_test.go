@@ -34,7 +34,6 @@ func init() {
 
 	//cw := slago.NewConsoleWriter(slago.NewPatternEncoder(""), nil)
 	slago.Logger().AddWriter(fw)
-	//log.Logger = log.Output(fw)
 }
 
 func BenchmarkSlagoZerolog(b *testing.B) {
@@ -44,7 +43,6 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 		for pb.Next() {
 			slago.Logger().Info().Int("int", 88).Msg(
 				"The quick brown fox jumps over the lazy dog")
-			//log.Info().Msg("The quick brown fox jumps over the lazy dog")
 		}
 	})
 }
