@@ -220,7 +220,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 
 	for c := rp.converter; c != nil; c = c.Next() {
 		if _, ok := c.(*literalConverter); ok {
-			buf.WriteString(c.Convert(""))
+			buf.WriteString(c.Convert(nil))
 		}
 		if _, ok := c.(*dateConverter); ok {
 			buf.WriteString(c.Convert(time.Now()))

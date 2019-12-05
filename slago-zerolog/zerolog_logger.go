@@ -78,7 +78,7 @@ func (l *zeroLogger) ResetWriter() {
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
 	zeroLevel := slagoLvlToZeroLvl[lvl]
 	if zeroLevel == zerolog.NoLevel {
-		zeroLevel = zerolog.DebugLevel
+		zeroLevel = zerolog.TraceLevel
 	}
 
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])

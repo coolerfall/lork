@@ -100,45 +100,36 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 }
 
 func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
-	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
-	ts, _ := jsonparser.GetString(p, TimestampFieldKey)
-	msg, _ := jsonparser.GetString(p, MessageFieldKey)
-
-	lp := jsonparser.Delete(p, LevelFieldKey)
-	lp = jsonparser.Delete(lp, TimestampFieldKey)
-	lp = jsonparser.Delete(lp, MessageFieldKey)
-
-	t, err := time.Parse(time.RFC3339, ts)
-	if err != nil {
-		return nil, err
-	}
-	level := ParseLevel(lvl)
-
-	event := logEvent{
-		level:      level,
-		timestamp:  t,
-		message:    msg,
-		fieldsJson: lp,
-	}
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		pe.buf.WriteString(c.Convert(event))
+		var result string
+		// implicit conversation will allocate memory
+		switch c.(type) {
+		case *colorConverter:
+			result = c.(*colorConverter).Convert(p)
+
+		case *levelConverter:
+			result = c.(*levelConverter).Convert(p)
+
+		case *logDateConverter:
+			result = c.(*logDateConverter).Convert(p)
+
+		case *messageConverter:
+			result = c.(*messageConverter).Convert(p)
+
+		case *fieldsConverter:
+			result = c.(*fieldsConverter).Convert(p)
+		}
+
+		pe.buf.WriteString(result)
 	}
 	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
 	pe.buf.Reset()
 
 	return data, err
-}
-
-type logEvent struct {
-	level      Level
-	timestamp  time.Time
-	message    string
-	fieldsJson []byte
-	fields     map[string]interface{}
 }
 
 type colorConverter struct {
@@ -171,10 +162,11 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 }
 
 func (cc *colorConverter) Convert(event interface{}) string {
-	var level string
-	if logEvent, ok := event.(logEvent); ok {
-		level = logEvent.level.String()
+	data, ok := event.([]byte)
+	if !ok {
+		return "-"
 	}
+	level, _, _, _ := jsonparser.Get(data, LevelFieldKey)
 
 	if len(cc.opts) != 0 {
 		color, ok := colorMap[cc.opts[0]]
@@ -187,7 +179,7 @@ func (cc *colorConverter) Convert(event interface{}) string {
 	for c := cc.child; c != nil; c = c.Next() {
 		result := c.Convert(event)
 		if _, ok := c.(*levelConverter); ok {
-			color, ok := levelColorMap[level]
+			color, ok := levelColorMap[string(level)]
 			if !ok {
 				color = colorWhite
 			}
@@ -200,10 +192,10 @@ func (cc *colorConverter) Convert(event interface{}) string {
 
 	cc.writeColorEnd()
 
-	data := cc.buf.String()
+	result := cc.buf.String()
 	cc.buf.Reset()
 
-	return data
+	return result
 }
 
 func (cc *colorConverter) writeColor(color int) {
@@ -239,12 +231,14 @@ func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
 func (lc *levelConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
+	data, ok := event.([]byte)
 	if !ok {
 		return ""
 	}
 
-	return logEvent.level.String()
+	level, _, _, _ := jsonparser.Get(data, LevelFieldKey)
+
+	return string(level)
 }
 
 type logDateConverter struct {
@@ -278,12 +272,18 @@ func (c *logDateConverter) AttachOptions(opts []string) {
 }
 
 func (c *logDateConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
+	data, ok := event.([]byte)
 	if !ok {
 		return ""
 	}
 
-	return logEvent.timestamp.Format(c.opts[0])
+	tsValue, _, _, _ := jsonparser.Get(data, TimestampFieldKey)
+	ts, err := time.Parse(TimestampFormat, string(tsValue))
+	if err != nil {
+		ts = time.Now()
+	}
+	// TODO: AppendFormat
+	return ts.Format(c.opts[0])
 }
 
 type messageConverter struct {
@@ -309,17 +309,17 @@ func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
 func (mc *messageConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
+	data, ok := event.([]byte)
 	if !ok {
 		return "-"
 	}
 
-	message := logEvent.message
+	message, _, _, _ := jsonparser.Get(data, MessageFieldKey)
 	if len(message) == 0 {
 		return "-"
 	}
 
-	return message
+	return string(message)
 }
 
 type fieldsConverter struct {
@@ -348,21 +348,32 @@ func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
 func (fc *fieldsConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
+	data, ok := event.([]byte)
 	if !ok {
 		return ""
 	}
 
-	_ = jsonparser.ObjectEach(logEvent.fieldsJson, func(key []byte, value []byte,
+	_ = jsonparser.ObjectEach(data, func(key []byte, value []byte,
 		dataType jsonparser.ValueType, offset int) error {
-		fc.buf.Write(key)
-		fc.buf.WriteString("=")
-		fc.buf.Write(value)
-		fc.buf.WriteByte(' ')
+		jsonKey := string(key)
+		switch jsonKey {
+		case TimestampFieldKey:
+		case LevelFieldKey:
+		case MessageFieldKey:
+			// do nothing for these keys
+
+		default:
+			fc.buf.Write(key)
+			fc.buf.WriteString("=")
+			fc.buf.Write(value)
+			fc.buf.WriteByte(' ')
+		}
+
 		return nil
 	})
-	data := fc.buf.String()
+
+	result := fc.buf.String()
 	fc.buf.Reset()
 
-	return data
+	return result
 }
