@@ -53,13 +53,13 @@ func newZeroLogger() *zeroLogger {
 		return strings.ToUpper(l.String())
 	}
 
-	ioWriterWrapper := slago.NewMultiWriter()
-	logger := zerolog.New(ioWriterWrapper).With().Timestamp().Logger()
+	multiWriter := slago.NewMultiWriter()
+	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
 	log.Logger = logger
 
 	return &zeroLogger{
 		logger:      logger,
-		multiWriter: ioWriterWrapper,
+		multiWriter: multiWriter,
 	}
 }
 

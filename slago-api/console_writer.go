@@ -20,13 +20,13 @@ import (
 
 type consoleWriter struct {
 	encoder Encoder
-	filter  *LevelFilter
+	filter  Filter
 }
 
 // ConsoleWriterOption represents available options for console writer.
 type ConsoleWriterOption struct {
 	Encoder Encoder
-	Filter  *LevelFilter
+	Filter  Filter
 }
 
 // NewConsoleWriter creates a new instance of console writer.
@@ -53,6 +53,6 @@ func (w *consoleWriter) Encoder() Encoder {
 	return w.encoder
 }
 
-func (w *consoleWriter) Filter() *LevelFilter {
+func (w *consoleWriter) Filter() Filter {
 	return w.filter
 }

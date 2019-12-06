@@ -37,7 +37,7 @@ type fileWriter struct {
 
 // FileWriterOption represents available options for file wirter.
 type FileWriterOption struct {
-	Filter        *LevelFilter
+	Filter        Filter
 	Encoder       Encoder
 	RollingPolicy RollingPolicy
 	Filename      string
@@ -97,7 +97,7 @@ func (fw *fileWriter) Encoder() Encoder {
 	return fw.opts.Encoder
 }
 
-func (fw *fileWriter) Filter() *LevelFilter {
+func (fw *fileWriter) Filter() Filter {
 	return fw.opts.Filter
 }
 

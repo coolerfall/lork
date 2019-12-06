@@ -15,14 +15,13 @@
 package main
 
 import (
-	"log"
-
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago/log-to-slago"
 	"gitlab.com/anbillon/slago/logrus-to-slago"
 	"gitlab.com/anbillon/slago/slago-api"
 	_ "gitlab.com/anbillon/slago/slago-zerolog"
 	"gitlab.com/anbillon/slago/zap-to-slago"
+	"log"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slago-logrus"
 	//_ "gitlab.com/anbillon/slago/slago-zap"
@@ -34,9 +33,13 @@ func main() {
 	slago.Install(logrusslago.NewLogrusBridge())
 	slago.Install(zapslago.NewZapBrige())
 
-	slago.Logger().AddWriter(slago.NewConsoleWriter())
+	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
+		o.Encoder = slago.NewPatternEncoder(
+			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+				"#level) #message #fields")
+	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewLogstashEncoder()
+		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(

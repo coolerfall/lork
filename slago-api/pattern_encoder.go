@@ -16,11 +16,9 @@ package slago
 
 import (
 	"bytes"
+	"github.com/buger/jsonparser"
 	"strconv"
 	"sync"
-	"time"
-
-	"github.com/buger/jsonparser"
 )
 
 const (
@@ -104,26 +102,26 @@ func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
 	defer pe.mutex.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		var result string
 		// implicit conversation will allocate memory
 		switch c.(type) {
 		case *colorConverter:
-			result = c.(*colorConverter).Convert(p)
+			c.(*colorConverter).Convert(p, pe.buf)
 
 		case *levelConverter:
-			result = c.(*levelConverter).Convert(p)
+			c.(*levelConverter).Convert(p, pe.buf)
 
 		case *logDateConverter:
-			result = c.(*logDateConverter).Convert(p)
+			c.(*logDateConverter).Convert(p, pe.buf)
 
 		case *messageConverter:
-			result = c.(*messageConverter).Convert(p)
+			c.(*messageConverter).Convert(p, pe.buf)
 
 		case *fieldsConverter:
-			result = c.(*fieldsConverter).Convert(p)
-		}
+			c.(*fieldsConverter).Convert(p, pe.buf)
 
-		pe.buf.WriteString(result)
+		case *literalConverter:
+			c.(*literalConverter).Convert(p, pe.buf)
+		}
 	}
 	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
@@ -161,10 +159,10 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 	cc.opts = opts
 }
 
-func (cc *colorConverter) Convert(event interface{}) string {
+func (cc *colorConverter) Convert(event interface{}, buf *bytes.Buffer) {
 	data, ok := event.([]byte)
 	if !ok {
-		return "-"
+		return
 	}
 	level, _, _, _ := jsonparser.Get(data, LevelFieldKey)
 
@@ -177,7 +175,6 @@ func (cc *colorConverter) Convert(event interface{}) string {
 	}
 
 	for c := cc.child; c != nil; c = c.Next() {
-		result := c.Convert(event)
 		if _, ok := c.(*levelConverter); ok {
 			color, ok := levelColorMap[string(level)]
 			if !ok {
@@ -185,17 +182,17 @@ func (cc *colorConverter) Convert(event interface{}) string {
 			}
 
 			cc.writeColor(color)
+			c.Convert(event, cc.buf)
+			cc.writeColorEnd()
+			continue
 		}
-		cc.buf.WriteString(result)
-		cc.writeColorEnd()
+		c.Convert(event, cc.buf)
 	}
 
 	cc.writeColorEnd()
 
-	result := cc.buf.String()
+	buf.Write(cc.buf.Bytes())
 	cc.buf.Reset()
-
-	return result
 }
 
 func (cc *colorConverter) writeColor(color int) {
@@ -230,15 +227,17 @@ func (lc *levelConverter) AttachChild(child Converter) {
 func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
-func (lc *levelConverter) Convert(event interface{}) string {
+func (lc *levelConverter) Convert(event interface{}, buf *bytes.Buffer) {
 	data, ok := event.([]byte)
 	if !ok {
-		return ""
+		return
 	}
 
-	level, _, _, _ := jsonparser.Get(data, LevelFieldKey)
-
-	return string(level)
+	lvl, _, _, err := jsonparser.Get(data, LevelFieldKey)
+	if err != nil {
+		return
+	}
+	buf.Write(lvl)
 }
 
 type logDateConverter struct {
@@ -271,19 +270,17 @@ func (c *logDateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *logDateConverter) Convert(event interface{}) string {
+func (c *logDateConverter) Convert(event interface{}, buf *bytes.Buffer) {
 	data, ok := event.([]byte)
 	if !ok {
-		return ""
+		return
 	}
 
 	tsValue, _, _, _ := jsonparser.Get(data, TimestampFieldKey)
-	ts, err := time.Parse(TimestampFormat, string(tsValue))
-	if err != nil {
-		ts = time.Now()
-	}
-	// TODO: AppendFormat
-	return ts.Format(c.opts[0])
+	bufData := buf.Bytes()
+	bufData, _ = convertFormat(bufData, string(tsValue), c.opts[0])
+	buf.Reset()
+	buf.Write(bufData)
 }
 
 type messageConverter struct {
@@ -308,18 +305,20 @@ func (mc *messageConverter) AttachChild(child Converter) {
 func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
-func (mc *messageConverter) Convert(event interface{}) string {
+func (mc *messageConverter) Convert(event interface{}, buf *bytes.Buffer) {
 	data, ok := event.([]byte)
 	if !ok {
-		return "-"
+		buf.WriteByte('-')
+		return
 	}
 
 	message, _, _, _ := jsonparser.Get(data, MessageFieldKey)
 	if len(message) == 0 {
-		return "-"
+		buf.WriteByte('-')
+		return
 	}
 
-	return string(message)
+	buf.Write(message)
 }
 
 type fieldsConverter struct {
@@ -347,10 +346,10 @@ func (fc *fieldsConverter) AttachChild(child Converter) {
 func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
-func (fc *fieldsConverter) Convert(event interface{}) string {
+func (fc *fieldsConverter) Convert(event interface{}, buf *bytes.Buffer) {
 	data, ok := event.([]byte)
 	if !ok {
-		return ""
+		return
 	}
 
 	_ = jsonparser.ObjectEach(data, func(key []byte, value []byte,
@@ -363,17 +362,12 @@ func (fc *fieldsConverter) Convert(event interface{}) string {
 			// do nothing for these keys
 
 		default:
-			fc.buf.Write(key)
-			fc.buf.WriteString("=")
-			fc.buf.Write(value)
-			fc.buf.WriteByte(' ')
+			buf.Write(key)
+			buf.WriteString("=")
+			buf.Write(value)
+			buf.WriteByte(' ')
 		}
 
 		return nil
 	})
-
-	result := fc.buf.String()
-	fc.buf.Reset()
-
-	return result
 }
