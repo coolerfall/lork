@@ -14,8 +14,12 @@
 
 package slago
 
+import (
+	"github.com/buger/jsonparser"
+)
+
 type Filter interface {
-	Do() bool
+	Do(p []byte) bool
 }
 
 // LevelFilter represents a level filter.
@@ -30,7 +34,10 @@ func NewLevelFilter(lvl Level) *LevelFilter {
 	}
 }
 
-// Do will do the filter.
-func (f *LevelFilter) Do(level Level) bool {
+// Do will execute the filter.
+func (f *LevelFilter) Do(p []byte) bool {
+	lvl, _, _, _ := jsonparser.Get(p, LevelFieldKey)
+	level := ParseLevel(string(lvl))
+
 	return f.level > level
 }

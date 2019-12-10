@@ -23,6 +23,7 @@ import (
 func init() {
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
+		//o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
@@ -32,7 +33,6 @@ func init() {
 			})
 	})
 
-	//cw := slago.NewConsoleWriter(slago.NewPatternEncoder(""), nil)
 	slago.Logger().AddWriter(fw)
 }
 

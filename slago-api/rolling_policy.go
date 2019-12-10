@@ -191,8 +191,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	}
 
 	rp.rollingDate = newRollingDate(datePattern)
-
 	rp.calcNextCheck()
+
 	return rp.calcIndex()
 }
 
@@ -219,14 +219,15 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 	buf := &bytes.Buffer{}
 
 	for c := rp.converter; c != nil; c = c.Next() {
-		if _, ok := c.(*literalConverter); ok {
-			buf.WriteString(c.Convert(nil))
-		}
-		if _, ok := c.(*dateConverter); ok {
-			buf.WriteString(c.Convert(time.Now()))
-		}
-		if _, ok := c.(*indexConverter); ok {
-			buf.WriteString(c.Convert(rp.index))
+		switch c.(type) {
+		case *literalConverter:
+			c.Convert(nil, buf)
+
+		case *dateConverter:
+			c.Convert(time.Now(), buf)
+
+		case *indexConverter:
+			c.Convert(rp.index, buf)
 		}
 	}
 
@@ -297,13 +298,14 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 func (rp *sizeAndTimeBasedRollingPolicy) toFilenameRegex() string {
 	var buf = &bytes.Buffer{}
 	for c := rp.converter; c != nil; c = c.Next() {
-		if _, ok := c.(*literalConverter); ok {
-			buf.WriteString(c.Convert(""))
-		}
-		if _, ok := c.(*dateConverter); ok {
-			buf.WriteString(c.Convert(time.Now()))
-		}
-		if _, ok := c.(*indexConverter); ok {
+		switch c.(type) {
+		case *literalConverter:
+			c.Convert(nil, buf)
+
+		case *dateConverter:
+			c.Convert(time.Now(), buf)
+
+		case *indexConverter:
 			buf.WriteString("(\\d{1,3})")
 		}
 	}
@@ -350,7 +352,7 @@ func (rd *rollingDate) calcPeriodType() periodType {
 		tl := now.Format(rd.datePattern)
 		next := rd.endOfPeriod(t, now)
 		tr := next.Format(rd.datePattern)
-		if tl == tr {
+		if tl != tr {
 			return t
 		}
 	}

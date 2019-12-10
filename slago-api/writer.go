@@ -17,8 +17,6 @@ package slago
 import (
 	"io"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 // Writer is the interface that wraps the io.Writer, add adds
@@ -30,7 +28,7 @@ type Writer interface {
 	Encoder() Encoder
 
 	// LevelFilter returns filter used in current writer.
-	Filter() *LevelFilter
+	Filter() Filter
 }
 
 // MultiWriter represents multiple writer which implements slago.Writer.
@@ -61,17 +59,10 @@ func (mw *MultiWriter) Reset() {
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.mutex.Lock()
-	lvlValue, _, _, err := jsonparser.Get(p, LevelFieldKey)
-	var level Level
-	if err != nil {
-		level = DebugLevel
-	} else {
-		level = ParseLevel(string(lvlValue))
-	}
-	mw.mutex.Unlock()
+	defer mw.mutex.Unlock()
 
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(level) {
+		if w.Filter() != nil && w.Filter().Do(p) {
 			return
 		}
 

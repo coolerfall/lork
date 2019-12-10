@@ -15,7 +15,8 @@
 package slago
 
 import (
-	"fmt"
+	"bytes"
+	"strconv"
 	"time"
 )
 
@@ -33,8 +34,8 @@ type Converter interface {
 	// AttachOptions attaches options to current converter.
 	AttachOptions(opts []string)
 
-	// Convert converts given events to string.
-	Convert(event interface{}) string
+	// Convert converts given events into buffer.
+	Convert(event interface{}, buf *bytes.Buffer)
 }
 
 type NewConverter func() Converter
@@ -64,8 +65,8 @@ func (c *literalConverter) AttachChild(child Converter) {
 func (c *literalConverter) AttachOptions(opt []string) {
 }
 
-func (c *literalConverter) Convert(event interface{}) string {
-	return c.value
+func (c *literalConverter) Convert(event interface{}, buf *bytes.Buffer) {
+	buf.WriteString(c.value)
 }
 
 type dateConverter struct {
@@ -96,13 +97,16 @@ func (c *dateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *dateConverter) Convert(event interface{}) string {
-	t, ok := event.(time.Time)
+func (c *dateConverter) Convert(event interface{}, buf *bytes.Buffer) {
+	ts, ok := event.(time.Time)
 	if !ok {
-		return ""
+		return
 	}
 
-	return t.Format(c.opts[0])
+	bufData := buf.Bytes()
+	bufData = ts.AppendFormat(bufData, c.opts[0])
+	buf.Reset()
+	buf.Write(bufData)
 }
 
 func (c *dateConverter) DatePattern() string {
@@ -131,9 +135,14 @@ func (c *indexConverter) AttachChild(child Converter) {
 func (c *indexConverter) AttachOptions(opts []string) {
 }
 
-func (c *indexConverter) Convert(e interface{}) string {
-	if _, ok := e.(int); !ok {
-		return ""
+func (c *indexConverter) Convert(e interface{}, buf *bytes.Buffer) {
+	index, ok := e.(int)
+	if !ok {
+		return
 	}
-	return fmt.Sprintf("%v", e)
+
+	bufData := buf.Bytes()
+	bufData = strconv.AppendInt(bufData, int64(index), 10)
+	buf.Reset()
+	buf.Write(bufData)
 }

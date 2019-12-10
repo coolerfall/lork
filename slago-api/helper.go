@@ -26,6 +26,7 @@ const (
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
 
+	//TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
 	TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
 )
 
@@ -33,18 +34,23 @@ const (
 func BrigeWrite(bridge Bridge, p []byte) error {
 	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
 	msg, _ := jsonparser.GetString(p, MessageFieldKey)
-	lp := jsonparser.Delete(p, LevelFieldKey)
-	lp = jsonparser.Delete(lp, TimestampFieldKey)
-	lp = jsonparser.Delete(lp, MessageFieldKey)
 
 	record := Logger().Level(bridge.ParseLevel(lvl))
-	_ = jsonparser.ObjectEach(lp, func(key []byte, value []byte,
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
 		dataType jsonparser.ValueType, offset int) error {
-		record.Bytes(string(key), value)
+		realKey := string(key)
+		switch realKey {
+		case LevelFieldKey:
+		case TimestampFieldKey:
+		case MessageFieldKey:
+			record.Msg(msg)
+
+		default:
+			record.Bytes(realKey, value)
+		}
+
 		return nil
 	})
-
-	record.Msg(msg)
 
 	return nil
 }
