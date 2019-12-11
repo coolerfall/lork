@@ -176,5 +176,5 @@ func (r *noopRecord) Interface(key string, val interface{}) Record {
 func (r *noopRecord) Msg(msg string) {
 }
 
-func (r *noopRecord) Msgf(format string, msg string) {
+func (r *noopRecord) Msgf(format string, v ...interface{}) {
 }

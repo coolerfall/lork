@@ -230,7 +230,7 @@ func (r *zeroRecord) Msg(msg string) {
 	recordPool.Put(r)
 }
 
-func (r *zeroRecord) Msgf(format string, msg string) {
-	r.event.Msgf(format, msg)
+func (r *zeroRecord) Msgf(format string, v ...interface{}) {
+	r.event.Msgf(format, v...)
 	recordPool.Put(r)
 }
