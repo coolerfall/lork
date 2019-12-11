@@ -224,10 +224,11 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 			c.Convert(nil, buf)
 
 		case *dateConverter:
-			c.Convert(time.Now(), buf)
+			ts := time.Now().Format(time.RFC3339)
+			c.Convert([]byte(ts), buf)
 
 		case *indexConverter:
-			c.Convert(rp.index, buf)
+			c.Convert([]byte(strconv.Itoa(rp.index)), buf)
 		}
 	}
 
@@ -303,7 +304,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) toFilenameRegex() string {
 			c.Convert(nil, buf)
 
 		case *dateConverter:
-			c.Convert(time.Now(), buf)
+			ts := time.Now().Format(time.RFC3339)
+			c.Convert([]byte(ts), buf)
 
 		case *indexConverter:
 			buf.WriteString("(\\d{1,3})")

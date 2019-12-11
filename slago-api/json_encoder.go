@@ -16,8 +16,9 @@ package slago
 
 import (
 	"bytes"
-	"github.com/buger/jsonparser"
 	"sync"
+
+	"github.com/buger/jsonparser"
 )
 
 const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
@@ -42,7 +43,7 @@ func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	var err error
 	ts, _, _, _ := jsonparser.Get(p, TimestampFieldKey)
 	bufData := e.buf.Bytes()
-	bufData, err = convertFormat(bufData, ts, jsonTimeFormat)
+	bufData, err = convertFormat(bufData, ts, TimestampFormat, jsonTimeFormat)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	e.buf.WriteByte('{')
 	var start = false
 	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, offset int) error {
+		dataType jsonparser.ValueType, _ int) error {
 		if start {
 			e.buf.WriteByte(',')
 		} else {

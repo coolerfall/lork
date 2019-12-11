@@ -15,13 +15,14 @@
 package main
 
 import (
+	"log"
+	
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago/log-to-slago"
 	"gitlab.com/anbillon/slago/logrus-to-slago"
 	"gitlab.com/anbillon/slago/slago-api"
 	_ "gitlab.com/anbillon/slago/slago-zerolog"
 	"gitlab.com/anbillon/slago/zap-to-slago"
-	"log"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slago-logrus"
 	//_ "gitlab.com/anbillon/slago/slago-zap"
@@ -39,7 +40,8 @@ func main() {
 				"#level) #message #fields")
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewJsonEncoder()
+		//o.Encoder = slago.NewJsonEncoder()
+		o.Encoder = slago.NewLogstashEncoder()
 		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
