@@ -34,8 +34,8 @@ type Converter interface {
 	// AttachOptions attaches options to current converter.
 	AttachOptions(opts []string)
 
-	// Convert converts given events into buffer.
-	Convert(event interface{}, buf *bytes.Buffer)
+	// Convert converts given data into buffer.
+	Convert(origin []byte, buf *bytes.Buffer)
 }
 
 type NewConverter func() Converter
@@ -65,7 +65,7 @@ func (c *literalConverter) AttachChild(child Converter) {
 func (c *literalConverter) AttachOptions(opt []string) {
 }
 
-func (c *literalConverter) Convert(event interface{}, buf *bytes.Buffer) {
+func (c *literalConverter) Convert(origin []byte, buf *bytes.Buffer) {
 	buf.WriteString(c.value)
 }
 
@@ -97,14 +97,13 @@ func (c *dateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *dateConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	ts, ok := event.(time.Time)
-	if !ok {
+func (c *dateConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	var err error
+	bufData := buf.Bytes()
+	bufData, err = convertFormat(bufData, origin, time.RFC3339, c.opts[0])
+	if err != nil {
 		return
 	}
-
-	bufData := buf.Bytes()
-	bufData = ts.AppendFormat(bufData, c.opts[0])
 	buf.Reset()
 	buf.Write(bufData)
 }
@@ -135,9 +134,9 @@ func (c *indexConverter) AttachChild(child Converter) {
 func (c *indexConverter) AttachOptions(opts []string) {
 }
 
-func (c *indexConverter) Convert(e interface{}, buf *bytes.Buffer) {
-	index, ok := e.(int)
-	if !ok {
+func (c *indexConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	index, err := atoi(origin)
+	if err != nil {
 		return
 	}
 

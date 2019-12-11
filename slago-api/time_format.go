@@ -247,7 +247,7 @@ func atoi(s []byte) (x int, err error) {
 	}
 	q, rem, err := leadingInt(s)
 	x = int(q)
-	if err != nil || rem != nil {
+	if err != nil || rem == nil {
 		return 0, errAtoi
 	}
 	if neg {
@@ -286,7 +286,6 @@ func skip(value []byte, prefix string) ([]byte, error) {
 				return value, errBad
 			}
 			prefix = cutspace(prefix)
-			//value = cutspace(value)
 			value = cutsBytesSpace(value)
 			continue
 		}
@@ -517,7 +516,7 @@ func isLeap(year int) bool {
 // convertFormat parses the origin timestamp in 2006-01-02T15:04:05.000Z07:00 format,
 // and convert to new layout. This will appends the textual representation to b and
 // returns the extended buffer.
-func convertFormat(b []byte, origin []byte, layout string) ([]byte, error) {
+func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
 	var (
 		year  = -1
 		month time.Month
@@ -529,7 +528,7 @@ func convertFormat(b []byte, origin []byte, layout string) ([]byte, error) {
 
 	local := time.Now()
 	zoneName, offset := local.Zone()
-	utcUnixNano, err := toUTCUnixNano(origin, TimestampFormat)
+	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
 	if err != nil {
 		return b, err
 	}
@@ -540,15 +539,15 @@ func convertFormat(b []byte, origin []byte, layout string) ([]byte, error) {
 	nano := localTime % 1000000000
 
 	// Each iteration generates one std value.
-	for layout != "" {
-		prefix, std, suffix := nextStdChunk(layout)
+	for newLayout != "" {
+		prefix, std, suffix := nextStdChunk(newLayout)
 		if prefix != "" {
 			b = append(b, prefix...)
 		}
 		if std == 0 {
 			break
 		}
-		layout = suffix
+		newLayout = suffix
 
 		// Compute year, month, day if needed.
 		if year < 0 && std&stdNeedDate != 0 {

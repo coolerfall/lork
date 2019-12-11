@@ -15,6 +15,8 @@
 package salzap
 
 import (
+	"time"
+
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -49,7 +51,7 @@ func newZapLogger() *zapLogger {
 	encoderConfig.LevelKey = slago.LevelFieldKey
 	encoderConfig.MessageKey = slago.MessageFieldKey
 	encoderConfig.TimeKey = slago.TimestampFieldKey
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeTime = rf3339Encoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
 	writer := slago.NewMultiWriter()
@@ -145,4 +147,8 @@ func (l *zapLogger) WriteRaw(p []byte) {
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}
+}
+
+func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format(slago.TimestampFormat))
 }

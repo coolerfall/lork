@@ -102,26 +102,7 @@ func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
 	defer pe.mutex.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		// implicit conversation will allocate memory
-		switch c.(type) {
-		case *colorConverter:
-			c.(*colorConverter).Convert(p, pe.buf)
-
-		case *levelConverter:
-			c.(*levelConverter).Convert(p, pe.buf)
-
-		case *logDateConverter:
-			c.(*logDateConverter).Convert(p, pe.buf)
-
-		case *messageConverter:
-			c.(*messageConverter).Convert(p, pe.buf)
-
-		case *fieldsConverter:
-			c.(*fieldsConverter).Convert(p, pe.buf)
-
-		case *literalConverter:
-			c.(*literalConverter).Convert(p, pe.buf)
-		}
+		c.Convert(p, pe.buf)
 	}
 	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
@@ -159,13 +140,7 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 	cc.opts = opts
 }
 
-func (cc *colorConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	data, ok := event.([]byte)
-	if !ok {
-		return
-	}
-	level, _, _, _ := jsonparser.Get(data, LevelFieldKey)
-
+func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 	if len(cc.opts) != 0 {
 		color, ok := colorMap[cc.opts[0]]
 		if !ok {
@@ -174,6 +149,7 @@ func (cc *colorConverter) Convert(event interface{}, buf *bytes.Buffer) {
 		cc.writeColor(color)
 	}
 
+	level, _, _, _ := jsonparser.Get(origin, LevelFieldKey)
 	for c := cc.child; c != nil; c = c.Next() {
 		if _, ok := c.(*levelConverter); ok {
 			color, ok := levelColorMap[string(level)]
@@ -182,11 +158,11 @@ func (cc *colorConverter) Convert(event interface{}, buf *bytes.Buffer) {
 			}
 
 			cc.writeColor(color)
-			c.Convert(event, cc.buf)
+			c.Convert(origin, cc.buf)
 			cc.writeColorEnd()
 			continue
 		}
-		c.Convert(event, cc.buf)
+		c.Convert(origin, cc.buf)
 	}
 
 	cc.writeColorEnd()
@@ -227,13 +203,8 @@ func (lc *levelConverter) AttachChild(child Converter) {
 func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
-func (lc *levelConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	data, ok := event.([]byte)
-	if !ok {
-		return
-	}
-
-	lvl, _, _, err := jsonparser.Get(data, LevelFieldKey)
+func (lc *levelConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	lvl, _, _, err := jsonparser.Get(origin, LevelFieldKey)
 	if err != nil {
 		return
 	}
@@ -270,15 +241,10 @@ func (c *logDateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *logDateConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	data, ok := event.([]byte)
-	if !ok {
-		return
-	}
-
-	tsValue, _, _, _ := jsonparser.Get(data, TimestampFieldKey)
+func (c *logDateConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	tsValue, _, _, _ := jsonparser.Get(origin, TimestampFieldKey)
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, tsValue, c.opts[0])
+	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opts[0])
 	buf.Reset()
 	buf.Write(bufData)
 }
@@ -305,14 +271,8 @@ func (mc *messageConverter) AttachChild(child Converter) {
 func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
-func (mc *messageConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	data, ok := event.([]byte)
-	if !ok {
-		buf.WriteByte('-')
-		return
-	}
-
-	message, _, _, _ := jsonparser.Get(data, MessageFieldKey)
+func (mc *messageConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	message, _, _, _ := jsonparser.Get(origin, MessageFieldKey)
 	if len(message) == 0 {
 		buf.WriteByte('-')
 		return
@@ -346,14 +306,9 @@ func (fc *fieldsConverter) AttachChild(child Converter) {
 func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
-func (fc *fieldsConverter) Convert(event interface{}, buf *bytes.Buffer) {
-	data, ok := event.([]byte)
-	if !ok {
-		return
-	}
-
-	_ = jsonparser.ObjectEach(data, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, offset int) error {
+func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	_ = jsonparser.ObjectEach(origin, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
 		jsonKey := string(key)
 		switch jsonKey {
 		case TimestampFieldKey:

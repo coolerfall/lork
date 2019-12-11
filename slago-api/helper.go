@@ -27,7 +27,6 @@ const (
 	MessageFieldKey   = "message"
 
 	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
-	//TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
 )
 
 // BrigeWrite writes data from bridge to slago logger.
@@ -37,7 +36,7 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 
 	record := Logger().Level(bridge.ParseLevel(lvl))
 	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, offset int) error {
+		dataType jsonparser.ValueType, _ int) error {
 		realKey := string(key)
 		switch realKey {
 		case LevelFieldKey:
