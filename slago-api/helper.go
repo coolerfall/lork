@@ -67,7 +67,7 @@ func Reportf(format string, args ...interface{}) {
 
 // ReportfExit reportes message with arguments in stdout and exit process.
 func ReportfExit(format string, args ...interface{}) {
-	Reportf(format, args)
+	Reportf(format, args...)
 	os.Exit(0)
 }
 

@@ -16,23 +16,22 @@ package main
 
 import (
 	"log"
-	
+
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago/log-to-slago"
-	"gitlab.com/anbillon/slago/logrus-to-slago"
+	"gitlab.com/anbillon/slago/binder/salzero"
+	"gitlab.com/anbillon/slago/bridge"
 	"gitlab.com/anbillon/slago/slago-api"
-	_ "gitlab.com/anbillon/slago/slago-zerolog"
-	"gitlab.com/anbillon/slago/zap-to-slago"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
-	//_ "gitlab.com/anbillon/slago/slago-logrus"
-	//_ "gitlab.com/anbillon/slago/slago-zap"
+	//_ "gitlab.com/anbillon/slago/slalogrus"
+	//_ "gitlab.com/anbillon/slago/salzap"
 	"go.uber.org/zap"
 )
 
 func main() {
-	slago.Install(gologslago.NewLogBridge())
-	slago.Install(logrusslago.NewLogrusBridge())
-	slago.Install(zapslago.NewZapBrige())
+	slago.Install(bridge.NewLogBridge())
+	slago.Install(bridge.NewLogrusBridge())
+	slago.Install(bridge.NewZapBrige())
+	slago.Bind(salzero.NewZeroLogger())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(
@@ -40,8 +39,8 @@ func main() {
 				"#level) #message #fields")
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		//o.Encoder = slago.NewJsonEncoder()
-		o.Encoder = slago.NewLogstashEncoder()
+		o.Encoder = slago.NewJsonEncoder()
+		//o.Encoder = slago.NewLogstashEncoder()
 		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(

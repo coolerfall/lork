@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package salzerolog
+package salzero
 
 import (
 	"strings"
@@ -34,16 +34,14 @@ var (
 	}
 )
 
+// zeroLogger is an implementation of SlaLogger.
 type zeroLogger struct {
 	logger      zerolog.Logger
 	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newZeroLogger())
-}
-
-func newZeroLogger() *zeroLogger {
+// NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
+func NewZeroLogger() *zeroLogger {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey

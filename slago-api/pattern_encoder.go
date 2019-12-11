@@ -151,7 +151,8 @@ func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 
 	level, _, _, _ := jsonparser.Get(origin, LevelFieldKey)
 	for c := cc.child; c != nil; c = c.Next() {
-		if _, ok := c.(*levelConverter); ok {
+		switch c.(type) {
+		case *levelConverter:
 			color, ok := levelColorMap[string(level)]
 			if !ok {
 				color = colorWhite
@@ -160,9 +161,10 @@ func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 			cc.writeColor(color)
 			c.Convert(origin, cc.buf)
 			cc.writeColorEnd()
-			continue
+
+		default:
+			c.Convert(origin, cc.buf)
 		}
-		c.Convert(origin, cc.buf)
 	}
 
 	cc.writeColorEnd()
