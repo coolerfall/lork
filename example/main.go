@@ -15,37 +15,47 @@
 package main
 
 import (
+	"gitlab.com/anbillon/slago/binder/salzero"
 	"log"
 
 	"github.com/sirupsen/logrus"
-	_ "gitlab.com/anbillon/slago/log-to-slago"
-	_ "gitlab.com/anbillon/slago/logrus-to-slago"
+	"gitlab.com/anbillon/slago/bridge"
 	"gitlab.com/anbillon/slago/slago-api"
-	_ "gitlab.com/anbillon/slago/slago-zerolog"
-	_ "gitlab.com/anbillon/slago/zap-to-slago"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
-	//_ "gitlab.com/anbillon/slago/slago-logrus"
-	//_ "gitlab.com/anbillon/slago/slago-zap"
+	//_ "gitlab.com/anbillon/slago/slalogrus"
+	//_ "gitlab.com/anbillon/slago/salzap"
 	"go.uber.org/zap"
 )
 
 func main() {
-	slago.Logger().AddWriter(slago.NewConsoleWriter(
-		slago.NewPatternEncoder(""),
-		nil))
-	fw := slago.NewFileWriter(&slago.FileWriterOption{
-		Encoder:  slago.NewLogstashEncoder(),
-		Filter:   slago.NewLevelFilter(slago.InfoLevel),
-		Filename: "slago-test.log",
-		RollingPolicy: slago.NewSizeAndTimeBasedRollingPolicy(
-			"slago-archive.#date{2006-01-02}.#index.log", "10MB"),
+	slago.Install(bridge.NewLogBridge())
+	slago.Install(bridge.NewLogrusBridge())
+	slago.Install(bridge.NewZapBrige())
+	slago.Bind(salzero.NewZeroLogger())
+	//slago.Bind(slalogrus.NewLogrusLogger())
+
+	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
+		o.Encoder = slago.NewPatternEncoder(
+			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+				"#level) #message #fields")
+	}))
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		o.Encoder = slago.NewJsonEncoder()
+		//o.Encoder = slago.NewLogstashEncoder()
+		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
+		o.Filename = "slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
 	})
 	slago.Logger().AddWriter(fw)
 
 	slago.Logger().Trace().Msg("slago")
-	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("slago")
+	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
-	zap.L().Warn("this is zap")
+	zap.L().With().Warn("this is zap")
 
 	log.Printf("this is builtin logger")
 }

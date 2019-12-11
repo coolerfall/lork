@@ -274,22 +274,22 @@ func (r *zapRecord) Msg(msg string) {
 	recordPool.Put(r)
 }
 
-func (r *zapRecord) Msgf(format string, msg string) {
+func (r *zapRecord) Msgf(format string, v ...interface{}) {
 	sl := r.logger.Sugar()
 
 	switch r.level {
 	case zapcore.DebugLevel:
-		sl.Debugf(format, msg)
+		sl.Debugf(format, v...)
 	case zapcore.InfoLevel:
-		sl.Infof(format, msg)
+		sl.Infof(format, v...)
 	case zapcore.WarnLevel:
-		sl.Warnf(format, msg)
+		sl.Warnf(format, v...)
 	case zapcore.ErrorLevel:
-		sl.Errorf(format, msg)
+		sl.Errorf(format, v...)
 	case zapcore.FatalLevel:
-		sl.Fatalf(format, msg)
+		sl.Fatalf(format, v...)
 	case zapcore.PanicLevel:
-		sl.Panicf(format, msg)
+		sl.Panicf(format, v...)
 	}
 
 	recordPool.Put(r)

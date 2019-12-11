@@ -15,10 +15,10 @@
 package slago
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 
-	"github.com/json-iterator/go"
+	"github.com/buger/jsonparser"
 )
 
 const (
@@ -26,96 +26,49 @@ const (
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
 
-	TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
+	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
 )
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
-)
-
-func getAndRemove(key string, event map[string]interface{}) string {
-	field, ok := event[key]
-	if !ok {
-		return ""
-	}
-	delete(event, key)
-
-	return field.(string)
-}
-
-// findValue find value for specified key with given json bytes.
-func findValue(p []byte, key string, valBuf *bytes.Buffer) {
-	var start, end int
-	var gotKey bool
-	var gotColon bool
-	keyBytes := []byte(key)
-
-	for i, b := range p {
-		if i == 0 {
-			continue
-		}
-		prev := p[i-1]
-		if b == '"' && prev != '\\' {
-			if start == 0 {
-				start = i
-			} else {
-				end = i
-			}
-		} else {
-			if !gotKey && start != 0 && end != 0 {
-				s := p[start+1 : end]
-				if bytes.Compare(s, keyBytes) == 0 {
-					gotKey = true
-				}
-				start = 0
-				end = 0
-			}
-
-			if !gotColon && gotKey && b == ':' {
-				gotColon = true
-				continue
-			}
-
-			if gotKey && gotColon {
-				if (start != 0 && end != 0 || start == 0) && (b == ',' || b == '}') {
-					break
-				}
-
-				valBuf.WriteByte(b)
-			}
-		}
-	}
-}
 
 // BrigeWrite writes data from bridge to slago logger.
 func BrigeWrite(bridge Bridge, p []byte) error {
-	var event map[string]interface{}
-	if err := json.Unmarshal(p, &event); err != nil {
-		return err
-	}
-
-	lvl := getAndRemove(LevelFieldKey, event)
-	msg := getAndRemove(MessageFieldKey, event)
-	delete(event, TimestampFieldKey)
+	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
+	msg, _ := jsonparser.GetString(p, MessageFieldKey)
 
 	record := Logger().Level(bridge.ParseLevel(lvl))
-	for k, v := range event {
-		record.Interface(k, v)
-	}
-	record.Msg(msg)
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		realKey := string(key)
+		switch realKey {
+		case LevelFieldKey:
+		case TimestampFieldKey:
+		case MessageFieldKey:
+			record.Msg(msg)
+
+		default:
+			record.Bytes(realKey, value)
+		}
+
+		return nil
+	})
 
 	return nil
 }
 
 // Report reports message in stdout.
 func Report(msg string) {
-	fmt.Printf("slago: %v\n", msg)
+	fmt.Println(colorize(colorRed, fmt.Sprintf("slago: %v", msg)))
 }
 
 // Reportf reports message with arguments in stdout.
 func Reportf(format string, args ...interface{}) {
 	format = "slago: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
+}
+
+// ReportfExit reportes message with arguments in stdout and exit process.
+func ReportfExit(format string, args ...interface{}) {
+	Reportf(format, args...)
+	os.Exit(0)
 }
 
 // colorize adds ANSI color for given string.

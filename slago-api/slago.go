@@ -39,6 +39,9 @@ type SlaLogger interface {
 	// AddWriter add one or more writer to this logger.
 	AddWriter(w ...Writer)
 
+	// ResetWriter will remove all writers added before.
+	ResetWriter()
+
 	// SetLevel sets global level for root logger.
 	SetLevel(lvl Level)
 
@@ -108,7 +111,7 @@ func Logger() SlaLogger {
 
 		for _, b := range bridges {
 			if logger.Name() == b.Name() {
-				Reportf("cycle logger checked, %s -> slago -> %s",
+				ReportfExit("cycle logger checked, %s -> slago -> %s",
 					b.Name(), logger.Name())
 			}
 		}

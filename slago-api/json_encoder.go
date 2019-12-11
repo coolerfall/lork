@@ -14,16 +14,80 @@
 
 package slago
 
+import (
+	"bytes"
+	"sync"
+
+	"github.com/buger/jsonparser"
+)
+
+const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
+
 // jsonEncoder encodes logging event into json format.
 type jsonEncoder struct {
+	buf   *bytes.Buffer
+	mutex sync.Mutex
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
 func NewJsonEncoder() *jsonEncoder {
-	return &jsonEncoder{}
+	return &jsonEncoder{
+		buf: &bytes.Buffer{},
+	}
 }
 
 func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
-	// the default encoder is json, just return origin data
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+
+	var err error
+	ts, _, _, _ := jsonparser.Get(p, TimestampFieldKey)
+	bufData := e.buf.Bytes()
+	bufData, err = convertFormat(bufData, ts, TimestampFormat, jsonTimeFormat)
+	if err != nil {
+		return nil, err
+	}
+	e.buf.Reset()
+	e.buf.Write(bufData)
+	timestamp := e.buf.String()
+	e.buf.Reset()
+
+	// wrtite key and value as json string
+	e.buf.WriteByte('{')
+	var start = false
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		if start {
+			e.buf.WriteByte(',')
+		} else {
+			start = true
+		}
+
+		e.buf.WriteByte('"')
+		e.buf.Write(key)
+		e.buf.WriteByte('"')
+		e.buf.WriteByte(':')
+
+		switch dataType {
+		case jsonparser.String:
+			e.buf.WriteByte('"')
+			if string(key) == TimestampFieldKey {
+				e.buf.WriteString(timestamp)
+			} else {
+				e.buf.Write(value)
+			}
+			e.buf.WriteByte('"')
+
+		default:
+			e.buf.Write(value)
+		}
+
+		return nil
+	})
+	e.buf.WriteByte('}')
+	e.buf.WriteByte('\n')
+	p = e.buf.Bytes()
+	e.buf.Reset()
+
 	return p, nil
 }

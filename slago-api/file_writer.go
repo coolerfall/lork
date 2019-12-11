@@ -35,21 +35,24 @@ type fileWriter struct {
 	size  int64
 }
 
+// FileWriterOption represents available options for file wirter.
 type FileWriterOption struct {
-	Filter        *LevelFilter
+	Filter        Filter
 	Encoder       Encoder
 	RollingPolicy RollingPolicy
 	Filename      string
 }
 
 // NewFileWriter creates a new instance of file writer.
-func NewFileWriter(opts *FileWriterOption) *fileWriter {
-	if opts.RollingPolicy == nil {
-		opts.RollingPolicy = NewNoopRollingPolicy()
+func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
+	opts := &FileWriterOption{
+		RollingPolicy: NewNoopRollingPolicy(),
+		Filename:      defaultLogFilename,
+		Encoder:       NewJsonEncoder(),
 	}
 
-	if len(opts.Filename) == 0 {
-		opts.Filename = defaultLogFilename
+	for _, f := range options {
+		f(opts)
 	}
 
 	fw := &fileWriter{
@@ -57,8 +60,7 @@ func NewFileWriter(opts *FileWriterOption) *fileWriter {
 	}
 	opts.RollingPolicy.Attach(fw)
 	if err := opts.RollingPolicy.Prepare(); err != nil {
-		Reportf("start rolling policy error: %v", err)
-		os.Exit(0)
+		ReportfExit("start rolling policy error: \n%v", err)
 	}
 
 	return fw
@@ -95,7 +97,7 @@ func (fw *fileWriter) Encoder() Encoder {
 	return fw.opts.Encoder
 }
 
-func (fw *fileWriter) Filter() *LevelFilter {
+func (fw *fileWriter) Filter() Filter {
 	return fw.opts.Filter
 }
 

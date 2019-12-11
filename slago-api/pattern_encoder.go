@@ -16,15 +16,16 @@ package slago
 
 import (
 	"bytes"
-	"fmt"
-	"os"
 	"strconv"
+	"strings"
 	"sync"
-	"time"
+
+	"github.com/buger/jsonparser"
 )
 
 const (
-	DefaultLayout = "#color(#date{2006-01-02}){cyan} #color(#level) #message #fields"
+	DefaultLayout = "#color(#date{2006-01-02 15:04:05}){cyan} " +
+		"#color(#level) #message #fields"
 )
 
 var (
@@ -48,7 +49,7 @@ var (
 	}
 
 	levelColorMap = map[string]int{
-		"TRACE": colorBrightWhite,
+		"TRACE": colorWhite,
 		"DEBUG": colorBlue,
 		"INFO":  colorGreen,
 		"WARN":  colorYellow,
@@ -65,16 +66,19 @@ type PatternEncoder struct {
 	converter Converter
 }
 
-func NewPatternEncoder(layout string) *PatternEncoder {
-	if len(layout) == 0 {
+// NewPatternEncoder creates a new instance of pattern encoder.
+func NewPatternEncoder(layouts ...string) *PatternEncoder {
+	var layout string
+	if len(layouts) == 0 || len(layouts[0]) == 0 {
 		layout = DefaultLayout
+	} else {
+		layout = layouts[0]
 	}
 
 	patternParser := NewPatternParser(layout)
 	node, err := patternParser.Parse()
 	if err != nil {
-		Reportf("parse pattern error, %v", err)
-		os.Exit(0)
+		ReportfExit("parse pattern error, %v", err)
 	}
 
 	converters := map[string]NewConverter{
@@ -86,8 +90,7 @@ func NewPatternEncoder(layout string) *PatternEncoder {
 	}
 	converter, err := NewPatternCompiler(node, converters).Compile()
 	if err != nil {
-		Reportf("compile pattern error, %v", err)
-		os.Exit(0)
+		ReportfExit("compile pattern error, %v", err)
 	}
 
 	return &PatternEncoder{
@@ -97,44 +100,17 @@ func NewPatternEncoder(layout string) *PatternEncoder {
 }
 
 func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
-	var eventMap map[string]interface{}
-	err = json.Unmarshal(p, &eventMap)
-	if err != nil {
-		return nil, err
-	}
-
-	lvl := getAndRemove(LevelFieldKey, eventMap)
-	ts := getAndRemove(TimestampFieldKey, eventMap)
-	msg := getAndRemove(MessageFieldKey, eventMap)
-	t, err := time.Parse(time.RFC3339, ts)
-	if err != nil {
-		return nil, err
-	}
-	level := ParseLevel(lvl)
-
-	event := logEvent{
-		level:     level,
-		timestamp: t,
-		message:   msg,
-		fields:    eventMap,
-	}
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		pe.buf.WriteString(c.Convert(event))
+		c.Convert(p, pe.buf)
 	}
+	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
 	pe.buf.Reset()
 
 	return data, err
-}
-
-type logEvent struct {
-	level     Level
-	timestamp time.Time
-	message   string
-	fields    map[string]interface{}
 }
 
 type colorConverter struct {
@@ -166,12 +142,7 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 	cc.opts = opts
 }
 
-func (cc *colorConverter) Convert(event interface{}) string {
-	var level string
-	if logEvent, ok := event.(logEvent); ok {
-		level = logEvent.level.String()
-	}
-
+func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 	if len(cc.opts) != 0 {
 		color, ok := colorMap[cc.opts[0]]
 		if !ok {
@@ -180,26 +151,28 @@ func (cc *colorConverter) Convert(event interface{}) string {
 		cc.writeColor(color)
 	}
 
+	level, _, _, _ := jsonparser.Get(origin, LevelFieldKey)
 	for c := cc.child; c != nil; c = c.Next() {
-		result := c.Convert(event)
-		if _, ok := c.(*levelConverter); ok {
-			color, ok := levelColorMap[level]
+		switch c.(type) {
+		case *levelConverter:
+			color, ok := levelColorMap[strings.ToUpper(string(level))]
 			if !ok {
 				color = colorWhite
 			}
 
 			cc.writeColor(color)
+			c.Convert(origin, cc.buf)
+			cc.writeColorEnd()
+
+		default:
+			c.Convert(origin, cc.buf)
 		}
-		cc.buf.WriteString(result)
-		cc.writeColorEnd()
 	}
 
 	cc.writeColorEnd()
 
-	data := cc.buf.String()
+	buf.Write(cc.buf.Bytes())
 	cc.buf.Reset()
-
-	return data
 }
 
 func (cc *colorConverter) writeColor(color int) {
@@ -234,13 +207,12 @@ func (lc *levelConverter) AttachChild(child Converter) {
 func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
-func (lc *levelConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
-	if !ok {
-		return ""
+func (lc *levelConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	lvl, _, _, err := jsonparser.Get(origin, LevelFieldKey)
+	if err != nil {
+		return
 	}
-
-	return logEvent.level.String()
+	buf.Write(lvl)
 }
 
 type logDateConverter struct {
@@ -273,13 +245,12 @@ func (c *logDateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *logDateConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
-	if !ok {
-		return ""
-	}
-
-	return logEvent.timestamp.Format(c.opts[0])
+func (c *logDateConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	tsValue, _, _, _ := jsonparser.Get(origin, TimestampFieldKey)
+	bufData := buf.Bytes()
+	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opts[0])
+	buf.Reset()
+	buf.Write(bufData)
 }
 
 type messageConverter struct {
@@ -304,18 +275,14 @@ func (mc *messageConverter) AttachChild(child Converter) {
 func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
-func (mc *messageConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
-	if !ok {
-		return ""
-	}
-
-	message := logEvent.message
+func (mc *messageConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	message, _, _, _ := jsonparser.Get(origin, MessageFieldKey)
 	if len(message) == 0 {
-		return " "
+		buf.WriteByte('-')
+		return
 	}
 
-	return message
+	buf.Write(message)
 }
 
 type fieldsConverter struct {
@@ -343,19 +310,23 @@ func (fc *fieldsConverter) AttachChild(child Converter) {
 func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
-func (fc *fieldsConverter) Convert(event interface{}) string {
-	logEvent, ok := event.(logEvent)
-	if !ok {
-		return ""
-	}
+func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	_ = jsonparser.ObjectEach(origin, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		jsonKey := string(key)
+		switch jsonKey {
+		case TimestampFieldKey:
+		case LevelFieldKey:
+		case MessageFieldKey:
+			// do nothing for these keys
 
-	fields := logEvent.fields
-	for k, v := range fields {
-		fc.buf.WriteString(fmt.Sprintf("%s=%v ", k, v))
-	}
-	fc.buf.WriteByte('\n')
-	data := fc.buf.String()
-	fc.buf.Reset()
+		default:
+			buf.Write(key)
+			buf.WriteString("=")
+			buf.Write(value)
+			buf.WriteByte(' ')
+		}
 
-	return data
+		return nil
+	})
 }

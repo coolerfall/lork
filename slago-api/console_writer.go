@@ -20,17 +20,28 @@ import (
 
 type consoleWriter struct {
 	encoder Encoder
-	filter  *LevelFilter
+	filter  Filter
 }
 
-func NewConsoleWriter(e Encoder, f *LevelFilter) *consoleWriter {
-	if e == nil {
-		e = NewJsonEncoder()
+// ConsoleWriterOption represents available options for console writer.
+type ConsoleWriterOption struct {
+	Encoder Encoder
+	Filter  Filter
+}
+
+// NewConsoleWriter creates a new instance of console writer.
+func NewConsoleWriter(options ...func(*ConsoleWriterOption)) *consoleWriter {
+	opt := &ConsoleWriterOption{
+		Encoder: NewPatternEncoder(),
+	}
+
+	for _, f := range options {
+		f(opt)
 	}
 
 	return &consoleWriter{
-		encoder: e,
-		filter:  f,
+		encoder: opt.Encoder,
+		filter:  opt.Filter,
 	}
 }
 
@@ -42,6 +53,6 @@ func (w *consoleWriter) Encoder() Encoder {
 	return w.encoder
 }
 
-func (w *consoleWriter) Filter() *LevelFilter {
+func (w *consoleWriter) Filter() Filter {
 	return w.filter
 }

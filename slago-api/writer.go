@@ -15,7 +15,6 @@
 package slago
 
 import (
-	"bytes"
 	"io"
 	"sync"
 )
@@ -29,7 +28,7 @@ type Writer interface {
 	Encoder() Encoder
 
 	// LevelFilter returns filter used in current writer.
-	Filter() *LevelFilter
+	Filter() Filter
 }
 
 // MultiWriter represents multiple writer which implements slago.Writer.
@@ -37,14 +36,12 @@ type Writer interface {
 type MultiWriter struct {
 	writers []Writer
 	mutex   sync.Mutex
-	buf     *bytes.Buffer
 }
 
 // NewMultiWriter creates a new multiple writer.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
 		writers: make([]Writer, 0),
-		buf:     new(bytes.Buffer),
 	}
 }
 
@@ -53,15 +50,19 @@ func (mw *MultiWriter) AddWriter(w ...Writer) {
 	mw.writers = append(mw.writers, w...)
 }
 
+// Reset will remove all writers.
+func (mw *MultiWriter) Reset() {
+	mw.mutex.Lock()
+	defer mw.mutex.Unlock()
+	mw.writers = make([]Writer, 0)
+}
+
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.mutex.Lock()
-	findValue(p, LevelFieldKey, mw.buf)
-	level := ParseLevel(mw.buf.String())
-	mw.buf.Reset()
-	mw.mutex.Unlock()
+	defer mw.mutex.Unlock()
 
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(level) {
+		if w.Filter() != nil && w.Filter().Do(p) {
 			return
 		}
 
@@ -69,7 +70,7 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 		if w.Encoder() != nil {
 			encoded, err = w.Encoder().Encode(p)
 			if err != nil {
-				return
+				return 0, err
 			}
 		}
 		n, err = w.Write(encoded)

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package salzerolog
+package salzero
 
 import (
 	"strings"
@@ -34,16 +34,14 @@ var (
 	}
 )
 
+// zeroLogger is an implementation of SlaLogger.
 type zeroLogger struct {
-	logger          zerolog.Logger
-	syncMultiWriter *slago.MultiWriter
+	logger      zerolog.Logger
+	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newZeroLogger())
-}
-
-func newZeroLogger() *zeroLogger {
+// NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
+func NewZeroLogger() *zeroLogger {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey
@@ -53,13 +51,13 @@ func newZeroLogger() *zeroLogger {
 		return strings.ToUpper(l.String())
 	}
 
-	ioWriterWrapper := slago.NewMultiWriter()
-	logger := zerolog.New(ioWriterWrapper).With().Timestamp().Logger()
+	multiWriter := slago.NewMultiWriter()
+	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
 	log.Logger = logger
 
 	return &zeroLogger{
-		logger:          logger,
-		syncMultiWriter: ioWriterWrapper,
+		logger:      logger,
+		multiWriter: multiWriter,
 	}
 }
 
@@ -68,13 +66,17 @@ func (l *zeroLogger) Name() string {
 }
 
 func (l *zeroLogger) AddWriter(w ...slago.Writer) {
-	l.syncMultiWriter.AddWriter(w...)
+	l.multiWriter.AddWriter(w...)
+}
+
+func (l *zeroLogger) ResetWriter() {
+	l.multiWriter.Reset()
 }
 
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
 	zeroLevel := slagoLvlToZeroLvl[lvl]
 	if zeroLevel == zerolog.NoLevel {
-		zeroLevel = zerolog.DebugLevel
+		zeroLevel = zerolog.TraceLevel
 	}
 
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
@@ -127,7 +129,7 @@ func (l *zeroLogger) Printf(format string, v ...interface{}) {
 }
 
 func (l *zeroLogger) WriteRaw(p []byte) {
-	_, err := l.syncMultiWriter.Write(p)
+	_, err := l.multiWriter.Write(p)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

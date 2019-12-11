@@ -31,15 +31,13 @@ var (
 	}
 )
 
+// logrusLogger is an implementation of SlaLogger.
 type logrusLogger struct {
-	syncMultiWriter *slago.MultiWriter
+	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newLogrusLogger())
-}
-
-func newLogrusLogger() *logrusLogger {
+// NewLogrusLogger creates a new instance of logrusLogger used to be bound to slago
+func NewLogrusLogger() *logrusLogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: slago.TimestampFormat,
 		FieldMap: logrus.FieldMap{
@@ -54,7 +52,7 @@ func newLogrusLogger() *logrusLogger {
 	logrus.SetOutput(writer)
 
 	return &logrusLogger{
-		syncMultiWriter: writer,
+		multiWriter: writer,
 	}
 }
 
@@ -63,7 +61,11 @@ func (l *logrusLogger) Name() string {
 }
 
 func (l *logrusLogger) AddWriter(w ...slago.Writer) {
-	l.syncMultiWriter.AddWriter(w...)
+	l.multiWriter.AddWriter(w...)
+}
+
+func (l *logrusLogger) ResetWriter() {
+	l.multiWriter.Reset()
 }
 
 func (l *logrusLogger) SetLevel(lvl slago.Level) {
@@ -130,7 +132,7 @@ func (l *logrusLogger) Printf(format string, args ...interface{}) {
 }
 
 func (l *logrusLogger) WriteRaw(p []byte) {
-	_, err := l.syncMultiWriter.Write(p)
+	_, err := l.multiWriter.Write(p)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

@@ -15,16 +15,27 @@
 package slago
 
 import (
-	"fmt"
+	"bytes"
+	"strconv"
 	"time"
 )
 
+// Converter represents a pattern converter which will convert pattern to string.
 type Converter interface {
+	// AttatchNext attatches next converter to the chain.
 	AttatchNext(next Converter)
+
+	// Next gets next from the chain.
 	Next() Converter
+
+	// AttachChild attaches child converter to current converter.
 	AttachChild(child Converter)
+
+	// AttachOptions attaches options to current converter.
 	AttachOptions(opts []string)
-	Convert(event interface{}) string
+
+	// Convert converts given data into buffer.
+	Convert(origin []byte, buf *bytes.Buffer)
 }
 
 type NewConverter func() Converter
@@ -54,8 +65,8 @@ func (c *literalConverter) AttachChild(child Converter) {
 func (c *literalConverter) AttachOptions(opt []string) {
 }
 
-func (c *literalConverter) Convert(event interface{}) string {
-	return c.value
+func (c *literalConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	buf.WriteString(c.value)
 }
 
 type dateConverter struct {
@@ -86,13 +97,15 @@ func (c *dateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *dateConverter) Convert(event interface{}) string {
-	t, ok := event.(time.Time)
-	if !ok {
-		return ""
+func (c *dateConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	var err error
+	bufData := buf.Bytes()
+	bufData, err = convertFormat(bufData, origin, time.RFC3339, c.opts[0])
+	if err != nil {
+		return
 	}
-
-	return t.Format(c.opts[0])
+	buf.Reset()
+	buf.Write(bufData)
 }
 
 func (c *dateConverter) DatePattern() string {
@@ -121,9 +134,14 @@ func (c *indexConverter) AttachChild(child Converter) {
 func (c *indexConverter) AttachOptions(opts []string) {
 }
 
-func (c *indexConverter) Convert(e interface{}) string {
-	if _, ok := e.(int); !ok {
-		return ""
+func (c *indexConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	index, err := atoi(origin)
+	if err != nil {
+		return
 	}
-	return fmt.Sprintf("%v", e)
+
+	bufData := buf.Bytes()
+	bufData = strconv.AppendInt(bufData, int64(index), 10)
+	buf.Reset()
+	buf.Write(bufData)
 }

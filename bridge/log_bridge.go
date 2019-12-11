@@ -12,32 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package bridge
 
 import (
-	"github.com/buger/jsonparser"
+	"log"
+	"strings"
+
+	"gitlab.com/anbillon/slago/slago-api"
 )
 
-type Filter interface {
-	Do(p []byte) bool
+type logBridge struct {
 }
 
-// LevelFilter represents a level filter.
-type LevelFilter struct {
-	level Level
+// NewLogBridge creates a new slago bridge for standard log.
+func NewLogBridge() *logBridge {
+	bridge := &logBridge{}
+	log.SetOutput(bridge)
+	// clear all flags, just output message
+	log.SetFlags(0)
+
+	return bridge
 }
 
-// NewLevelFilter creates a new instance of filter.
-func NewLevelFilter(lvl Level) *LevelFilter {
-	return &LevelFilter{
-		level: lvl,
-	}
+func (b *logBridge) Name() string {
+	return "log"
 }
 
-// Do will execute the filter.
-func (f *LevelFilter) Do(p []byte) bool {
-	lvl, _, _, _ := jsonparser.Get(p, LevelFieldKey)
-	level := ParseLevel(string(lvl))
+func (b *logBridge) ParseLevel(lvl string) slago.Level {
+	return slago.TraceLevel
+}
 
-	return f.level > level
+func (b *logBridge) Write(p []byte) (n int, err error) {
+	slago.Logger().Print(strings.TrimRight(string(p), "\n"))
+	return len(p), nil
 }

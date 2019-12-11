@@ -124,19 +124,34 @@ type sizeAndTimeBasedRollingPolicy struct {
 	rollingDate   *rollingDate
 }
 
+// SizeAndTimeBasedRPOption represents available options for size and time
+// based rolling policy.
+type SizeAndTimeBasedRPOption struct {
+	FilenamePattern string
+	MaxFileSize     string
+}
+
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
 // based rolling policy for file writer.
-func NewSizeAndTimeBasedRollingPolicy(filenamePattern string,
-	maxSize string) *sizeAndTimeBasedRollingPolicy {
-	fileSize, err := parseFileSize(maxSize)
+func NewSizeAndTimeBasedRollingPolicy(options ...func(
+	*SizeAndTimeBasedRPOption)) *sizeAndTimeBasedRollingPolicy {
+	opt := &SizeAndTimeBasedRPOption{
+		MaxFileSize:     "128MB",
+		FilenamePattern: "slago-archive.#date{2006-01-02}.#index.log",
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
+	fileSize, err := parseFileSize(opt.MaxFileSize)
 	if err != nil {
-		Reportf("parse file size error: %v", err)
-		os.Exit(0)
+		ReportfExit("parse file size error: %v", err)
 	}
 
 	return &sizeAndTimeBasedRollingPolicy{
 		triggerSize:   fileSize,
-		patternParser: NewPatternParser(filenamePattern),
+		patternParser: NewPatternParser(opt.FilenamePattern),
 	}
 }
 
@@ -156,21 +171,28 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	}
 	rp.converter = converter
 
+	var gotIndex bool
 	var datePattern string
 	for c := rp.converter; c != nil; c = c.Next() {
 		if dc, ok := c.(*dateConverter); ok {
 			datePattern = dc.DatePattern()
-			break
+		}
+		if _, ok := c.(*indexConverter); ok {
+			gotIndex = true
 		}
 	}
 
+	if !gotIndex {
+		return errors.New("invalid filename pattern, missing index pattern")
+	}
+
 	if len(datePattern) == 0 {
-		return errors.New("invalid file name pattern, missing date pattern")
+		return errors.New("invalid filename pattern, missing date pattern")
 	}
 
 	rp.rollingDate = newRollingDate(datePattern)
-
 	rp.calcNextCheck()
+
 	return rp.calcIndex()
 }
 
@@ -197,14 +219,16 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 	buf := &bytes.Buffer{}
 
 	for c := rp.converter; c != nil; c = c.Next() {
-		if _, ok := c.(*literalConverter); ok {
-			buf.WriteString(c.Convert(""))
-		}
-		if _, ok := c.(*dateConverter); ok {
-			buf.WriteString(c.Convert(time.Now()))
-		}
-		if _, ok := c.(*indexConverter); ok {
-			buf.WriteString(c.Convert(rp.index))
+		switch c.(type) {
+		case *literalConverter:
+			c.Convert(nil, buf)
+
+		case *dateConverter:
+			ts := time.Now().Format(time.RFC3339)
+			c.Convert([]byte(ts), buf)
+
+		case *indexConverter:
+			c.Convert([]byte(strconv.Itoa(rp.index)), buf)
 		}
 	}
 
@@ -275,13 +299,15 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 func (rp *sizeAndTimeBasedRollingPolicy) toFilenameRegex() string {
 	var buf = &bytes.Buffer{}
 	for c := rp.converter; c != nil; c = c.Next() {
-		if _, ok := c.(*literalConverter); ok {
-			buf.WriteString(c.Convert(""))
-		}
-		if _, ok := c.(*dateConverter); ok {
-			buf.WriteString(c.Convert(time.Now()))
-		}
-		if _, ok := c.(*indexConverter); ok {
+		switch c.(type) {
+		case *literalConverter:
+			c.Convert(nil, buf)
+
+		case *dateConverter:
+			ts := time.Now().Format(time.RFC3339)
+			c.Convert([]byte(ts), buf)
+
+		case *indexConverter:
 			buf.WriteString("(\\d{1,3})")
 		}
 	}
@@ -328,7 +354,7 @@ func (rd *rollingDate) calcPeriodType() periodType {
 		tl := now.Format(rd.datePattern)
 		next := rd.endOfPeriod(t, now)
 		tr := next.Format(rd.datePattern)
-		if tl == tr {
+		if tl != tr {
 			return t
 		}
 	}

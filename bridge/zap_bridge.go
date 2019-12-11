@@ -1,8 +1,22 @@
 // Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-package zapslago
+package bridge
 
 import (
+	"time"
+
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -21,17 +35,14 @@ var (
 type zapBridge struct {
 }
 
-func init() {
-	slago.Install(newZapBrige())
-}
-
-func newZapBrige() *zapBridge {
+// NewZapBrige creates a new slago bridge for zap.
+func NewZapBrige() *zapBridge {
 	bridge := &zapBridge{}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.LevelKey = slago.LevelFieldKey
 	encoderConfig.TimeKey = slago.TimestampFieldKey
 	encoderConfig.MessageKey = slago.MessageFieldKey
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeTime = rf3339Encoder
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig),
@@ -61,4 +72,8 @@ func (b *zapBridge) Write(p []byte) (int, error) {
 	}
 
 	return len(p), err
+}
+
+func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format(slago.TimestampFormat))
 }

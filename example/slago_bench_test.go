@@ -15,23 +15,28 @@
 package main
 
 import (
+	salzerolog "gitlab.com/anbillon/slago/binder/salzero"
 	"testing"
 
 	"gitlab.com/anbillon/slago/slago-api"
 )
 
 func init() {
-	fw := slago.NewFileWriter(&slago.FileWriterOption{
-		Encoder:  slago.NewPatternEncoder(""),
-		Filter:   slago.NewLevelFilter(slago.InfoLevel),
-		Filename: "slago-test.log",
-		RollingPolicy: slago.NewSizeAndTimeBasedRollingPolicy(
-			"slago-archive.#date{2006-01-02}.#index.log", "10MB"),
+	slago.Bind(salzerolog.NewZeroLogger())
+
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		//o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
+		o.Encoder = slago.NewJsonEncoder()
+		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
+		o.Filename = "slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
 	})
 
-	//cw := slago.NewConsoleWriter(slago.NewPatternEncoder(""), nil)
 	slago.Logger().AddWriter(fw)
-	//log.Logger = log.Output(fw)
 }
 
 func BenchmarkSlagoZerolog(b *testing.B) {
@@ -41,7 +46,6 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 		for pb.Next() {
 			slago.Logger().Info().Int("int", 88).Msg(
 				"The quick brown fox jumps over the lazy dog")
-			//log.Info().Msg("The quick brown fox jumps over the lazy dog")
 		}
 	})
 }

@@ -15,6 +15,8 @@
 package salzap
 
 import (
+	"time"
+
 	"gitlab.com/anbillon/slago/slago-api"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -32,16 +34,14 @@ var (
 	}
 )
 
+// zapLogger is an implementation of SlaLogger.
 type zapLogger struct {
-	atomicLevel     zap.AtomicLevel
-	syncMultiWriter *slago.MultiWriter
+	atomicLevel zap.AtomicLevel
+	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newZapLogger())
-}
-
-func newZapLogger() *zapLogger {
+// NewZapLogger creates a new instance of zapLogger used to be bound to slago.
+func NewZapLogger() *zapLogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 
@@ -49,7 +49,7 @@ func newZapLogger() *zapLogger {
 	encoderConfig.LevelKey = slago.LevelFieldKey
 	encoderConfig.MessageKey = slago.MessageFieldKey
 	encoderConfig.TimeKey = slago.TimestampFieldKey
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeTime = rf3339Encoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
 	writer := slago.NewMultiWriter()
@@ -62,8 +62,8 @@ func newZapLogger() *zapLogger {
 	zap.ReplaceGlobals(logger)
 
 	return &zapLogger{
-		atomicLevel:     atomicLevel,
-		syncMultiWriter: writer,
+		atomicLevel: atomicLevel,
+		multiWriter: writer,
 	}
 }
 
@@ -72,7 +72,11 @@ func (l *zapLogger) Name() string {
 }
 
 func (l *zapLogger) AddWriter(w ...slago.Writer) {
-	l.syncMultiWriter.AddWriter(w...)
+	l.multiWriter.AddWriter(w...)
+}
+
+func (l *zapLogger) ResetWriter() {
+	l.multiWriter.Reset()
 }
 
 func (l *zapLogger) SetLevel(lvl slago.Level) {
@@ -137,8 +141,12 @@ func (l *zapLogger) Printf(format string, args ...interface{}) {
 }
 
 func (l *zapLogger) WriteRaw(p []byte) {
-	_, err := l.syncMultiWriter.Write(p)
+	_, err := l.multiWriter.Write(p)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}
+}
+
+func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	enc.AppendString(t.Format(slago.TimestampFormat))
 }
