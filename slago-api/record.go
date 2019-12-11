@@ -135,5 +135,5 @@ type Record interface {
 	Msg(msg string)
 
 	// Msgf adds a message with format to this record and output log.
-	Msgf(format string, msg string)
+	Msgf(format string, v ...interface{})
 }

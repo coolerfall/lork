@@ -222,7 +222,7 @@ func (r *logrusRecord) Msg(msg string) {
 	recordPool.Put(r)
 }
 
-func (r *logrusRecord) Msgf(format string, msg string) {
-	r.entry.Logf(r.level, format, msg)
+func (r *logrusRecord) Msgf(format string, v ...interface{}) {
+	r.entry.Logf(r.level, format, v...)
 	recordPool.Put(r)
 }
