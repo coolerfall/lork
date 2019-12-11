@@ -79,8 +79,9 @@ var std0x = [...]int{stdZeroMonth, stdZeroDay, stdZeroHour12, stdZeroMinute, std
 
 // some common errors
 var errBad = errors.New("bad value for field")
+var errParse = errors.New("failed to parse given timestamp")
 var errLeadingInt = errors.New("time: bad [0-9]*")
-var atoiError = errors.New("time: invalid number")
+var errAtoi = errors.New("time: invalid number")
 
 // startsWithLowerCase reports whether the string has a lower-case letter at the beginning.
 // Its purpose is to prevent matching strings like "Month" when looking for "Mon".
@@ -93,7 +94,7 @@ func startsWithLowerCase(str string) bool {
 }
 
 // isDigit reports whether s[i] is in range and is a decimal digit.
-func isDigit(s string, i int) bool {
+func isDigit(s []byte, i int) bool {
 	if len(s) <= i {
 		return false
 	}
@@ -224,7 +225,7 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 					j++
 				}
 				// String of digits must end here - only fractional second is all digits.
-				if !isDigit(layout, j) {
+				if !isDigit([]byte(layout), j) {
 					std := stdFracSecond0
 					if layout[i+1] == '9' {
 						std = stdFracSecond9
@@ -238,16 +239,16 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 	return layout, 0, ""
 }
 
-func atoi(s string) (x int, err error) {
+func atoi(s []byte) (x int, err error) {
 	neg := false
-	if s != "" && (s[0] == '-' || s[0] == '+') {
+	if s != nil && (s[0] == '-' || s[0] == '+') {
 		neg = s[0] == '-'
 		s = s[1:]
 	}
 	q, rem, err := leadingInt(s)
 	x = int(q)
-	if err != nil || rem != "" {
-		return 0, atoiError
+	if err != nil || rem != nil {
+		return 0, errAtoi
 	}
 	if neg {
 		x = -x
@@ -256,7 +257,7 @@ func atoi(s string) (x int, err error) {
 }
 
 // leadingInt consumes the leading [0-9]* from s.
-func leadingInt(s string) (x int64, rem string, err error) {
+func leadingInt(s []byte) (x int64, rem []byte, err error) {
 	i := 0
 	for ; i < len(s); i++ {
 		c := s[i]
@@ -265,12 +266,12 @@ func leadingInt(s string) (x int64, rem string, err error) {
 		}
 		if x > (1<<63-1)/10 {
 			// overflow
-			return 0, "", errLeadingInt
+			return 0, nil, errLeadingInt
 		}
 		x = x*10 + int64(c) - '0'
 		if x < 0 {
 			// overflow
-			return 0, "", errLeadingInt
+			return 0, nil, errLeadingInt
 		}
 	}
 	return x, s[i:], nil
@@ -278,14 +279,15 @@ func leadingInt(s string) (x int64, rem string, err error) {
 
 // skip removes the given prefix from value,
 // treating runs of space characters as equivalent.
-func skip(value, prefix string) (string, error) {
+func skip(value []byte, prefix string) ([]byte, error) {
 	for len(prefix) > 0 {
 		if prefix[0] == ' ' {
 			if len(value) > 0 && value[0] != ' ' {
 				return value, errBad
 			}
 			prefix = cutspace(prefix)
-			value = cutspace(value)
+			//value = cutspace(value)
+			value = cutsBytesSpace(value)
 			continue
 		}
 		if len(value) == 0 || value[0] != prefix[0] {
@@ -304,27 +306,12 @@ func cutspace(s string) string {
 	return s
 }
 
-//func timezoneOffset(value string) int {
-//	if len(value) != 6 {
-//		return 0
-//	}
-//
-//	sign, hour, min := value[0:1], value[1:3], value[3:5]
-//	var hr, mm, ss int
-//	var err error
-//	hr, err = atoi(hour)
-//	if err == nil {
-//		mm, err = atoi(min)
-//	}
-//	zoneOffset := (hr*60+mm)*60 + ss
-//	switch sign[0] {
-//	case '+':
-//	case '-':
-//		zoneOffset = -zoneOffset
-//	}
-//
-//	return zoneOffset
-//}
+func cutsBytesSpace(b []byte) []byte {
+	for len(b) > 0 && b[0] == ' ' {
+		b = b[1:]
+	}
+	return b
+}
 
 // appendInt appends the decimal form of x to b and returns the result.
 // If the decimal form (excluding sign) is shorter than width, the result is padded with leading 0's.
@@ -359,7 +346,7 @@ func appendInt(b []byte, x int, width int) []byte {
 // getnum parses s[0:1] or s[0:2] (fixed forces s[0:2])
 // as a decimal integer and returns the integer and the
 // remainder of the string.
-func getnum(s string, fixed bool) (int, string, error) {
+func getnum(s []byte, fixed bool) (int, []byte, error) {
 	if !isDigit(s, 0) {
 		return 0, s, errBad
 	}
@@ -372,7 +359,7 @@ func getnum(s string, fixed bool) (int, string, error) {
 	return int(s[0]-'0')*10 + int(s[1]-'0'), s[2:], nil
 }
 
-func parseNanoseconds(value string, nbytes int) (ns int, rangeErrString string, err error) {
+func parseNanoseconds(value []byte, nbytes int) (ns int, errString string, err error) {
 	if value[0] != '.' {
 		err = errBad
 		return
@@ -381,7 +368,7 @@ func parseNanoseconds(value string, nbytes int) (ns int, rangeErrString string, 
 		return
 	}
 	if ns < 0 || 1e9 <= ns {
-		rangeErrString = "fractional second"
+		errString = "fractional second"
 		return
 	}
 	// We need nanoseconds, which means scaling by the number
@@ -530,7 +517,7 @@ func isLeap(year int) bool {
 // convertFormat parses the origin timestamp in 2006-01-02T15:04:05.000Z07:00 format,
 // and convert to new layout. This will appends the textual representation to b and
 // returns the extended buffer.
-func convertFormat(b []byte, origin string, layout string) ([]byte, error) {
+func convertFormat(b []byte, origin []byte, layout string) ([]byte, error) {
 	var (
 		year  = -1
 		month time.Month
@@ -698,46 +685,41 @@ func convertFormat(b []byte, origin string, layout string) ([]byte, error) {
 	return b, nil
 }
 
-func toUTCUnixNano(value string, layout string) (int64, error) {
-	//alayout, avalue := layout, value
-	rangeErrString := ""
-
+func toUTCUnixNano(value []byte, layout string) (int64, error) {
 	var (
-		year       int
-		month      = -1
-		day        = -1
-		hour       int
-		min        int
-		sec        int
-		nsec       int
-		zoneOffset = -1
-		err        error
+		year           int
+		month          = -1
+		day            = -1
+		hour           int
+		min            int
+		sec            int
+		nsec           int
+		zoneOffset     = -1
+		err            error
+		rangeErrString = ""
 	)
 
 	for {
 		prefix, std, suffix := nextStdChunk(layout)
-		stdstr := layout[len(prefix) : len(layout)-len(suffix)]
 		value, err = skip(value, prefix)
 		if err != nil {
 			return 0, nil
 		}
 		if std == 0 {
 			if len(value) != 0 {
-				return 0, &time.ParseError{
-					Message: ": extra text: " + value,
-				}
+				return 0, errParse
 			}
 			break
 		}
 		layout = suffix
 
-		var p string
 		switch std & stdMask {
 		case stdLongYear:
 			if len(value) < 4 || !isDigit(value, 0) {
 				err = errBad
 				break
 			}
+			var p []byte
 			p, value = value[0:4], value[4:]
 			year, err = atoi(p)
 
@@ -797,8 +779,9 @@ func toUTCUnixNano(value string, layout string) (int64, error) {
 				err = errBad
 				break
 			}
-			var sign, hour, min, seconds string
-			sign, hour, min, seconds, value = value[0:1], value[1:3], value[4:6], "00", value[6:]
+			var sign, hour, min, seconds []byte
+			sign, hour, min, seconds, value = value[0:1], value[1:3], value[4:6],
+				[]byte("00"), value[6:]
 
 			var hr, mm, ss int
 			hr, err = atoi(hour)
@@ -842,17 +825,13 @@ func toUTCUnixNano(value string, layout string) (int64, error) {
 			}
 			nsec, rangeErrString, err = parseNanoseconds(value, 1+i)
 			value = value[1+i:]
+		}
 
-			if rangeErrString != "" {
-				return 0, &time.ParseError{
-					Message: ": " + rangeErrString + " out of range",
-				}
-			}
-			if err != nil {
-				return 0, &time.ParseError{
-					Message: "cannot parse " + value + " as " + stdstr,
-				}
-			}
+		if rangeErrString != "" {
+			return 0, errors.New(rangeErrString + " out of range")
+		}
+		if err != nil {
+			return 0, errParse
 		}
 	}
 

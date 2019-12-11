@@ -26,8 +26,8 @@ const (
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
 
-	//TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
-	TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
+	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
+	//TimestampFormat = "2006-01-02T15:04:05.000Z07:00"
 )
 
 // BrigeWrite writes data from bridge to slago logger.
