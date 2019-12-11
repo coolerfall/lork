@@ -278,7 +278,7 @@ func (c *logDateConverter) Convert(event interface{}, buf *bytes.Buffer) {
 
 	tsValue, _, _, _ := jsonparser.Get(data, TimestampFieldKey)
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, string(tsValue), c.opts[0])
+	bufData, _ = convertFormat(bufData, tsValue, c.opts[0])
 	buf.Reset()
 	buf.Write(bufData)
 }

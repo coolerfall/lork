@@ -42,7 +42,7 @@ func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	var err error
 	ts, _, _, _ := jsonparser.Get(p, TimestampFieldKey)
 	bufData := e.buf.Bytes()
-	bufData, err = convertFormat(bufData, string(ts), jsonTimeFormat)
+	bufData, err = convertFormat(bufData, ts, jsonTimeFormat)
 	if err != nil {
 		return nil, err
 	}
@@ -51,6 +51,7 @@ func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	timestamp := e.buf.String()
 	e.buf.Reset()
 
+	// wrtite key and value as json string
 	e.buf.WriteByte('{')
 	var start = false
 	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
@@ -87,6 +88,5 @@ func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
 	p = e.buf.Bytes()
 	e.buf.Reset()
 
-	// the default encoder is json, just return origin data
 	return p, nil
 }
