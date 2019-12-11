@@ -34,16 +34,14 @@ var (
 	}
 )
 
+// zapLogger is an implementation of SlaLogger.
 type zapLogger struct {
 	atomicLevel zap.AtomicLevel
 	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newZapLogger())
-}
-
-func newZapLogger() *zapLogger {
+// NewZapLogger creates a new instance of zapLogger used to be bound to slago.
+func NewZapLogger() *zapLogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 

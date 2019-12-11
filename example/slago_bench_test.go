@@ -15,15 +15,18 @@
 package main
 
 import (
+	salzerolog "gitlab.com/anbillon/slago/binder/salzero"
 	"testing"
 
 	"gitlab.com/anbillon/slago/slago-api"
 )
 
 func init() {
+	slago.Bind(salzerolog.NewZeroLogger())
+
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
-		//o.Encoder = slago.NewJsonEncoder()
+		//o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
+		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(

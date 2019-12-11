@@ -31,15 +31,13 @@ var (
 	}
 )
 
+// logrusLogger is an implementation of SlaLogger.
 type logrusLogger struct {
 	multiWriter *slago.MultiWriter
 }
 
-func init() {
-	slago.Bind(newLogrusLogger())
-}
-
-func newLogrusLogger() *logrusLogger {
+// NewLogrusLogger creates a new instance of logrusLogger used to be bound to slago
+func NewLogrusLogger() *logrusLogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: slago.TimestampFormat,
 		FieldMap: logrus.FieldMap{
