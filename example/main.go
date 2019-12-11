@@ -15,10 +15,10 @@
 package main
 
 import (
+	"gitlab.com/anbillon/slago/binder/salzero"
 	"log"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago/binder/salzero"
 	"gitlab.com/anbillon/slago/bridge"
 	"gitlab.com/anbillon/slago/slago-api"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
@@ -32,6 +32,7 @@ func main() {
 	slago.Install(bridge.NewLogrusBridge())
 	slago.Install(bridge.NewZapBrige())
 	slago.Bind(salzero.NewZeroLogger())
+	//slago.Bind(slalogrus.NewLogrusLogger())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(
