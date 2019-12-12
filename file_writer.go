@@ -21,11 +21,9 @@ import (
 	"sync"
 )
 
-var (
-	_ Writer = (*fileWriter)(nil)
+var _ Writer = (*fileWriter)(nil)
 
-	defaultLogFilename = "slago.log"
-)
+const defaultLogFilename = "slago.log"
 
 type fileWriter struct {
 	opts *FileWriterOption
@@ -46,9 +44,8 @@ type FileWriterOption struct {
 // NewFileWriter creates a new instance of file writer.
 func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
 	opts := &FileWriterOption{
-		RollingPolicy: NewNoopRollingPolicy(),
-		Filename:      defaultLogFilename,
-		Encoder:       NewJsonEncoder(),
+		Filename: defaultLogFilename,
+		Encoder:  NewJsonEncoder(),
 	}
 
 	for _, f := range options {
@@ -167,6 +164,7 @@ func (fw *fileWriter) Dir() string {
 	return filepath.Dir(fw.opts.Filename)
 }
 
+// Filename returns the filename of current file.
 func (fw *fileWriter) Filename() string {
 	return fw.opts.Filename
 }

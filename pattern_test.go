@@ -15,8 +15,9 @@
 package slago
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestPatternParserParse(t *testing.T) {

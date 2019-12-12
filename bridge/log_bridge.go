@@ -18,7 +18,7 @@ import (
 	"log"
 	"strings"
 
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 )
 
 type logBridge struct {

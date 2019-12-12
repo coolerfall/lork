@@ -1,6 +1,6 @@
 // Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
 
-package salzap
+package slazap
 
 import (
 	"encoding/hex"
@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
