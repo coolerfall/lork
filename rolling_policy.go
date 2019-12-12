@@ -65,9 +65,6 @@ func (rp *noopRollingPolicy) Rotate() error {
 	return nil
 }
 
-type sizeBasedRollingPolicy struct {
-}
-
 type timeBasedRollingPolicy struct {
 	fileWriter      *fileWriter
 	filenamePattern string
