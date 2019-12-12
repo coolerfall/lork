@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package salzero
+package slazero
 
 import (
 	"strings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 )
 
 var (
