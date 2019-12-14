@@ -36,7 +36,9 @@ func init() {
 			})
 	})
 
-	slago.Logger().AddWriter(fw)
+	aw := slago.NewAsyncWriter(fw)
+	aw.Start()
+	slago.Logger().AddWriter(aw)
 }
 
 func BenchmarkSlagoZerolog(b *testing.B) {
