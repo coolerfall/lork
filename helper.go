@@ -42,6 +42,8 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 		switch realKey {
 		case LevelFieldKey:
 		case TimestampFieldKey:
+			// do nothing
+
 		case MessageFieldKey:
 			record.Msg(msg)
 
