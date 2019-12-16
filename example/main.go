@@ -15,15 +15,16 @@
 package main
 
 import (
-	"gitlab.com/anbillon/slago/binder/salzero"
 	"log"
+	"time"
 
 	"github.com/sirupsen/logrus"
+	"gitlab.com/anbillon/slago"
+	"gitlab.com/anbillon/slago/binder/slazero"
 	"gitlab.com/anbillon/slago/bridge"
-	"gitlab.com/anbillon/slago/slago-api"
 	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slalogrus"
-	//_ "gitlab.com/anbillon/slago/salzap"
+	//_ "gitlab.com/anbillon/slago/slazap"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	slago.Install(bridge.NewLogBridge())
 	slago.Install(bridge.NewLogrusBridge())
 	slago.Install(bridge.NewZapBrige())
-	slago.Bind(salzero.NewZeroLogger())
+	slago.Bind(slazero.NewZeroLogger())
 	//slago.Bind(slalogrus.NewLogrusLogger())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
@@ -42,7 +43,7 @@ func main() {
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
 		//o.Encoder = slago.NewLogstashEncoder()
-		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
+		o.Filter = slago.NewLevelFilter(slago.DebugLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
@@ -50,7 +51,9 @@ func main() {
 				o.MaxFileSize = "10MB"
 			})
 	})
-	slago.Logger().AddWriter(fw)
+	aw := slago.NewAsyncWriter(fw)
+	aw.Start()
+	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Trace().Msg("slago")
 	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
@@ -58,4 +61,5 @@ func main() {
 	zap.L().With().Warn("this is zap")
 
 	log.Printf("this is builtin logger")
+	time.Sleep(time.Second * 2)
 }

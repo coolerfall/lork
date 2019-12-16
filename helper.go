@@ -17,6 +17,7 @@ package slago
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/buger/jsonparser"
 )
@@ -41,6 +42,8 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 		switch realKey {
 		case LevelFieldKey:
 		case TimestampFieldKey:
+			// do nothing
+
 		case MessageFieldKey:
 			record.Msg(msg)
 
@@ -74,4 +77,20 @@ func ReportfExit(format string, args ...interface{}) {
 // colorize adds ANSI color for given string.
 func colorize(color int, s string) string {
 	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", color, s)
+}
+
+// rename creates directory if not existed, and rename file to a new name.
+func rename(oldPath, newPath string) (err error) {
+	dir := filepath.Dir(newPath)
+	err = os.MkdirAll(dir, os.FileMode(0666))
+	if err != nil {
+		return
+	}
+
+	err = os.Rename(oldPath, newPath)
+	if err != nil {
+		return
+	}
+
+	return
 }

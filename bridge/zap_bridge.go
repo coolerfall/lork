@@ -17,7 +17,7 @@ package bridge
 import (
 	"time"
 
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

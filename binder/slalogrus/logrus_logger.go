@@ -16,7 +16,7 @@ package slalogrus
 
 import (
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 )
 
 var (

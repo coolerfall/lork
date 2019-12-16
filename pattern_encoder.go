@@ -155,6 +155,7 @@ func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 	for c := cc.child; c != nil; c = c.Next() {
 		switch c.(type) {
 		case *levelConverter:
+			// TODO: remove strings.ToUpper
 			color, ok := levelColorMap[strings.ToUpper(string(level))]
 			if !ok {
 				color = colorWhite

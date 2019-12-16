@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package salzero
+package slazero
 
 import (
-	"strings"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/anbillon/slago/slago-api"
+	"gitlab.com/anbillon/slago"
 )
 
 var (
@@ -47,9 +45,7 @@ func NewZeroLogger() *zeroLogger {
 	zerolog.LevelFieldName = slago.LevelFieldKey
 	zerolog.TimestampFieldName = slago.TimestampFieldKey
 	zerolog.MessageFieldName = slago.MessageFieldKey
-	zerolog.LevelFieldMarshalFunc = func(l zerolog.Level) string {
-		return strings.ToUpper(l.String())
-	}
+	zerolog.LevelFieldMarshalFunc = capitalLevel
 
 	multiWriter := slago.NewMultiWriter()
 	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
@@ -132,5 +128,26 @@ func (l *zeroLogger) WriteRaw(p []byte) {
 	_, err := l.multiWriter.Write(p)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
+	}
+}
+
+func capitalLevel(l zerolog.Level) string {
+	switch l {
+	case zerolog.NoLevel:
+		return "TRACE"
+	case zerolog.DebugLevel:
+		return "DEBUG"
+	case zerolog.InfoLevel:
+		return "INFO"
+	case zerolog.WarnLevel:
+		return "WARN"
+	case zerolog.ErrorLevel:
+		return "ERROR"
+	case zerolog.FatalLevel:
+		return "FATAL"
+	case zerolog.PanicLevel:
+		return "PANIC"
+	default:
+		return ""
 	}
 }
