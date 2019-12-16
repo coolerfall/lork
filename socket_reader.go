@@ -23,11 +23,12 @@ import (
 )
 
 type SocketReader struct {
-	mutex     sync.Mutex
+	locker    sync.Mutex
 	isRunning bool
 	upgrader  *websocket.Upgrader
 }
 
+// NewSocketReader creates a new instance of socket reader.
 func NewSocketReader() *SocketReader {
 	return &SocketReader{
 		upgrader: &websocket.Upgrader{},
@@ -35,18 +36,18 @@ func NewSocketReader() *SocketReader {
 }
 
 func (sr *SocketReader) Start() {
-	sr.mutex.Lock()
+	sr.locker.Lock()
 	sr.isRunning = true
-	sr.mutex.Unlock()
+	sr.locker.Unlock()
 
 	http.HandleFunc("/log/socket", sr.readLog)
 	fmt.Print(http.ListenAndServe(":6060", nil))
 }
 
 func (sr *SocketReader) Stop() {
-	sr.mutex.Lock()
+	sr.locker.Lock()
 	sr.isRunning = false
-	sr.mutex.Unlock()
+	sr.locker.Unlock()
 }
 
 func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
@@ -55,10 +56,10 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 		Logger().Error().Err(err).Msg("read log upgrade error")
 	}
 	defer func() {
-		if err := conn.Close(); err != nil {
-			Logger().Error().Err(err)
-		}
+		_ = conn.Close()
 	}()
+
+	Logger().Info().Msgf("socket reader got a client connected: %v", r.Host)
 
 	for {
 		if !sr.isRunning {
@@ -67,6 +68,12 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msgType, data, err := conn.ReadMessage(); err != nil {
+			if websocket.IsCloseError(err,
+				websocket.CloseNormalClosure, websocket.CloseAbnormalClosure) {
+				Logger().Info().Msg("socket client has closed")
+				break
+			}
+
 			Logger().Error().Err(err).Msg("read log err")
 			continue
 		} else {
