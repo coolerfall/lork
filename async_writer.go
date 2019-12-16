@@ -25,7 +25,6 @@ type asyncWriter struct {
 	ref       Writer
 	locker    sync.Mutex
 	queue     *blockingQueue
-	buf       *bytes.Buffer
 	isStarted bool
 }
 
@@ -34,7 +33,6 @@ func NewAsyncWriter(ref Writer) *asyncWriter {
 	return &asyncWriter{
 		ref:   ref,
 		queue: NewBlockingQueue(defaultQueueSize),
-		buf:   new(bytes.Buffer),
 	}
 }
 
@@ -55,9 +53,7 @@ func (w *asyncWriter) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	w.buf.Write(p)
-	w.queue.Put(w.buf.String())
-	w.buf.Reset()
+	w.queue.Put(p)
 
 	return len(p), nil
 }
@@ -72,7 +68,7 @@ func (w *asyncWriter) Filter() Filter {
 
 func (w *asyncWriter) startWorker() {
 	for {
-		p := []byte(w.queue.Take())
+		p := w.queue.Take()
 
 		var err error
 		if w.ref.Filter() != nil && w.ref.Filter().Do(p) {
@@ -97,22 +93,30 @@ func (w *asyncWriter) startWorker() {
 type blockingQueue struct {
 	locker   *sync.Mutex
 	notEmpty *sync.Cond
-	items    []string
+	items    []*bytes.Buffer
 
 	count     int
 	takeIndex int
 	putIndex  int
 }
 
+// NewBlockingQueue creates a new blocking queue.
 func NewBlockingQueue(capacity int) *blockingQueue {
 	lock := new(sync.Mutex)
+
+	items := make([]*bytes.Buffer, capacity)
+	for i := 0; i < capacity; i++ {
+		items[i] = new(bytes.Buffer)
+	}
+
 	return &blockingQueue{
 		locker:   lock,
 		notEmpty: sync.NewCond(lock),
-		items:    make([]string, capacity),
+		items:    items,
 	}
 }
 
+// RemainCapacity gets remain capacity in queue.
 func (q *blockingQueue) RemainCapacity() int {
 	q.locker.Lock()
 	defer q.locker.Unlock()
@@ -120,11 +124,12 @@ func (q *blockingQueue) RemainCapacity() int {
 	return len(q.items) - q.count
 }
 
-func (q *blockingQueue) Put(item string) {
+// Put puts an item into queue.
+func (q *blockingQueue) Put(item []byte) {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
-	q.items[q.putIndex] = item
+	q.items[q.putIndex].Write(item)
 	q.putIndex++
 	if q.putIndex == len(q.items) {
 		q.putIndex = 0
@@ -134,7 +139,8 @@ func (q *blockingQueue) Put(item string) {
 	q.notEmpty.Signal()
 }
 
-func (q *blockingQueue) Take() string {
+// Take takes an item from queue.
+func (q *blockingQueue) Take() []byte {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
@@ -149,5 +155,8 @@ func (q *blockingQueue) Take() string {
 	}
 	q.count--
 
-	return next
+	data := next.Bytes()
+	next.Reset()
+
+	return data
 }
