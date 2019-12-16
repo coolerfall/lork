@@ -17,40 +17,95 @@ package slago
 import (
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-type socketWriter struct {
-	conn    *websocket.Conn
-	mutex   sync.Mutex
-	encoder Encoder
+const (
+	defaultSocketQueueSize   = 128
+	defaultReconnectionDelay = 5_000
+)
+
+type SocketWriterOption struct {
+	RemoteUrl         *url.URL
+	QueueSize         int
+	ReconnectionDelay time.Duration
+	Filter            Filter
 }
 
-// TODO: reconnection
+type socketWriter struct {
+	encoder Encoder
+	filter  Filter
+
+	locker    sync.Mutex
+	conn      *websocket.Conn
+	queue     *blockingQueue
+	isStarted bool
+
+	remoteUrl   *url.URL
+	reconnDelay time.Duration
+}
+
 // NewSocketWriter create a logging writter via socket.
-func NewSocketWriter(u *url.URL) *socketWriter {
-	if u == nil {
-		Logger().Error().Msg("connect socket server error")
-		return nil
+func NewSocketWriter(options ...func(*SocketWriterOption)) *socketWriter {
+	opts := &SocketWriterOption{
+		QueueSize:         defaultSocketQueueSize,
+		ReconnectionDelay: defaultReconnectionDelay,
 	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	for _, f := range options {
+		f(opts)
+	}
+
+	if opts.RemoteUrl == nil {
+		ReportfExit("socket writer need a remote url")
+	}
+
+	if opts.QueueSize <= 0 {
+		opts.QueueSize = defaultSocketQueueSize
+	}
+	if opts.ReconnectionDelay <= 0 {
+		opts.ReconnectionDelay = defaultReconnectionDelay
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial(opts.RemoteUrl.String(), nil)
 	if err != nil {
-		Logger().Error().Err(err).Msg("connect socket server error")
+		ReportfExit("connect socket server error: %v", err)
 	}
 
 	return &socketWriter{
-		conn:    conn,
-		encoder: NewJsonEncoder(),
+		encoder:     NewJsonEncoder(),
+		filter:      opts.Filter,
+		conn:        conn,
+		queue:       NewBlockingQueue(opts.QueueSize),
+		reconnDelay: opts.ReconnectionDelay,
+		remoteUrl:   opts.RemoteUrl,
 	}
 }
 
-func (w *socketWriter) Write(p []byte) (n int, err error) {
-	w.mutex.Lock()
-	err = w.conn.WriteMessage(websocket.BinaryMessage, p)
-	defer w.mutex.Unlock()
-	return len(p), err
+func (w *socketWriter) Start() {
+	if w.isStarted {
+		return
+	}
+
+	go w.startWorker()
+
+	w.isStarted = true
+}
+
+func (w *socketWriter) Write(p []byte) (int, error) {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	if w.queue.RemainCapacity() <= 2 {
+		// discard
+		return 0, nil
+	}
+
+	w.queue.Put(p)
+
+	return len(p), nil
 }
 
 func (w *socketWriter) Close() error {
@@ -61,6 +116,30 @@ func (w *socketWriter) Encoder() Encoder {
 	return w.encoder
 }
 
-func (w *socketWriter) Filter() *LevelFilter {
-	return nil
+func (w *socketWriter) Filter() Filter {
+	return w.filter
+}
+
+func (w *socketWriter) startWorker() {
+	for {
+		p := w.queue.Take()
+
+		err := w.conn.WriteMessage(websocket.BinaryMessage, p)
+		if err == nil {
+			continue
+		}
+
+		// close first
+		_ = w.conn.Close()
+		Reportf("socket writer write error: %v", err)
+
+		// delay before reconnect
+		time.Sleep(w.reconnDelay)
+		conn, _, err := websocket.DefaultDialer.Dial(w.remoteUrl.String(), nil)
+		if err != nil {
+			Reportf("socket writer reconnect error: %v", err)
+		} else {
+			w.conn = conn
+		}
+	}
 }

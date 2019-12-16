@@ -15,11 +15,10 @@
 package slago
 
 import (
-	"bytes"
 	"sync"
 )
 
-const defaultQueueSize = 256
+const defaultWriterQueueSize = 256
 
 type asyncWriter struct {
 	ref       Writer
@@ -32,7 +31,7 @@ type asyncWriter struct {
 func NewAsyncWriter(ref Writer) *asyncWriter {
 	return &asyncWriter{
 		ref:   ref,
-		queue: NewBlockingQueue(defaultQueueSize),
+		queue: NewBlockingQueue(defaultWriterQueueSize),
 	}
 }
 
@@ -88,75 +87,4 @@ func (w *asyncWriter) startWorker() {
 			Reportf("async writer write error: %v", err)
 		}
 	}
-}
-
-type blockingQueue struct {
-	locker   *sync.Mutex
-	notEmpty *sync.Cond
-	items    []*bytes.Buffer
-
-	count     int
-	takeIndex int
-	putIndex  int
-}
-
-// NewBlockingQueue creates a new blocking queue.
-func NewBlockingQueue(capacity int) *blockingQueue {
-	lock := new(sync.Mutex)
-
-	items := make([]*bytes.Buffer, capacity)
-	for i := 0; i < capacity; i++ {
-		items[i] = new(bytes.Buffer)
-	}
-
-	return &blockingQueue{
-		locker:   lock,
-		notEmpty: sync.NewCond(lock),
-		items:    items,
-	}
-}
-
-// RemainCapacity gets remain capacity in queue.
-func (q *blockingQueue) RemainCapacity() int {
-	q.locker.Lock()
-	defer q.locker.Unlock()
-
-	return len(q.items) - q.count
-}
-
-// Put puts an item into queue.
-func (q *blockingQueue) Put(item []byte) {
-	q.locker.Lock()
-	defer q.locker.Unlock()
-
-	q.items[q.putIndex].Write(item)
-	q.putIndex++
-	if q.putIndex == len(q.items) {
-		q.putIndex = 0
-	}
-	q.count++
-
-	q.notEmpty.Signal()
-}
-
-// Take takes an item from queue.
-func (q *blockingQueue) Take() []byte {
-	q.locker.Lock()
-	defer q.locker.Unlock()
-
-	for q.count == 0 {
-		q.notEmpty.Wait()
-	}
-
-	next := q.items[q.takeIndex]
-	q.takeIndex++
-	if q.takeIndex == len(q.items) {
-		q.takeIndex = 0
-	}
-	q.count--
-
-	data := next.Bytes()
-	next.Reset()
-
-	return data
 }
