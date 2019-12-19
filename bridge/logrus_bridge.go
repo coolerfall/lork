@@ -15,8 +15,11 @@
 package bridge
 
 import (
+	"bytes"
+	"sync"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago"
 )
@@ -33,11 +36,15 @@ var (
 )
 
 type logrusBridge struct {
+	buf    *bytes.Buffer
+	locker sync.Mutex
 }
 
 // NewLogrusBridge creates a new slago bridge for logrus.
 func NewLogrusBridge() slago.Bridge {
-	bridge := &logrusBridge{}
+	bridge := &logrusBridge{
+		buf: new(bytes.Buffer),
+	}
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339,
 		FieldMap: logrus.FieldMap{
@@ -67,6 +74,50 @@ func (b *logrusBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *logrusBridge) Write(p []byte) (int, error) {
+	b.locker.Lock()
+	defer b.locker.Unlock()
+
+	b.buf.WriteByte('{')
+	var start = false
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		if start {
+			b.buf.WriteByte(',')
+		} else {
+			start = true
+		}
+
+		b.buf.WriteByte('"')
+		b.buf.Write(key)
+		b.buf.WriteByte('"')
+		b.buf.WriteByte(':')
+
+		switch dataType {
+		case jsonparser.String:
+			b.buf.WriteByte('"')
+			if string(key) == slago.LevelFieldKey {
+				lvl, err := logrus.ParseLevel(string(value))
+				if err != nil {
+					b.buf.Write(value)
+				} else {
+					b.buf.WriteString(logrusLvlToSlagoLvl[lvl].String())
+				}
+			} else {
+				b.buf.Write(value)
+			}
+			b.buf.WriteByte('"')
+
+		default:
+			b.buf.Write(value)
+		}
+
+		return nil
+	})
+	b.buf.WriteByte('}')
+	b.buf.WriteByte('\n')
+	p = b.buf.Bytes()
+	b.buf.Reset()
+
 	err := slago.BrigeWrite(b, p)
 	if err != nil {
 		slago.Reportf("logrus bridge write error", err)

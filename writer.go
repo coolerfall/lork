@@ -20,14 +20,14 @@ import (
 )
 
 // Writer is the interface that wraps the io.Writer, add adds
-// Encoder and LevelFilter func for slago to ecnode and filter logs.
+// Encoder and Filter func for slago to ecnode and filter logs.
 type Writer interface {
 	io.Writer
 
 	// Encoder returns encoder used in current writer.
 	Encoder() Encoder
 
-	// LevelFilter returns filter used in current writer.
+	// Filter returns filter used in current writer.
 	Filter() Filter
 }
 
