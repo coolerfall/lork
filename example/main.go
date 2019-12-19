@@ -31,6 +31,7 @@ import (
 func main() {
 	slago.Install(bridge.NewLogBridge())
 	slago.Install(bridge.NewLogrusBridge())
+	//slago.Install(bridge.NewZerologBridge())
 	slago.Install(bridge.NewZapBrige())
 	slago.Bind(slazero.NewZeroLogger())
 	//slago.Bind(slalogrus.NewLogrusLogger())

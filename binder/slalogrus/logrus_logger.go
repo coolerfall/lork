@@ -46,10 +46,11 @@ func NewLogrusLogger() *logrusLogger {
 			logrus.FieldKeyMsg:   slago.MessageFieldKey,
 		},
 	})
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 
 	writer := slago.NewMultiWriter()
-	logrus.SetOutput(writer)
+	transformer := newTransformer(writer)
+	logrus.SetOutput(transformer)
 
 	return &logrusLogger{
 		multiWriter: writer,
