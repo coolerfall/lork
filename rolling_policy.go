@@ -158,8 +158,16 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
-	return fileSize >= rp.triggerSize ||
-		rp.timeBasedRollingPolicy.ShouldTrigger(fileSize)
+	if fileSize >= rp.triggerSize {
+		return true
+	}
+
+	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
+		rp.index = 1
+		return true
+	}
+
+	return false
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
