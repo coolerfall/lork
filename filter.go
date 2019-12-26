@@ -16,6 +16,7 @@ package slago
 
 import (
 	"errors"
+
 	"github.com/buger/jsonparser"
 )
 

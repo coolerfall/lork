@@ -15,6 +15,7 @@
 package slago
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,12 +58,12 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 	return nil
 }
 
-// Report reports message in stdout.
+// Report reports message in stdou
 func Report(msg string) {
 	Reportf(msg)
 }
 
-// Reportf reports message with arguments in stdout.
+// Reportf reports message with arguments in stdou
 func Reportf(format string, args ...interface{}) {
 	format = "slago: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
@@ -93,4 +94,48 @@ func rename(oldPath, newPath string) (err error) {
 	}
 
 	return
+}
+
+// ReplaceJson replace key/value with given search key.
+func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
+	transform func(k, v []byte) (nk, kv []byte, e error)) error {
+	buf.WriteByte('{')
+	var start = false
+	var err error
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		if start {
+			buf.WriteByte(',')
+		} else {
+			start = true
+		}
+
+		if string(key) == searchKey {
+			key, value, err = transform(key, value)
+			if err != nil {
+				return err
+			}
+		}
+
+		buf.WriteByte('"')
+		buf.Write(key)
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+
+		switch dataType {
+		case jsonparser.String:
+			buf.WriteByte('"')
+			buf.Write(value)
+			buf.WriteByte('"')
+
+		default:
+			buf.Write(value)
+		}
+
+		return nil
+	})
+	buf.WriteByte('}')
+	buf.WriteByte('\n')
+
+	return nil
 }

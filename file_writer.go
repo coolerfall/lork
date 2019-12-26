@@ -28,9 +28,9 @@ const defaultLogFilename = "slago.log"
 type fileWriter struct {
 	opts *FileWriterOption
 
-	mutex sync.Mutex
-	file  *os.File
-	size  int64
+	locker sync.Mutex
+	file   *os.File
+	size   int64
 }
 
 // FileWriterOption represents available options for file wirter.
@@ -64,8 +64,8 @@ func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
 }
 
 func (fw *fileWriter) Write(p []byte) (n int, err error) {
-	fw.mutex.Lock()
-	defer fw.mutex.Unlock()
+	fw.locker.Lock()
+	defer fw.locker.Unlock()
 
 	writeLen := len(p)
 	if fw.file == nil {
@@ -100,8 +100,8 @@ func (fw *fileWriter) Filter() Filter {
 
 // Close implements io.Closer, and closes the current logfile.
 func (fw *fileWriter) Close() error {
-	fw.mutex.Lock()
-	defer fw.mutex.Unlock()
+	fw.locker.Lock()
+	defer fw.locker.Unlock()
 	return fw.close()
 }
 
