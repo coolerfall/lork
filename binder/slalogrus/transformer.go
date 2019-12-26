@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/buger/jsonparser"
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago"
 )
@@ -52,44 +51,15 @@ func (t *transformer) Write(p []byte) (n int, err error) {
 	t.locker.Lock()
 	defer t.locker.Unlock()
 
-	t.buf.WriteByte('{')
-	var start = false
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		if start {
-			t.buf.WriteByte(',')
-		} else {
-			start = true
-		}
-
-		t.buf.WriteByte('"')
-		t.buf.Write(key)
-		t.buf.WriteByte('"')
-		t.buf.WriteByte(':')
-
-		switch dataType {
-		case jsonparser.String:
-			t.buf.WriteByte('"')
-			if string(key) == slago.LevelFieldKey {
-				lvl, err := logrus.ParseLevel(string(value))
-				if err != nil {
-					t.buf.Write(value)
-				} else {
-					t.buf.WriteString(logrusLvlToSlagoLvl[lvl].String())
-				}
+	_ = slago.ReplaceJson(p, t.buf, slago.LevelFieldKey,
+		func(k, v []byte) (nk []byte, nv []byte, err error) {
+			lvl, err := logrus.ParseLevel(string(v))
+			if err != nil {
+				return k, v, err
 			} else {
-				t.buf.Write(value)
+				return k, []byte(logrusLvlToSlagoLvl[lvl].String()), nil
 			}
-			t.buf.WriteByte('"')
-
-		default:
-			t.buf.Write(value)
-		}
-
-		return nil
-	})
-	t.buf.WriteByte('}')
-	t.buf.WriteByte('\n')
+		})
 	p = t.buf.Bytes()
 	t.buf.Reset()
 

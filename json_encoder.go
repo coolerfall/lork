@@ -17,77 +17,47 @@ package slago
 import (
 	"bytes"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
 
 // jsonEncoder encodes logging event into json format.
 type jsonEncoder struct {
-	buf   *bytes.Buffer
-	mutex sync.Mutex
+	buf    *bytes.Buffer
+	tsBuf  *bytes.Buffer
+	locker sync.Mutex
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
 func NewJsonEncoder() *jsonEncoder {
 	return &jsonEncoder{
-		buf: &bytes.Buffer{},
+		buf:   new(bytes.Buffer),
+		tsBuf: new(bytes.Buffer),
 	}
 }
 
 func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
-
-	var err error
-	ts, _, _, _ := jsonparser.Get(p, TimestampFieldKey)
-	bufData := e.buf.Bytes()
-	bufData, err = convertFormat(bufData, ts, TimestampFormat, jsonTimeFormat)
-	if err != nil {
-		return nil, err
-	}
-	e.buf.Reset()
-	e.buf.Write(bufData)
-	timestamp := e.buf.String()
-	e.buf.Reset()
+	e.locker.Lock()
+	defer e.locker.Unlock()
 
 	// wrtite key and value as json string
-	e.buf.WriteByte('{')
-	var start = false
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		if start {
-			e.buf.WriteByte(',')
-		} else {
-			start = true
-		}
-
-		e.buf.WriteByte('"')
-		e.buf.Write(key)
-		e.buf.WriteByte('"')
-		e.buf.WriteByte(':')
-
-		switch dataType {
-		case jsonparser.String:
-			e.buf.WriteByte('"')
-			if string(key) == TimestampFieldKey {
-				e.buf.WriteString(timestamp)
-			} else {
-				e.buf.Write(value)
+	err := ReplaceJson(p, e.buf, TimestampFieldKey,
+		func(k, v []byte) (nk []byte, nv []byte, err error) {
+			bufData := e.tsBuf.Bytes()
+			bufData, err = convertFormat(bufData, v, TimestampFormat, jsonTimeFormat)
+			if err != nil {
+				return nil, nil, err
 			}
-			e.buf.WriteByte('"')
+			e.tsBuf.Reset()
+			e.tsBuf.Write(bufData)
+			timestamp := e.tsBuf.Bytes()
+			e.tsBuf.Reset()
 
-		default:
-			e.buf.Write(value)
-		}
+			return k, timestamp, nil
+		})
 
-		return nil
-	})
-	e.buf.WriteByte('}')
-	e.buf.WriteByte('\n')
 	p = e.buf.Bytes()
 	e.buf.Reset()
 
-	return p, nil
+	return p, err
 }

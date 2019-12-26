@@ -17,8 +17,6 @@ package slago
 import (
 	"bytes"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 var (
@@ -43,35 +41,16 @@ func (e *logstashEncoder) Encode(p []byte) (data []byte, err error) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
-	e.buf.WriteByte('{')
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		e.buf.WriteByte('"')
+	_ = ReplaceJson(p, e.buf, TimestampFieldKey,
+		func(k, v []byte) (nk, kv []byte, err error) {
+			return newKey, v, nil
+		})
 
-		if string(key) == TimestampFieldKey {
-			e.buf.Write(newKey)
-		} else {
-			e.buf.Write(key)
-		}
-		e.buf.WriteByte('"')
-		e.buf.WriteByte(':')
-
-		switch dataType {
-		case jsonparser.String:
-			e.buf.WriteByte('"')
-			e.buf.Write(value)
-			e.buf.WriteByte('"')
-
-		default:
-			e.buf.Write(value)
-		}
-		e.buf.WriteByte(',')
-
-		return nil
-	})
+	data = e.buf.Bytes()
+	e.buf.Truncate(len(data) - 2)
+	e.buf.WriteByte(',')
 	e.buf.Write(version)
-	e.buf.WriteByte('}')
-	e.buf.WriteByte('\n')
+	e.buf.WriteString("}\n")
 
 	data = e.buf.Bytes()
 	e.buf.Reset()

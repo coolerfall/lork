@@ -23,6 +23,7 @@ import (
 var (
 	zeroLvlToSlagoLvl = map[zerolog.Level]slago.Level{
 		zerolog.NoLevel:    slago.TraceLevel,
+		zerolog.TraceLevel: slago.TraceLevel,
 		zerolog.DebugLevel: slago.DebugLevel,
 		zerolog.InfoLevel:  slago.InfoLevel,
 		zerolog.WarnLevel:  slago.WarnLevel,
@@ -55,7 +56,7 @@ func (b *zerologBridge) Name() string {
 func (b *zerologBridge) ParseLevel(lvl string) slago.Level {
 	level, err := zerolog.ParseLevel(lvl)
 	if err != nil {
-		level = zerolog.NoLevel
+		level = zerolog.TraceLevel
 		slago.Reportf("parse zerolog level error: %s", err)
 	}
 
