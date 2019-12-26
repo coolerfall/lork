@@ -22,7 +22,6 @@ import (
 	"gitlab.com/anbillon/slago"
 	"gitlab.com/anbillon/slago/binder/slazero"
 	"gitlab.com/anbillon/slago/bridge"
-	//_ "gitlab.com/anbillon/slago/zerolog-to-slago"
 	//_ "gitlab.com/anbillon/slago/slalogrus"
 	//_ "gitlab.com/anbillon/slago/slazap"
 	"go.uber.org/zap"

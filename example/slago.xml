@@ -1,0 +1,9 @@
+<configuration>
+
+    <bridge type="gitlab.com/anbillon/slago/bridge.logBridge"/>
+    <bridge type="gitlab.com/anbillon/slago/bridge.logrusBridge"/>
+    <bridge type="gitlab.com/anbillon/slago/bridge.zapBridge"/>
+
+    <logger type="gitlab.com/anbillon/slago/slazero.zeroLogger"/>
+
+</configuration>

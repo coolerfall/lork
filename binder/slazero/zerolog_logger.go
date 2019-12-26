@@ -22,7 +22,7 @@ import (
 
 var (
 	slagoLvlToZeroLvl = map[slago.Level]zerolog.Level{
-		slago.TraceLevel: zerolog.NoLevel,
+		slago.TraceLevel: zerolog.TraceLevel,
 		slago.DebugLevel: zerolog.DebugLevel,
 		slago.InfoLevel:  zerolog.InfoLevel,
 		slago.WarnLevel:  zerolog.WarnLevel,
@@ -70,26 +70,15 @@ func (l *zeroLogger) ResetWriter() {
 }
 
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
-	zeroLevel := slagoLvlToZeroLvl[lvl]
-	if zeroLevel == zerolog.NoLevel {
-		zeroLevel = zerolog.TraceLevel
-	}
-
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
 }
 
 func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
-	zeroLevel := slagoLvlToZeroLvl[lvl]
-	if zeroLevel == zerolog.NoLevel {
-		return l.Trace()
-	}
-
-	return newZeroRecord(l.logger.WithLevel(zeroLevel))
+	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
 }
 
 func (l *zeroLogger) Trace() slago.Record {
-	return newZeroRecord(l.logger.WithLevel(zerolog.NoLevel).
-		Str(slago.LevelFieldKey, "TRACE"))
+	return newZeroRecord(l.logger.Trace())
 }
 
 func (l *zeroLogger) Debug() slago.Record {

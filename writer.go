@@ -35,7 +35,7 @@ type Writer interface {
 // This writer is used as output which will implement SlaLogger.
 type MultiWriter struct {
 	writers []Writer
-	mutex   sync.Mutex
+	locker  sync.Mutex
 }
 
 // NewMultiWriter creates a new multiple writer.
@@ -52,14 +52,14 @@ func (mw *MultiWriter) AddWriter(w ...Writer) {
 
 // Reset will remove all writers.
 func (mw *MultiWriter) Reset() {
-	mw.mutex.Lock()
-	defer mw.mutex.Unlock()
+	mw.locker.Lock()
+	defer mw.locker.Unlock()
 	mw.writers = make([]Writer, 0)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
-	mw.mutex.Lock()
-	defer mw.mutex.Unlock()
+	mw.locker.Lock()
+	defer mw.locker.Unlock()
 
 	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(p) {
