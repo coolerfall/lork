@@ -96,7 +96,7 @@ func rename(oldPath, newPath string) (err error) {
 	return
 }
 
-// ReplaceJson replace key/value with given search key.
+// ReplaceJson replaces key/value with given search key.
 func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 	transform func(k, v []byte) (nk, kv []byte, e error)) error {
 	buf.WriteByte('{')

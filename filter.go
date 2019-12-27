@@ -16,6 +16,7 @@ package slago
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/buger/jsonparser"
 )
@@ -75,6 +76,11 @@ func (f *keywordFilter) Do(p []byte) bool {
 
 func (f *keywordFilter) compare(key []byte, value []byte) bool {
 	for _, keyword := range f.keywords {
+		if strings.Contains(keyword, "=") &&
+			keyword == string(key)+"="+string(value) {
+			return true
+		}
+
 		if keyword == string(key) || keyword == string(value) {
 			return true
 		}

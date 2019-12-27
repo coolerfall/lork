@@ -40,7 +40,7 @@ type zeroLogger struct {
 
 // NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
 func NewZeroLogger() *zeroLogger {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey
 	zerolog.TimestampFieldName = slago.TimestampFieldKey
@@ -122,8 +122,6 @@ func (l *zeroLogger) WriteRaw(p []byte) {
 
 func capitalLevel(l zerolog.Level) string {
 	switch l {
-	case zerolog.NoLevel:
-		return "TRACE"
 	case zerolog.DebugLevel:
 		return "DEBUG"
 	case zerolog.InfoLevel:
@@ -136,7 +134,11 @@ func capitalLevel(l zerolog.Level) string {
 		return "FATAL"
 	case zerolog.PanicLevel:
 		return "PANIC"
+	case zerolog.NoLevel:
+		fallthrough
+	case zerolog.TraceLevel:
+		fallthrough
 	default:
-		return ""
+		return "TRACE"
 	}
 }
