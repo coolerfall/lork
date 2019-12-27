@@ -32,7 +32,7 @@ type logstashEncoder struct {
 }
 
 // NewLogstashEncoder creates a new instance of logstash encoder.
-func NewLogstashEncoder() *logstashEncoder {
+func NewLogstashEncoder() Encoder {
 	return &logstashEncoder{
 		buf:   &bytes.Buffer{},
 		tsBuf: new(bytes.Buffer),

@@ -42,7 +42,7 @@ type FileWriterOption struct {
 }
 
 // NewFileWriter creates a new instance of file writer.
-func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
+func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	opts := &FileWriterOption{
 		Filename: defaultLogFilename,
 		Encoder:  NewJsonEncoder(),

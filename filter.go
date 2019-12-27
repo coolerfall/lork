@@ -33,7 +33,7 @@ type levelFilter struct {
 }
 
 // NewLevelFilter creates a new instance of levelFilter.
-func NewLevelFilter(lvl Level) *levelFilter {
+func NewLevelFilter(lvl Level) Filter {
 	return &levelFilter{
 		level: lvl,
 	}
@@ -53,7 +53,7 @@ type keywordFilter struct {
 }
 
 // NewKeywordFilter creates a new instance of keywordFilter.
-func NewKeywordFilter(keywords ...string) *keywordFilter {
+func NewKeywordFilter(keywords ...string) Filter {
 	return &keywordFilter{
 		keywords: keywords,
 	}

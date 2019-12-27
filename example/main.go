@@ -52,7 +52,6 @@ func main() {
 			})
 	})
 	aw := slago.NewAsyncWriter(fw)
-	aw.Start()
 	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Trace().Msg("slago")

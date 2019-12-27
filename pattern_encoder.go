@@ -58,15 +58,15 @@ var (
 	}
 )
 
-// PatternEncoder encodes logging event with pattern.
-type PatternEncoder struct {
+// patternEncoder encodes logging event with pattern.
+type patternEncoder struct {
 	mutex     sync.Mutex
 	buf       *bytes.Buffer
 	converter Converter
 }
 
 // NewPatternEncoder creates a new instance of pattern encoder.
-func NewPatternEncoder(layouts ...string) *PatternEncoder {
+func NewPatternEncoder(layouts ...string) Encoder {
 	var layout string
 	if len(layouts) == 0 || len(layouts[0]) == 0 {
 		layout = DefaultLayout
@@ -92,13 +92,13 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 		ReportfExit("compile pattern error, %v", err)
 	}
 
-	return &PatternEncoder{
+	return &patternEncoder{
 		buf:       &bytes.Buffer{},
 		converter: converter,
 	}
 }
 
-func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
+func (pe *patternEncoder) Encode(p []byte) (data []byte, err error) {
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 

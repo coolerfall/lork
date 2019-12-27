@@ -43,7 +43,7 @@ type noopRollingPolicy struct {
 }
 
 // NewNoopRollingPolicy creates a new instance of noop rolling policy which will do nothing.
-func NewNoopRollingPolicy() *noopRollingPolicy {
+func NewNoopRollingPolicy() RollingPolicy {
 	return &noopRollingPolicy{}
 }
 
@@ -72,7 +72,7 @@ type timeBasedRollingPolicy struct {
 
 // NewTimeBasedRollingPolicy creates a instance of time based rolling policy
 // for file writer.
-func NewTimeBasedRollingPolicy(filenamePattern string) *timeBasedRollingPolicy {
+func NewTimeBasedRollingPolicy(filenamePattern string) RollingPolicy {
 	fp, err := newFilenamePattern(filenamePattern)
 	if err != nil {
 		ReportfExit("create rolling policy error: \n%v", err)
@@ -143,7 +143,7 @@ type SizeAndTimeBasedRPOption struct {
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
 // based rolling policy for file writer.
 func NewSizeAndTimeBasedRollingPolicy(options ...func(
-	*SizeAndTimeBasedRPOption)) *sizeAndTimeBasedRollingPolicy {
+	*SizeAndTimeBasedRPOption)) RollingPolicy {
 	opt := &SizeAndTimeBasedRPOption{
 		MaxFileSize:     "128MB",
 		FilenamePattern: "slago-archive.#date{2006-01-02}.#index.log",
@@ -158,8 +158,9 @@ func NewSizeAndTimeBasedRollingPolicy(options ...func(
 		ReportfExit("parse file size error: %v", err)
 	}
 
+	tbrp := NewTimeBasedRollingPolicy(opt.FilenamePattern).(*timeBasedRollingPolicy)
 	return &sizeAndTimeBasedRollingPolicy{
-		timeBasedRollingPolicy: NewTimeBasedRollingPolicy(opt.FilenamePattern),
+		timeBasedRollingPolicy: tbrp,
 		triggerSize:            fileSize,
 	}
 }
