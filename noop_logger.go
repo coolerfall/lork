@@ -19,7 +19,7 @@ type noopLogger struct {
 
 // newNoopLogger creates a new instance of no-operation logger.
 // This logger will write all data to /dev/null.
-func newNoopLogger() *noopLogger {
+func newNoopLogger() SlaLogger {
 	return &noopLogger{}
 }
 

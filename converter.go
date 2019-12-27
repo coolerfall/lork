@@ -45,7 +45,7 @@ type literalConverter struct {
 	next  Converter
 }
 
-func NewLiteralConverter(value string) *literalConverter {
+func NewLiteralConverter(value string) Converter {
 	return &literalConverter{
 		value: value,
 	}

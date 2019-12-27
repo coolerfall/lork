@@ -48,7 +48,7 @@ type socketWriter struct {
 }
 
 // NewSocketWriter create a logging writter via socket.
-func NewSocketWriter(options ...func(*SocketWriterOption)) *socketWriter {
+func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 	opts := &SocketWriterOption{
 		QueueSize:         defaultSocketQueueSize,
 		ReconnectionDelay: defaultReconnectionDelay,
@@ -94,6 +94,13 @@ func (w *socketWriter) Start() {
 	w.isStarted = true
 }
 
+func (w *socketWriter) Stop() {
+	err := w.conn.Close()
+	if err != nil {
+		Reportf("stop socket writer error: %v", err)
+	}
+}
+
 func (w *socketWriter) Write(p []byte) (int, error) {
 	w.locker.Lock()
 	defer w.locker.Unlock()
@@ -106,10 +113,6 @@ func (w *socketWriter) Write(p []byte) (int, error) {
 	w.queue.Put(p)
 
 	return len(p), nil
-}
-
-func (w *socketWriter) Close() error {
-	return w.conn.Close()
 }
 
 func (w *socketWriter) Encoder() Encoder {

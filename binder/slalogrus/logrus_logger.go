@@ -37,7 +37,7 @@ type logrusLogger struct {
 }
 
 // NewLogrusLogger creates a new instance of logrusLogger used to be bound to slago
-func NewLogrusLogger() *logrusLogger {
+func NewLogrusLogger() slago.SlaLogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: slago.TimestampFormat,
 		FieldMap: logrus.FieldMap{

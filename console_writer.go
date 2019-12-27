@@ -30,7 +30,7 @@ type ConsoleWriterOption struct {
 }
 
 // NewConsoleWriter creates a new instance of console writer.
-func NewConsoleWriter(options ...func(*ConsoleWriterOption)) *consoleWriter {
+func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
 	opt := &ConsoleWriterOption{
 		Encoder: NewPatternEncoder(),
 	}

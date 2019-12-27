@@ -39,7 +39,7 @@ type zeroLogger struct {
 }
 
 // NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
-func NewZeroLogger() *zeroLogger {
+func NewZeroLogger() slago.SlaLogger {
 	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey

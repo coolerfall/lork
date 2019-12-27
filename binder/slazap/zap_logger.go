@@ -41,7 +41,7 @@ type zapLogger struct {
 }
 
 // NewZapLogger creates a new instance of zapLogger used to be bound to slago.
-func NewZapLogger() *zapLogger {
+func NewZapLogger() slago.SlaLogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 

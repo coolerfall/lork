@@ -33,7 +33,7 @@ var _ = Describe("time based rolling policy", func() {
 		_ = tbrp.Prepare()
 		result := tbrp.ShouldTrigger(0)
 		Expect(result).To(BeFalse())
-		tbrp.nextCheck = time.Now().Truncate(time.Hour * 36)
+		tbrp.(*timeBasedRollingPolicy).nextCheck = time.Now().Truncate(time.Hour * 36)
 		result = tbrp.ShouldTrigger(0)
 		Expect(result).To(BeTrue())
 	})

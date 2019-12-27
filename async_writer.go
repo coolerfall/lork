@@ -28,7 +28,7 @@ type asyncWriter struct {
 }
 
 // NewAsyncWriter creates a new instance of asynchronous writer.
-func NewAsyncWriter(ref Writer) *asyncWriter {
+func NewAsyncWriter(ref Writer) Writer {
 	return &asyncWriter{
 		ref:   ref,
 		queue: NewBlockingQueue(defaultWriterQueueSize),
@@ -41,6 +41,12 @@ func (w *asyncWriter) Start() {
 	}
 	go w.startWorker()
 	w.isStarted = true
+}
+
+func (w *asyncWriter) Stop() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+	w.isStarted = false
 }
 
 func (w *asyncWriter) Write(p []byte) (n int, err error) {
@@ -67,6 +73,10 @@ func (w *asyncWriter) Filter() Filter {
 
 func (w *asyncWriter) startWorker() {
 	for {
+		if !w.isStarted {
+			break
+		}
+
 		p := w.queue.Take()
 
 		var err error

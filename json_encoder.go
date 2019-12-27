@@ -29,7 +29,7 @@ type jsonEncoder struct {
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
-func NewJsonEncoder() *jsonEncoder {
+func NewJsonEncoder() Encoder {
 	return &jsonEncoder{
 		buf:   new(bytes.Buffer),
 		tsBuf: new(bytes.Buffer),

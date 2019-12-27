@@ -46,8 +46,14 @@ func NewMultiWriter() *MultiWriter {
 }
 
 // AddWriter adds a slago writer into multi writer.
-func (mw *MultiWriter) AddWriter(w ...Writer) {
-	mw.writers = append(mw.writers, w...)
+func (mw *MultiWriter) AddWriter(ws ...Writer) {
+	for _, w := range ws {
+		if lc, ok := w.(Lifecycle); ok {
+			lc.Start()
+		}
+	}
+
+	mw.writers = append(mw.writers, ws...)
 }
 
 // Reset will remove all writers.
