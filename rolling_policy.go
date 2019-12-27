@@ -39,6 +39,29 @@ type RollingPolicy interface {
 	Rotate() error
 }
 
+type noopRollingPolicy struct {
+}
+
+// NewNoopRollingPolicy creates a new instance of noop rolling policy which will do nothing.
+func NewNoopRollingPolicy() *noopRollingPolicy {
+	return &noopRollingPolicy{}
+}
+
+func (rp *noopRollingPolicy) Prepare() error {
+	return nil
+}
+
+func (rp *noopRollingPolicy) Attach(w *fileWriter) {
+}
+
+func (rp *noopRollingPolicy) ShouldTrigger(fileSize int64) bool {
+	return false
+}
+
+func (rp *noopRollingPolicy) Rotate() error {
+	return nil
+}
+
 type timeBasedRollingPolicy struct {
 	fileWriter *fileWriter
 	nextCheck  time.Time
@@ -142,6 +165,10 @@ func NewSizeAndTimeBasedRollingPolicy(options ...func(
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
+	if rp.fileWriter == nil {
+		return errors.New("rolling policy is not attached to a file writer")
+	}
+
 	if !rp.filenamePattern.hasIndexConverter() {
 		return errors.New("invalid filename pattern, missing index pattern")
 	}
@@ -158,12 +185,12 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
-	if fileSize >= rp.triggerSize {
+	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
+		rp.index = 1
 		return true
 	}
 
-	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
-		rp.index = 1
+	if fileSize >= rp.triggerSize {
 		return true
 	}
 

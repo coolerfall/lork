@@ -15,25 +15,27 @@
 package slago
 
 import (
+	"bytes"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-func TestFileSize(t *testing.T) {
+func TestHelper(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "file size test")
+	RunSpecs(t, "helper test")
 }
 
-var _ = Describe("file size", func() {
-	It("parse file size", func() {
-		size, err := parseFileSize("10Kb")
+var _ = Describe("helper", func() {
+	It("replace json", func() {
+		var buf = new(bytes.Buffer)
+		var json = []byte(`{"level":"INFO","int":88}`)
+		var result = `{"level":"INFO","ints":99}` + "\n"
+		err := ReplaceJson(json, buf, "int", func(k, v []byte) (nk, kv []byte, e error) {
+			return []byte("ints"), []byte("99"), nil
+		})
 		Expect(err).To(BeNil())
-		Expect(size).To(Equal(int64(10240)))
-	})
-	It("parse file size error", func() {
-		_, err := parseFileSize("10K")
-		Expect(err).NotTo(BeNil())
+		Expect(buf.String()).To(Equal(result))
 	})
 })

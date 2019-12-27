@@ -55,6 +55,9 @@ func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
 	fw := &fileWriter{
 		opts: opts,
 	}
+	if opts.RollingPolicy == nil {
+		opts.RollingPolicy = NewNoopRollingPolicy()
+	}
 	opts.RollingPolicy.Attach(fw)
 	if err := opts.RollingPolicy.Prepare(); err != nil {
 		ReportfExit("start rolling policy error: \n%v", err)

@@ -328,4 +328,7 @@ func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
 
 		return nil
 	})
+
+	// remove last space
+	buf.Truncate(buf.Len() - 1)
 }

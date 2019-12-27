@@ -26,24 +26,36 @@ var (
 
 // logstashEncoder encodes logging event into logstash json format.
 type logstashEncoder struct {
-	mutex sync.Mutex
-	buf   *bytes.Buffer
+	locker sync.Mutex
+	buf    *bytes.Buffer
+	tsBuf  *bytes.Buffer
 }
 
 // NewLogstashEncoder creates a new instance of logstash encoder.
 func NewLogstashEncoder() *logstashEncoder {
 	return &logstashEncoder{
-		buf: &bytes.Buffer{},
+		buf:   &bytes.Buffer{},
+		tsBuf: new(bytes.Buffer),
 	}
 }
 
 func (e *logstashEncoder) Encode(p []byte) (data []byte, err error) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
+	e.locker.Lock()
+	defer e.locker.Unlock()
 
 	_ = ReplaceJson(p, e.buf, TimestampFieldKey,
 		func(k, v []byte) (nk, kv []byte, err error) {
-			return newKey, v, nil
+			bufData := e.tsBuf.Bytes()
+			bufData, err = convertFormat(bufData, v, TimestampFormat, jsonTimeFormat)
+			if err != nil {
+				return nil, nil, err
+			}
+			e.tsBuf.Reset()
+			e.tsBuf.Write(bufData)
+			timestamp := e.tsBuf.Bytes()
+			e.tsBuf.Reset()
+
+			return newKey, timestamp, nil
 		})
 
 	data = e.buf.Bytes()
