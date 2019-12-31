@@ -39,8 +39,8 @@ func (w *asyncWriter) Start() {
 	if w.isStarted {
 		return
 	}
-	go w.startWorker()
 	w.isStarted = true
+	go w.startWorker()
 }
 
 func (w *asyncWriter) Stop() {

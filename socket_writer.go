@@ -88,10 +88,8 @@ func (w *socketWriter) Start() {
 	if w.isStarted {
 		return
 	}
-
-	go w.startWorker()
-
 	w.isStarted = true
+	go w.startWorker()
 }
 
 func (w *socketWriter) Stop() {
@@ -125,6 +123,10 @@ func (w *socketWriter) Filter() Filter {
 
 func (w *socketWriter) startWorker() {
 	for {
+		if !w.isStarted {
+			break
+		}
+
 		p := w.queue.Take()
 
 		err := w.conn.WriteMessage(websocket.BinaryMessage, p)
