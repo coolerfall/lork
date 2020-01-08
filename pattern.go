@@ -53,7 +53,7 @@ func NewPatternParser(pattern string) *patternParser {
 
 // Parse parses pattern to pattern node chain.
 func (p *patternParser) Parse() (*node, error) {
-	var buf = &bytes.Buffer{}
+	var buf = new(bytes.Buffer)
 	var keywordStart bool
 	var compositeStart bool
 	var optionStart bool

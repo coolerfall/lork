@@ -61,7 +61,9 @@ var _ = Describe("pattern encoder", func() {
 		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, "2006-01-02 15:04:05")
 	It("encode", func() {
 		result := []byte(string(rt) + ` INFO - key=value` + "\n")
-		pe := NewPatternEncoder("#date{2006-01-02 15:04:05} #level #message #fields")
+		pe := NewPatternEncoder(func(o *PatternEncoderOption) {
+			o.Layout = "#date{2006-01-02 15:04:05} #level #message #fields"
+		})
 		out, err := pe.Encode(logEvent)
 		Expect(err).To(BeNil())
 		Expect(out).To(Equal(result))

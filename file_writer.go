@@ -33,7 +33,7 @@ type fileWriter struct {
 	size   int64
 }
 
-// FileWriterOption represents available options for file wirter.
+// FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
 	Filter        Filter
 	Encoder       Encoder
@@ -66,13 +66,23 @@ func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	return fw
 }
 
+func (fw *fileWriter) Start() {
+	if err := fw.openExistingOrNew(); err != nil {
+		ReportfExit("file writer start error: %v", err)
+	}
+}
+
+func (fw *fileWriter) Stop() {
+	_ = fw.Close()
+}
+
 func (fw *fileWriter) Write(p []byte) (n int, err error) {
 	fw.locker.Lock()
 	defer fw.locker.Unlock()
 
 	writeLen := len(p)
 	if fw.file == nil {
-		if err = fw.openExistingOrNew(writeLen); err != nil {
+		if err = fw.openExistingOrNew(); err != nil {
 			return
 		}
 	}
@@ -128,7 +138,7 @@ func (fw *fileWriter) openNew() error {
 
 	f, err := os.OpenFile(fw.opts.Filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("can't open new logfile: %s", err)
+		return fmt.Errorf("can't open new log file: %s", err)
 	}
 	fw.file = f
 	fw.size = 0
@@ -139,7 +149,7 @@ func (fw *fileWriter) openNew() error {
 // openExistingOrNew opens the logfile if it exists and if the current write
 // would not put it over MaxSize.  If there is no such file or the write would
 // put it over the MaxSize, a new file is created.
-func (fw *fileWriter) openExistingOrNew(writeLen int) error {
+func (fw *fileWriter) openExistingOrNew() error {
 	filename := fw.opts.Filename
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {

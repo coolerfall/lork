@@ -346,7 +346,7 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 }
 
 func (fp *filenamePattern) convert(index int) string {
-	buf := &bytes.Buffer{}
+	buf := new(bytes.Buffer)
 
 	for c := fp.converter; c != nil; c = c.Next() {
 		switch c.(type) {
@@ -366,7 +366,7 @@ func (fp *filenamePattern) convert(index int) string {
 }
 
 func (fp *filenamePattern) toFilenameRegex() string {
-	var buf = &bytes.Buffer{}
+	var buf = new(bytes.Buffer)
 	for c := fp.converter; c != nil; c = c.Next() {
 		switch c.(type) {
 		case *literalConverter:

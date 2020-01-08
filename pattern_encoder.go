@@ -60,18 +60,26 @@ var (
 
 // patternEncoder encodes logging event with pattern.
 type patternEncoder struct {
-	mutex     sync.Mutex
+	locker    sync.Mutex
 	buf       *bytes.Buffer
 	converter Converter
 }
 
+type PatternEncoderOption struct {
+	Layout     string
+	Converters map[string]NewConverter
+}
+
 // NewPatternEncoder creates a new instance of pattern encoder.
-func NewPatternEncoder(layouts ...string) Encoder {
-	var layout string
-	if len(layouts) == 0 || len(layouts[0]) == 0 {
-		layout = DefaultLayout
-	} else {
-		layout = layouts[0]
+func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
+	opts := &PatternEncoderOption{}
+	for _, f := range options {
+		f(opts)
+	}
+
+	var layout = DefaultLayout
+	if len(opts.Layout) != 0 {
+		layout = opts.Layout
 	}
 
 	patternParser := NewPatternParser(layout)
@@ -87,20 +95,23 @@ func NewPatternEncoder(layouts ...string) Encoder {
 		"message": newMessageConverter,
 		"fields":  newFieldsConverter,
 	}
+	for k, c := range opts.Converters {
+		converters[k] = c
+	}
 	converter, err := NewPatternCompiler(node, converters).Compile()
 	if err != nil {
 		ReportfExit("compile pattern error, %v", err)
 	}
 
 	return &patternEncoder{
-		buf:       &bytes.Buffer{},
+		buf:       new(bytes.Buffer),
 		converter: converter,
 	}
 }
 
 func (pe *patternEncoder) Encode(p []byte) (data []byte, err error) {
-	pe.mutex.Lock()
-	defer pe.mutex.Unlock()
+	pe.locker.Lock()
+	defer pe.locker.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
 		c.Convert(p, pe.buf)

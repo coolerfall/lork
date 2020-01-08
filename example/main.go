@@ -36,9 +36,10 @@ func main() {
 	//slago.Bind(slalogrus.NewLogrusLogger())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(
-			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-				"#level) #message #fields")
+		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+			opt.Layout = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+				"#level) #message #fields"
+		})
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
