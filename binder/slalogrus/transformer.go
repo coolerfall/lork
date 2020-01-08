@@ -52,7 +52,7 @@ func (t *transformer) Write(p []byte) (n int, err error) {
 	defer t.locker.Unlock()
 
 	_ = slago.ReplaceJson(p, t.buf, slago.LevelFieldKey,
-		func(k, v []byte) (nk []byte, nv []byte, err error) {
+		func(k, v []byte) ([]byte, []byte, error) {
 			lvl, err := logrus.ParseLevel(string(v))
 			if err != nil {
 				return k, v, err

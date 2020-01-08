@@ -63,22 +63,22 @@ type SlaLogger interface {
 	// Trace logs with trace level.
 	Trace() Record
 
-	// Trace logs with debug level.
+	// Debug logs with debug level.
 	Debug() Record
 
-	// Trace logs with info level.
+	// Info logs with info level.
 	Info() Record
 
-	// Trace logs with warn level.
+	// Warn logs with warn level.
 	Warn() Record
 
-	// Trace logs with error level.
+	// Error logs with error level.
 	Error() Record
 
-	// Trace logs with faltal level.
+	// Fatal logs with faltal level.
 	Fatal() Record
 
-	// Trace logs with panic level.
+	// Panic logs with panic level.
 	Panic() Record
 
 	// Print prints the given args.
