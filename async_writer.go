@@ -39,6 +39,9 @@ func (w *asyncWriter) Start() {
 	if w.isStarted {
 		return
 	}
+	if lc, ok := w.ref.(Lifecycle); ok {
+		lc.Start()
+	}
 	w.isStarted = true
 	go w.startWorker()
 }
@@ -46,6 +49,9 @@ func (w *asyncWriter) Start() {
 func (w *asyncWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
+	if lc, ok := w.ref.(Lifecycle); ok {
+		lc.Stop()
+	}
 	w.isStarted = false
 }
 
