@@ -81,13 +81,14 @@ func colorize(color int, s string) string {
 }
 
 // rename creates directory if not existed, and rename file to a new name.
-func rename(oldPath, newPath string) (err error) {
-	dir := filepath.Dir(newPath)
+func rename(oldPath, newFilename string) (err error) {
+	dir := filepath.Dir(oldPath)
 	err = os.MkdirAll(dir, os.FileMode(0666))
 	if err != nil {
 		return
 	}
 
+	newPath := filepath.Join(dir, newFilename)
 	err = os.Rename(oldPath, newPath)
 	if err != nil {
 		return
