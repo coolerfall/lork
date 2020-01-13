@@ -73,10 +73,6 @@ func (l *zeroLogger) SetLevel(lvl slago.Level) {
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
 }
 
-func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
-	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
-}
-
 func (l *zeroLogger) Trace() slago.Record {
 	return newZeroRecord(l.logger.Trace())
 }

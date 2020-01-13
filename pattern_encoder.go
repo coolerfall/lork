@@ -92,6 +92,7 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		"color":   newColorConverter,
 		"level":   newLevelConverter,
 		"date":    newLogDateConverter,
+		"logger":  newLoggerConverter,
 		"message": newMessageConverter,
 		"fields":  newFieldsConverter,
 	}
@@ -228,12 +229,12 @@ func (lc *levelConverter) Convert(origin []byte, buf *bytes.Buffer) {
 type logDateConverter struct {
 	next  Converter
 	child Converter
-	opts  []string
+	opt   string
 }
 
 func newLogDateConverter() Converter {
 	return &logDateConverter{
-		opts: []string{"2006-01-02"},
+		opt: "2006-01-02",
 	}
 }
 
@@ -251,16 +252,76 @@ func (c *logDateConverter) AttachChild(child Converter) {
 
 func (c *logDateConverter) AttachOptions(opts []string) {
 	if len(opts) != 0 && len(opts[0]) != 0 {
-		c.opts = opts
+		c.opt = opts[0]
 	}
 }
 
 func (c *logDateConverter) Convert(origin []byte, buf *bytes.Buffer) {
 	tsValue, _, _, _ := jsonparser.Get(origin, TimestampFieldKey)
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opts[0])
+	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opt)
 	buf.Reset()
 	buf.Write(bufData)
+}
+
+type loggerConverter struct {
+	next Converter
+	opt  int
+}
+
+func newLoggerConverter() Converter {
+	return &loggerConverter{
+		opt: -1,
+	}
+}
+
+func (lc *loggerConverter) AttatchNext(next Converter) {
+	lc.next = next
+}
+
+func (lc *loggerConverter) Next() Converter {
+	return lc.next
+}
+
+func (lc *loggerConverter) AttachChild(child Converter) {
+}
+
+func (lc *loggerConverter) AttachOptions(opts []string) {
+	if len(opts) == 0 {
+		return
+	}
+
+	opt, err := strconv.Atoi(opts[0])
+	if err != nil {
+		return
+	}
+
+	lc.opt = opt
+}
+
+func (lc *loggerConverter) Convert(origin []byte, buf *bytes.Buffer) {
+	loggerName, _, _, _ := jsonparser.Get(origin, LoggerFieldKey)
+	if len(loggerName) == 0 {
+		buf.WriteByte('-')
+		return
+	}
+
+	buf.Write(lc.abbreviator(loggerName))
+}
+
+func (lc *loggerConverter) abbreviator(name []byte) []byte {
+	length := len(name)
+	if lc.opt <= 0 || length <= lc.opt {
+		return name
+	}
+
+	index := length - lc.opt
+	abbr := name[index:]
+	if abbr[0] == '/' {
+		abbr = abbr[1:]
+	}
+
+	return abbr
 }
 
 type messageConverter struct {
@@ -327,6 +388,7 @@ func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
 		switch jsonKey {
 		case TimestampFieldKey:
 		case LevelFieldKey:
+		case LoggerFieldKey:
 		case MessageFieldKey:
 			// do nothing for these keys
 

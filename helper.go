@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/buger/jsonparser"
 )
@@ -27,8 +28,11 @@ const (
 	LevelFieldKey     = "level"
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
+	LoggerFieldKey    = "logger_name"
 
 	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
+
+	Slash = "/"
 )
 
 // BrigeWrite writes data from bridge to slago logger.
@@ -36,7 +40,7 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
 	msg, _ := jsonparser.GetString(p, MessageFieldKey)
 
-	record := Logger().Level(bridge.ParseLevel(lvl))
+	record := makeRecord(bridge.ParseLevel(lvl))
 	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
 		dataType jsonparser.ValueType, _ int) error {
 		realKey := string(key)
@@ -56,6 +60,27 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 	})
 
 	return nil
+}
+
+func makeRecord(lvl Level) Record {
+	switch lvl {
+	case DebugLevel:
+		return Logger().Debug()
+	case InfoLevel:
+		return Logger().Info()
+	case WarnLevel:
+		return Logger().Warn()
+	case ErrorLevel:
+		return Logger().Error()
+	case FatalLevel:
+		return Logger().Fatal()
+	case PanicLevel:
+		return Logger().Panic()
+	case TraceLevel:
+		fallthrough
+	default:
+		return Logger().Trace()
+	}
 }
 
 // Report reports message in stdou
@@ -78,6 +103,25 @@ func ReportfExit(format string, args ...interface{}) {
 // colorize adds ANSI color for given string.
 func colorize(color int, s string) string {
 	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", color, s)
+}
+
+// indexOfSlash gets the position of slash, starting at fromIndex.
+func indexOfSlash(name string, fromIndex int) int {
+	if len(name) < fromIndex || fromIndex < 0 {
+		return -1
+	}
+
+	var sub = name
+	if fromIndex > 0 {
+		sub = name[fromIndex:]
+	}
+
+	i := strings.Index(sub, Slash)
+	if i < 0 {
+		return i
+	}
+
+	return fromIndex + i
 }
 
 // rename creates directory if not existed, and rename file to a new name.

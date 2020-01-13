@@ -15,14 +15,23 @@
 package slago
 
 import (
+	"sync"
 	"time"
+)
+
+var (
+	recordPool = &sync.Pool{
+		New: func() interface{} {
+			return &noopRecord{}
+		},
+	}
 )
 
 type noopRecord struct {
 }
 
 func newNoopRecord() *noopRecord {
-	return &noopRecord{}
+	return recordPool.Get().(*noopRecord)
 }
 
 func (r *noopRecord) Str(key, val string) Record {
@@ -174,7 +183,9 @@ func (r *noopRecord) Interface(key string, val interface{}) Record {
 }
 
 func (r *noopRecord) Msg(msg string) {
+	r.Msgf(msg)
 }
 
 func (r *noopRecord) Msgf(format string, v ...interface{}) {
+	recordPool.Put(r)
 }
