@@ -83,27 +83,6 @@ func (l *zapLogger) SetLevel(lvl slago.Level) {
 	l.atomicLevel.SetLevel(slagoLvlToZapLvl[lvl])
 }
 
-func (l *zapLogger) Level(lvl slago.Level) slago.Record {
-	zapLevel := slagoLvlToZapLvl[lvl]
-
-	switch zapLevel {
-	case zapcore.InfoLevel:
-		return l.Info()
-	case zapcore.WarnLevel:
-		return l.Warn()
-	case zapcore.ErrorLevel:
-		return l.Error()
-	case zapcore.FatalLevel:
-		return l.Fatal()
-	case zapcore.PanicLevel:
-		return l.Panic()
-	case zapcore.DebugLevel:
-		fallthrough
-	default:
-		return l.Debug()
-	}
-}
-
 func (l *zapLogger) Trace() slago.Record {
 	return l.Debug()
 }

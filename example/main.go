@@ -16,7 +16,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago"
@@ -38,7 +37,7 @@ func main() {
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
 			opt.Layout = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-				"#level) #message #fields"
+				"#level) #color([#logger{16}]){magenta} : #message #fields"
 		})
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
@@ -56,10 +55,13 @@ func main() {
 	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Trace().Msg("slago")
-	slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
+	slago.Logger("github.com/slago/foo.main").Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
-
 	log.Printf("this is builtin logger")
-	time.Sleep(time.Second * 2)
+
+	logger := slago.Logger("github.com/slago.main")
+	logger.Trace().Msg("slago sub logger")
+	logger.SetLevel(slago.InfoLevel)
+	logger.Trace().Msg("this will not print")
 }

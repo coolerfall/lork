@@ -73,29 +73,6 @@ func (l *logrusLogger) SetLevel(lvl slago.Level) {
 	logrus.SetLevel(slagoLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) Level(lvl slago.Level) slago.Record {
-	logrusLevel := slagoLvlToLogrusLvl[lvl]
-
-	switch logrusLevel {
-	case logrus.DebugLevel:
-		return l.Debug()
-	case logrus.InfoLevel:
-		return l.Info()
-	case logrus.WarnLevel:
-		return l.Warn()
-	case logrus.ErrorLevel:
-		return l.Error()
-	case logrus.FatalLevel:
-		return l.Fatal()
-	case logrus.PanicLevel:
-		return l.Panic()
-	case logrus.TraceLevel:
-		fallthrough
-	default:
-		return l.Trace()
-	}
-}
-
 func (l *logrusLogger) Trace() slago.Record {
 	return newLogrusRecord(logrus.TraceLevel)
 }
