@@ -34,47 +34,88 @@ type Writer interface {
 // MultiWriter represents multiple writer which implements slago.Writer.
 // This writer is used as output which will implement SlaLogger.
 type MultiWriter struct {
-	writers []Writer
-	locker  sync.Mutex
+	locker       sync.Mutex
+	writers      []Writer
+	asyncWriters []Writer
 }
 
 // NewMultiWriter creates a new multiple writer.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
-		writers: make([]Writer, 0),
+		writers:      make([]Writer, 0),
+		asyncWriters: make([]Writer, 0),
 	}
 }
 
 // AddWriter adds a slago writer into multi writer.
-func (mw *MultiWriter) AddWriter(ws ...Writer) {
-	for _, w := range ws {
+func (mw *MultiWriter) AddWriter(writers ...Writer) {
+	for _, w := range writers {
 		if lc, ok := w.(Lifecycle); ok {
 			lc.Start()
 		}
-	}
 
-	mw.writers = append(mw.writers, ws...)
+		if _, ok := w.(*asyncWriter); ok {
+			mw.asyncWriters = append(mw.asyncWriters, w)
+		} else {
+			mw.writers = append(mw.writers, w)
+		}
+	}
 }
 
 // Reset will remove all writers.
 func (mw *MultiWriter) Reset() {
 	mw.locker.Lock()
 	defer mw.locker.Unlock()
+
+	for _, w := range mw.writers {
+		if lc, ok := w.(Lifecycle); ok {
+			lc.Stop()
+		}
+	}
 	mw.writers = make([]Writer, 0)
+	mw.asyncWriters = make([]Writer, 0)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	mw.locker.Lock()
 	defer mw.locker.Unlock()
 
+	if n, err = mw.writeAsync(p); err != nil {
+		return
+	}
+
+	if n, err = mw.writeNormal(p); err != nil {
+		return
+	}
+
+	return len(p), nil
+}
+
+func (mw *MultiWriter) writeAsync(p []byte) (n int, err error) {
+	for _, w := range mw.asyncWriters {
+		if n, err = w.Write(p); err != nil {
+			return
+		}
+	}
+
+	return len(p), nil
+}
+
+func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
+	if len(mw.writers) == 0 {
+		return 0, nil
+	}
+
+	event := makeEvent(p)
+	defer event.recycle()
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(p) {
+		if w.Filter() != nil && w.Filter().Do(event) {
 			return
 		}
 
 		encoded := p
 		if w.Encoder() != nil {
-			encoded, err = w.Encoder().Encode(p)
+			encoded, err = w.Encoder().Encode(event)
 			if err != nil {
 				return 0, err
 			}

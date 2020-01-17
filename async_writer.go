@@ -84,23 +84,30 @@ func (w *asyncWriter) startWorker() {
 		}
 
 		p := w.queue.Take()
+		w.write(p)
+	}
+}
 
-		var err error
-		if w.ref.Filter() != nil && w.ref.Filter().Do(p) {
-			continue
-		}
+func (w *asyncWriter) write(p []byte) {
+	event := makeEvent(p)
+	defer event.recycle()
 
-		encoded := p
-		if w.ref.Encoder() != nil {
-			encoded, err = w.ref.Encoder().Encode(p)
-			if err != nil {
-				Reportf("async writer encode error: %v", err)
-				continue
-			}
-		}
-		_, err = w.ref.Write(encoded)
+	var err error
+	if w.ref.Filter() != nil && w.ref.Filter().Do(event) {
+		return
+	}
+
+	encoded := p
+	if w.ref.Encoder() != nil {
+		encoded, err = w.ref.Encoder().Encode(event)
 		if err != nil {
-			Reportf("async writer write error: %v", err)
+			Reportf("async writer encode error: %v", err)
+			return
 		}
+	}
+
+	_, err = w.ref.Write(encoded)
+	if err != nil {
+		Reportf("async writer write error: %v", err)
 	}
 }

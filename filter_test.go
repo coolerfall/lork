@@ -27,28 +27,28 @@ func TestFilter(t *testing.T) {
 }
 
 var _ = Describe("level filter", func() {
-	var json = []byte(`{"level":"INFO","int":88}`)
+	var event = makeEvent([]byte(`{"level":"INFO","int":88}`))
 	It("not filter", func() {
 		filter := NewLevelFilter(InfoLevel)
-		result := filter.Do(json)
+		result := filter.Do(event)
 		Expect(result).To(Equal(false))
 	})
 	It("filter", func() {
 		filter := NewLevelFilter(ErrorLevel)
-		result := filter.Do(json)
+		result := filter.Do(event)
 		Expect(result).To(Equal(true))
 	})
 })
 var _ = Describe("keyword filter", func() {
-	var json = []byte(`{"level":"INFO","int":88,"name":"key"}`)
+	var event = makeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
 	It("not filter", func() {
 		filter := NewKeywordFilter("logger")
-		result := filter.Do(json)
+		result := filter.Do(event)
 		Expect(result).To(Equal(false))
 	})
 	It("filter", func() {
 		filter := NewKeywordFilter("name=key", "int")
-		result := filter.Do(json)
+		result := filter.Do(event)
 		Expect(result).To(Equal(true))
 	})
 })

@@ -26,30 +26,17 @@ func TestEncoder(t *testing.T) {
 	RunSpecs(t, "encoder test")
 }
 
-var logEvent = []byte(
+var logEvent = makeEvent([]byte(
 	`{"level":"INFO","time":"2019-12-27T10:40:14.465199844+08:00","key":"value"}`,
-)
+))
 var _ = Describe("json encoder", func() {
 	var data []byte
 	rt, _ := convertFormat(data,
 		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, jsonTimeFormat)
 	It("encode", func() {
-		result := []byte(`{"level":"INFO","time":"` + string(rt) + `","key":"value"}` + "\n")
+		result := []byte(`{"time":"` + string(rt) + `","level":"INFO","logger_name":"","message":"","key":"value"}` + "\n")
 		je := NewJsonEncoder()
 		out, err := je.Encode(logEvent)
-		Expect(err).To(BeNil())
-		Expect(out).To(Equal(result))
-	})
-})
-
-var _ = Describe("logstash encoder", func() {
-	var data []byte
-	rt, _ := convertFormat(data,
-		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, jsonTimeFormat)
-	It("encode", func() {
-		result := []byte(`{"level":"INFO","@timestamp":"` + string(rt) + `","key":"value","@version":"1"}` + "\n")
-		le := NewLogstashEncoder()
-		out, err := le.Encode(logEvent)
 		Expect(err).To(BeNil())
 		Expect(out).To(Equal(result))
 	})

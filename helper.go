@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -30,7 +31,7 @@ const (
 	MessageFieldKey   = "message"
 	LoggerFieldKey    = "logger_name"
 
-	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
+	TimestampFormat = time.RFC3339Nano
 
 	Slash = "/"
 )
