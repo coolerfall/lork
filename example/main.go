@@ -16,6 +16,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"gitlab.com/anbillon/slago"
@@ -42,7 +43,6 @@ func main() {
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
-		//o.Encoder = slago.NewLogstashEncoder()
 		o.Filter = slago.NewLevelFilter(slago.DebugLevel)
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
@@ -64,4 +64,6 @@ func main() {
 	logger.Trace().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
+
+	time.Sleep(time.Second * 2)
 }

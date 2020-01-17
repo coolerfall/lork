@@ -18,8 +18,6 @@ import (
 	"bytes"
 	"strconv"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 const (
@@ -47,14 +45,14 @@ var (
 		"whitebr":   colorBrightWhite,
 	}
 
-	levelColorMap = map[string]int{
-		"TRACE": colorWhite,
-		"DEBUG": colorBlue,
-		"INFO":  colorGreen,
-		"WARN":  colorYellow,
-		"ERROR": colorRed,
-		"FATAL": colorRed,
-		"PANIC": colorRed,
+	levelColorMap = map[Level]int{
+		TraceLevel: colorWhite,
+		DebugLevel: colorBlue,
+		InfoLevel:  colorGreen,
+		WarnLevel:  colorYellow,
+		ErrorLevel: colorRed,
+		FatalLevel: colorRed,
+		PanicLevel: colorRed,
 	}
 )
 
@@ -110,12 +108,12 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 	}
 }
 
-func (pe *patternEncoder) Encode(p []byte) (data []byte, err error) {
+func (pe *patternEncoder) Encode(e *LogEvent) (data []byte, err error) {
 	pe.locker.Lock()
 	defer pe.locker.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		c.Convert(p, pe.buf)
+		c.Convert(e, pe.buf)
 	}
 	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
@@ -153,7 +151,12 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 	cc.opts = opts
 }
 
-func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
+func (cc *colorConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
+
 	if len(cc.opts) != 0 {
 		color, ok := colorMap[cc.opts[0]]
 		if !ok {
@@ -162,11 +165,11 @@ func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 		cc.writeColor(color)
 	}
 
-	level, _, _, _ := jsonparser.Get(origin, LevelFieldKey)
+	level := e.LevelInt()
 	for c := cc.child; c != nil; c = c.Next() {
 		switch c.(type) {
 		case *levelConverter:
-			color, ok := levelColorMap[string(level)]
+			color, ok := levelColorMap[level]
 			if !ok {
 				color = colorWhite
 			}
@@ -218,12 +221,12 @@ func (lc *levelConverter) AttachChild(child Converter) {
 func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
-func (lc *levelConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	lvl, _, _, err := jsonparser.Get(origin, LevelFieldKey)
-	if err != nil {
+func (lc *levelConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
 		return
 	}
-	buf.Write(lvl)
+	buf.Write(e.Level())
 }
 
 type logDateConverter struct {
@@ -256,8 +259,12 @@ func (c *logDateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *logDateConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	tsValue, _, _, _ := jsonparser.Get(origin, TimestampFieldKey)
+func (c *logDateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
+	tsValue := e.rfc3339Nano.Bytes()
 	bufData := buf.Bytes()
 	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opt)
 	buf.Reset()
@@ -299,14 +306,20 @@ func (lc *loggerConverter) AttachOptions(opts []string) {
 	lc.opt = opt
 }
 
-func (lc *loggerConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	loggerName, _, _, _ := jsonparser.Get(origin, LoggerFieldKey)
-	if len(loggerName) == 0 {
+func (lc *loggerConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
 		buf.WriteByte('-')
 		return
 	}
 
-	buf.Write(lc.abbreviator(loggerName))
+	logger := e.Logger()
+	if !ok || len(logger) == 0 {
+		buf.WriteByte('-')
+		return
+	}
+
+	buf.Write(lc.abbreviator(logger))
 }
 
 func (lc *loggerConverter) abbreviator(name []byte) []byte {
@@ -346,8 +359,14 @@ func (mc *messageConverter) AttachChild(child Converter) {
 func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
-func (mc *messageConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	message, _, _, _ := jsonparser.Get(origin, MessageFieldKey)
+func (mc *messageConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		buf.WriteByte('-')
+		return
+	}
+
+	message := e.Message()
 	if len(message) == 0 {
 		buf.WriteByte('-')
 		return
@@ -381,25 +400,17 @@ func (fc *fieldsConverter) AttachChild(child Converter) {
 func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
-func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	_ = jsonparser.ObjectEach(origin, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		jsonKey := string(key)
-		switch jsonKey {
-		case TimestampFieldKey:
-		case LevelFieldKey:
-		case LoggerFieldKey:
-		case MessageFieldKey:
-			// do nothing for these keys
+func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
 
-		default:
-			buf.Write(key)
-			buf.WriteString("=")
-			buf.Write(value)
-			buf.WriteByte(' ')
-		}
-
-		return nil
+	e.Fields(func(k, v []byte, isString bool) {
+		buf.Write(k)
+		buf.WriteString("=")
+		buf.Write(v)
+		buf.WriteByte(' ')
 	})
 
 	// remove last space

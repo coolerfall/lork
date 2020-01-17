@@ -17,14 +17,12 @@ package slago
 import (
 	"errors"
 	"strings"
-
-	"github.com/buger/jsonparser"
 )
 
 // Filter represents a logging filter for slago.
 type Filter interface {
 	// Do filters the logging. True means filterd, otherwise pass through.
-	Do(p []byte) bool
+	Do(e *LogEvent) bool
 }
 
 // levelFilter represents a level filter.
@@ -40,11 +38,8 @@ func NewLevelFilter(lvl Level) Filter {
 }
 
 // Do will execute the filter.
-func (f *levelFilter) Do(p []byte) bool {
-	lvl, _, _, _ := jsonparser.Get(p, LevelFieldKey)
-	level := ParseLevel(string(lvl))
-
-	return f.level > level
+func (f *levelFilter) Do(e *LogEvent) bool {
+	return f.level > e.LevelInt()
 }
 
 // keywordFilter represents a filter by key word rule.
@@ -61,17 +56,16 @@ func NewKeywordFilter(keywords ...string) Filter {
 
 var errFound = errors.New("found")
 
-func (f *keywordFilter) Do(p []byte) bool {
-	err := jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		_ jsonparser.ValueType, _ int) error {
-		if f.compare(key, value) {
-			return errFound
+func (f *keywordFilter) Do(e *LogEvent) bool {
+	var filtered bool
+	e.Fields(func(k, v []byte, _ bool) {
+		if f.compare(k, v) {
+			filtered = true
+			return
 		}
-
-		return nil
 	})
 
-	return err == errFound
+	return filtered
 }
 
 func (f *keywordFilter) compare(key []byte, value []byte) bool {

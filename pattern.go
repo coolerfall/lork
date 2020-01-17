@@ -196,6 +196,7 @@ func (p *patternCompiler) Compile() (Converter, error) {
 		switch n._type {
 		case typeLiteral:
 			p.appendConverter(NewLiteralConverter(n.value))
+
 		case typeSingle:
 			newConverter, ok := p.converterMap[n.value]
 			if ok {

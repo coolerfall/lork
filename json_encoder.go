@@ -23,9 +23,9 @@ const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
 
 // jsonEncoder encodes logging event into json format.
 type jsonEncoder struct {
+	locker sync.Mutex
 	buf    *bytes.Buffer
 	tsBuf  *bytes.Buffer
-	locker sync.Mutex
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
@@ -36,28 +36,53 @@ func NewJsonEncoder() Encoder {
 	}
 }
 
-func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
-	e.locker.Lock()
-	defer e.locker.Unlock()
+func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
+	je.locker.Lock()
+	defer je.locker.Unlock()
 
-	// wrtite key and value as json string
-	err := ReplaceJson(p, e.buf, TimestampFieldKey,
-		func(k, v []byte) (nk []byte, nv []byte, err error) {
-			bufData := e.tsBuf.Bytes()
-			bufData, err = convertFormat(bufData, v, TimestampFormat, jsonTimeFormat)
-			if err != nil {
-				return nil, nil, err
-			}
-			e.tsBuf.Reset()
-			e.tsBuf.Write(bufData)
-			timestamp := e.tsBuf.Bytes()
-			e.tsBuf.Reset()
+	var err error
+	bufData := je.tsBuf.Bytes()
+	bufData, err = convertFormat(bufData, e.rfc3339Nano.Bytes(), TimestampFormat, jsonTimeFormat)
+	if err != nil {
+		return nil, err
+	}
+	je.tsBuf.Reset()
+	je.tsBuf.Write(bufData)
+	timestamp := je.tsBuf.Bytes()
+	je.tsBuf.Reset()
 
-			return k, timestamp, nil
-		})
+	// write key and value as json string
+	je.buf.WriteString("{")
+	je.writeKeyAndValue(TimestampFieldKey, timestamp, true)
+	je.writeKeyAndValue(LevelFieldKey, e.Level(), true)
+	je.writeKeyAndValue(LoggerFieldKey, e.Logger(), true)
+	je.writeKeyAndValue(MessageFieldKey, e.Message(), true)
 
-	p = e.buf.Bytes()
-	e.buf.Reset()
+	e.Fields(func(k, v []byte, isString bool) {
+		je.writeKeyAndValue(string(k), v, isString)
+	})
+
+	je.buf.Truncate(je.buf.Len() - 1)
+	je.buf.WriteString("}\n")
+
+	p := je.buf.Bytes()
+	je.buf.Reset()
 
 	return p, err
+}
+
+func (je *jsonEncoder) writeKeyAndValue(key string, value []byte, isString bool) {
+	je.buf.WriteByte('"')
+	je.buf.WriteString(key)
+	je.buf.WriteByte('"')
+	je.buf.WriteByte(':')
+
+	if isString {
+		je.buf.WriteByte('"')
+	}
+	je.buf.Write(value)
+	if isString {
+		je.buf.WriteByte('"')
+	}
+	je.buf.WriteByte(',')
 }

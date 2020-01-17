@@ -25,7 +25,9 @@ func init() {
 	slago.Bind(slazero.NewZeroLogger())
 
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		//o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
+		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+		//	opt.Layout = "#date{2006-01-02} #level #message #fields"
+		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
@@ -45,7 +47,8 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger().Info().Int("int", 88).Msg(
+			slago.Logger().Info().Int("int", 88).Bool("bool", true).
+				Float32("float32", 2.1).Uint("uint", 9).Str("str", "wrold").Msg(
 				"The quick brown fox jumps over the lazy dog")
 		}
 	})

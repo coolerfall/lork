@@ -358,7 +358,7 @@ func (fp *filenamePattern) convert(index int) string {
 			c.Convert([]byte(ts), buf)
 
 		case *indexConverter:
-			c.Convert([]byte(strconv.Itoa(index)), buf)
+			c.Convert(index, buf)
 		}
 	}
 
