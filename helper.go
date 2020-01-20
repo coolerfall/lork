@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,12 @@
 package slago
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -26,8 +29,11 @@ const (
 	LevelFieldKey     = "level"
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
+	LoggerFieldKey    = "logger_name"
 
-	TimestampFormat = "2006-01-02T15:04:05.999999999Z07:00"
+	TimestampFormat = time.RFC3339Nano
+
+	Slash = "/"
 )
 
 // BrigeWrite writes data from bridge to slago logger.
@@ -35,7 +41,7 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
 	msg, _ := jsonparser.GetString(p, MessageFieldKey)
 
-	record := Logger().Level(bridge.ParseLevel(lvl))
+	record := makeRecord(bridge.ParseLevel(lvl))
 	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
 		dataType jsonparser.ValueType, _ int) error {
 		realKey := string(key)
@@ -57,12 +63,33 @@ func BrigeWrite(bridge Bridge, p []byte) error {
 	return nil
 }
 
-// Report reports message in stdout.
-func Report(msg string) {
-	fmt.Println(colorize(colorRed, fmt.Sprintf("slago: %v", msg)))
+func makeRecord(lvl Level) Record {
+	switch lvl {
+	case DebugLevel:
+		return Logger().Debug()
+	case InfoLevel:
+		return Logger().Info()
+	case WarnLevel:
+		return Logger().Warn()
+	case ErrorLevel:
+		return Logger().Error()
+	case FatalLevel:
+		return Logger().Fatal()
+	case PanicLevel:
+		return Logger().Panic()
+	case TraceLevel:
+		fallthrough
+	default:
+		return Logger().Trace()
+	}
 }
 
-// Reportf reports message with arguments in stdout.
+// Report reports message in stdou
+func Report(msg string) {
+	Reportf(msg)
+}
+
+// Reportf reports message with arguments in stdou
 func Reportf(format string, args ...interface{}) {
 	format = "slago: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
@@ -79,18 +106,82 @@ func colorize(color int, s string) string {
 	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", color, s)
 }
 
+// indexOfSlash gets the position of slash, starting at fromIndex.
+func indexOfSlash(name string, fromIndex int) int {
+	if len(name) < fromIndex || fromIndex < 0 {
+		return -1
+	}
+
+	var sub = name
+	if fromIndex > 0 {
+		sub = name[fromIndex:]
+	}
+
+	i := strings.Index(sub, Slash)
+	if i < 0 {
+		return i
+	}
+
+	return fromIndex + i
+}
+
 // rename creates directory if not existed, and rename file to a new name.
-func rename(oldPath, newPath string) (err error) {
-	dir := filepath.Dir(newPath)
+func rename(oldPath, newFilename string) (err error) {
+	dir := filepath.Dir(oldPath)
 	err = os.MkdirAll(dir, os.FileMode(0666))
 	if err != nil {
 		return
 	}
 
+	newPath := filepath.Join(dir, newFilename)
 	err = os.Rename(oldPath, newPath)
 	if err != nil {
 		return
 	}
 
 	return
+}
+
+// ReplaceJson replaces key/value with given search key.
+func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
+	transform func(k, v []byte) (nk, kv []byte, e error)) error {
+	buf.WriteByte('{')
+	var start = false
+	var err error
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		if start {
+			buf.WriteByte(',')
+		} else {
+			start = true
+		}
+
+		if string(key) == searchKey {
+			key, value, err = transform(key, value)
+			if err != nil {
+				return err
+			}
+		}
+
+		buf.WriteByte('"')
+		buf.Write(key)
+		buf.WriteByte('"')
+		buf.WriteByte(':')
+
+		switch dataType {
+		case jsonparser.String:
+			buf.WriteByte('"')
+			buf.Write(value)
+			buf.WriteByte('"')
+
+		default:
+			buf.Write(value)
+		}
+
+		return nil
+	})
+	buf.WriteByte('}')
+	buf.WriteByte('\n')
+
+	return nil
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,6 +43,6 @@ func (b *logBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	slago.Logger().Print(strings.TrimRight(string(p), "\n"))
+	slago.Logger().Trace().Msg(strings.TrimRight(string(p), "\n"))
 	return len(p), nil
 }

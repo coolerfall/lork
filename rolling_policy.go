@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,6 +39,29 @@ type RollingPolicy interface {
 	Rotate() error
 }
 
+type noopRollingPolicy struct {
+}
+
+// NewNoopRollingPolicy creates a new instance of noop rolling policy which will do nothing.
+func NewNoopRollingPolicy() RollingPolicy {
+	return &noopRollingPolicy{}
+}
+
+func (rp *noopRollingPolicy) Prepare() error {
+	return nil
+}
+
+func (rp *noopRollingPolicy) Attach(w *fileWriter) {
+}
+
+func (rp *noopRollingPolicy) ShouldTrigger(fileSize int64) bool {
+	return false
+}
+
+func (rp *noopRollingPolicy) Rotate() error {
+	return nil
+}
+
 type timeBasedRollingPolicy struct {
 	fileWriter *fileWriter
 	nextCheck  time.Time
@@ -49,7 +72,7 @@ type timeBasedRollingPolicy struct {
 
 // NewTimeBasedRollingPolicy creates a instance of time based rolling policy
 // for file writer.
-func NewTimeBasedRollingPolicy(filenamePattern string) *timeBasedRollingPolicy {
+func NewTimeBasedRollingPolicy(filenamePattern string) RollingPolicy {
 	fp, err := newFilenamePattern(filenamePattern)
 	if err != nil {
 		ReportfExit("create rolling policy error: \n%v", err)
@@ -120,7 +143,7 @@ type SizeAndTimeBasedRPOption struct {
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
 // based rolling policy for file writer.
 func NewSizeAndTimeBasedRollingPolicy(options ...func(
-	*SizeAndTimeBasedRPOption)) *sizeAndTimeBasedRollingPolicy {
+	*SizeAndTimeBasedRPOption)) RollingPolicy {
 	opt := &SizeAndTimeBasedRPOption{
 		MaxFileSize:     "128MB",
 		FilenamePattern: "slago-archive.#date{2006-01-02}.#index.log",
@@ -135,13 +158,18 @@ func NewSizeAndTimeBasedRollingPolicy(options ...func(
 		ReportfExit("parse file size error: %v", err)
 	}
 
+	tbrp := NewTimeBasedRollingPolicy(opt.FilenamePattern).(*timeBasedRollingPolicy)
 	return &sizeAndTimeBasedRollingPolicy{
-		timeBasedRollingPolicy: NewTimeBasedRollingPolicy(opt.FilenamePattern),
+		timeBasedRollingPolicy: tbrp,
 		triggerSize:            fileSize,
 	}
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
+	if rp.fileWriter == nil {
+		return errors.New("rolling policy is not attached to a file writer")
+	}
+
 	if !rp.filenamePattern.hasIndexConverter() {
 		return errors.New("invalid filename pattern, missing index pattern")
 	}
@@ -158,8 +186,16 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
-	return fileSize >= rp.triggerSize ||
-		rp.timeBasedRollingPolicy.ShouldTrigger(fileSize)
+	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
+		rp.index = 1
+		return true
+	}
+
+	if fileSize >= rp.triggerSize {
+		return true
+	}
+
+	return false
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
@@ -310,7 +346,7 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 }
 
 func (fp *filenamePattern) convert(index int) string {
-	buf := &bytes.Buffer{}
+	buf := new(bytes.Buffer)
 
 	for c := fp.converter; c != nil; c = c.Next() {
 		switch c.(type) {
@@ -322,7 +358,7 @@ func (fp *filenamePattern) convert(index int) string {
 			c.Convert([]byte(ts), buf)
 
 		case *indexConverter:
-			c.Convert([]byte(strconv.Itoa(index)), buf)
+			c.Convert(index, buf)
 		}
 	}
 
@@ -330,7 +366,7 @@ func (fp *filenamePattern) convert(index int) string {
 }
 
 func (fp *filenamePattern) toFilenameRegex() string {
-	var buf = &bytes.Buffer{}
+	var buf = new(bytes.Buffer)
 	for c := fp.converter; c != nil; c = c.Next() {
 		switch c.(type) {
 		case *literalConverter:

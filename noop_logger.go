@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ type noopLogger struct {
 
 // newNoopLogger creates a new instance of no-operation logger.
 // This logger will write all data to /dev/null.
-func newNoopLogger() *noopLogger {
+func newNoopLogger() SlaLogger {
 	return &noopLogger{}
 }
 

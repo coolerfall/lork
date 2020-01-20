@@ -14,8 +14,10 @@
 
 package slago
 
-// Encoder represents an encoder to encode logging event into different format.
-type Encoder interface {
-	// Encode encodes origin data to formatted data.
-	Encode(e *LogEvent) (data []byte, err error)
+// Lifecycle represents the lifecycle of component.
+type Lifecycle interface {
+	// Start the component.
+	Start()
+	// Stop the component.
+	Stop()
 }

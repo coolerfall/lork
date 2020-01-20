@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ type socketWriter struct {
 }
 
 // NewSocketWriter create a logging writter via socket.
-func NewSocketWriter(options ...func(*SocketWriterOption)) *socketWriter {
+func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 	opts := &SocketWriterOption{
 		QueueSize:         defaultSocketQueueSize,
 		ReconnectionDelay: defaultReconnectionDelay,
@@ -88,10 +88,15 @@ func (w *socketWriter) Start() {
 	if w.isStarted {
 		return
 	}
-
-	go w.startWorker()
-
 	w.isStarted = true
+	go w.startWorker()
+}
+
+func (w *socketWriter) Stop() {
+	err := w.conn.Close()
+	if err != nil {
+		Reportf("stop socket writer error: %v", err)
+	}
 }
 
 func (w *socketWriter) Write(p []byte) (int, error) {
@@ -108,10 +113,6 @@ func (w *socketWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-func (w *socketWriter) Close() error {
-	return w.conn.Close()
-}
-
 func (w *socketWriter) Encoder() Encoder {
 	return w.encoder
 }
@@ -122,6 +123,10 @@ func (w *socketWriter) Filter() Filter {
 
 func (w *socketWriter) startWorker() {
 	for {
+		if !w.isStarted {
+			break
+		}
+
 		p := w.queue.Take()
 
 		err := w.conn.WriteMessage(websocket.BinaryMessage, p)

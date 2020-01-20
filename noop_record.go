@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,23 @@
 package slago
 
 import (
+	"sync"
 	"time"
+)
+
+var (
+	recordPool = &sync.Pool{
+		New: func() interface{} {
+			return &noopRecord{}
+		},
+	}
 )
 
 type noopRecord struct {
 }
 
 func newNoopRecord() *noopRecord {
-	return &noopRecord{}
+	return recordPool.Get().(*noopRecord)
 }
 
 func (r *noopRecord) Str(key, val string) Record {
@@ -174,7 +183,9 @@ func (r *noopRecord) Interface(key string, val interface{}) Record {
 }
 
 func (r *noopRecord) Msg(msg string) {
+	r.Msgf(msg)
 }
 
 func (r *noopRecord) Msgf(format string, v ...interface{}) {
+	recordPool.Put(r)
 }

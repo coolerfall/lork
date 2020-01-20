@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,11 +27,25 @@ type asyncWriter struct {
 	isStarted bool
 }
 
+// AsyncWriterOption represents available options for async writer.
+type AsyncWriterOption struct {
+	Ref       Writer
+	QueueSize int
+}
+
 // NewAsyncWriter creates a new instance of asynchronous writer.
-func NewAsyncWriter(ref Writer) *asyncWriter {
+func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
+	opt := &AsyncWriterOption{
+		QueueSize: defaultWriterQueueSize,
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
 	return &asyncWriter{
-		ref:   ref,
-		queue: NewBlockingQueue(defaultWriterQueueSize),
+		ref:   opt.Ref,
+		queue: NewBlockingQueue(opt.QueueSize),
 	}
 }
 
@@ -39,8 +53,20 @@ func (w *asyncWriter) Start() {
 	if w.isStarted {
 		return
 	}
-	go w.startWorker()
+	if lc, ok := w.ref.(Lifecycle); ok {
+		lc.Start()
+	}
 	w.isStarted = true
+	go w.startWorker()
+}
+
+func (w *asyncWriter) Stop() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+	if lc, ok := w.ref.(Lifecycle); ok {
+		lc.Stop()
+	}
+	w.isStarted = false
 }
 
 func (w *asyncWriter) Write(p []byte) (n int, err error) {
@@ -67,24 +93,35 @@ func (w *asyncWriter) Filter() Filter {
 
 func (w *asyncWriter) startWorker() {
 	for {
+		if !w.isStarted {
+			break
+		}
+
 		p := w.queue.Take()
+		w.write(p)
+	}
+}
 
-		var err error
-		if w.ref.Filter() != nil && w.ref.Filter().Do(p) {
-			continue
-		}
+func (w *asyncWriter) write(p []byte) {
+	event := makeEvent(p)
+	defer event.recycle()
 
-		encoded := p
-		if w.ref.Encoder() != nil {
-			encoded, err = w.ref.Encoder().Encode(p)
-			if err != nil {
-				Reportf("async writer encode error: %v", err)
-				continue
-			}
-		}
-		_, err = w.ref.Write(encoded)
+	var err error
+	if w.ref.Filter() != nil && w.ref.Filter().Do(event) {
+		return
+	}
+
+	encoded := p
+	if w.ref.Encoder() != nil {
+		encoded, err = w.ref.Encoder().Encode(event)
 		if err != nil {
-			Reportf("async writer write error: %v", err)
+			Reportf("async writer encode error: %v", err)
+			return
 		}
+	}
+
+	_, err = w.ref.Write(encoded)
+	if err != nil {
+		Reportf("async writer write error: %v", err)
 	}
 }

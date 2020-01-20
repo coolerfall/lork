@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,55 +20,102 @@ import (
 )
 
 // Writer is the interface that wraps the io.Writer, add adds
-// Encoder and LevelFilter func for slago to ecnode and filter logs.
+// Encoder and Filter func for slago to ecnode and filter logs.
 type Writer interface {
 	io.Writer
 
 	// Encoder returns encoder used in current writer.
 	Encoder() Encoder
 
-	// LevelFilter returns filter used in current writer.
+	// Filter returns filter used in current writer.
 	Filter() Filter
 }
 
 // MultiWriter represents multiple writer which implements slago.Writer.
 // This writer is used as output which will implement SlaLogger.
 type MultiWriter struct {
-	writers []Writer
-	mutex   sync.Mutex
+	locker       sync.Mutex
+	writers      []Writer
+	asyncWriters []Writer
 }
 
 // NewMultiWriter creates a new multiple writer.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
-		writers: make([]Writer, 0),
+		writers:      make([]Writer, 0),
+		asyncWriters: make([]Writer, 0),
 	}
 }
 
 // AddWriter adds a slago writer into multi writer.
-func (mw *MultiWriter) AddWriter(w ...Writer) {
-	mw.writers = append(mw.writers, w...)
+func (mw *MultiWriter) AddWriter(writers ...Writer) {
+	for _, w := range writers {
+		if lc, ok := w.(Lifecycle); ok {
+			lc.Start()
+		}
+
+		if _, ok := w.(*asyncWriter); ok {
+			mw.asyncWriters = append(mw.asyncWriters, w)
+		} else {
+			mw.writers = append(mw.writers, w)
+		}
+	}
 }
 
 // Reset will remove all writers.
 func (mw *MultiWriter) Reset() {
-	mw.mutex.Lock()
-	defer mw.mutex.Unlock()
+	mw.locker.Lock()
+	defer mw.locker.Unlock()
+
+	for _, w := range mw.writers {
+		if lc, ok := w.(Lifecycle); ok {
+			lc.Stop()
+		}
+	}
 	mw.writers = make([]Writer, 0)
+	mw.asyncWriters = make([]Writer, 0)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
-	mw.mutex.Lock()
-	defer mw.mutex.Unlock()
+	mw.locker.Lock()
+	defer mw.locker.Unlock()
 
+	if n, err = mw.writeAsync(p); err != nil {
+		return
+	}
+
+	if n, err = mw.writeNormal(p); err != nil {
+		return
+	}
+
+	return len(p), nil
+}
+
+func (mw *MultiWriter) writeAsync(p []byte) (n int, err error) {
+	for _, w := range mw.asyncWriters {
+		if n, err = w.Write(p); err != nil {
+			return
+		}
+	}
+
+	return len(p), nil
+}
+
+func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
+	if len(mw.writers) == 0 {
+		return 0, nil
+	}
+
+	event := makeEvent(p)
+	defer event.recycle()
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(p) {
+		if w.Filter() != nil && w.Filter().Do(event) {
 			return
 		}
 
 		encoded := p
 		if w.Encoder() != nil {
-			encoded, err = w.Encoder().Encode(p)
+			encoded, err = w.Encoder().Encode(event)
 			if err != nil {
 				return 0, err
 			}

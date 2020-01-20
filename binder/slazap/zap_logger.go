@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ type zapLogger struct {
 }
 
 // NewZapLogger creates a new instance of zapLogger used to be bound to slago.
-func NewZapLogger() *zapLogger {
+func NewZapLogger() slago.SlaLogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 
@@ -83,27 +83,6 @@ func (l *zapLogger) SetLevel(lvl slago.Level) {
 	l.atomicLevel.SetLevel(slagoLvlToZapLvl[lvl])
 }
 
-func (l *zapLogger) Level(lvl slago.Level) slago.Record {
-	zapLevel := slagoLvlToZapLvl[lvl]
-
-	switch zapLevel {
-	case zapcore.InfoLevel:
-		return l.Info()
-	case zapcore.WarnLevel:
-		return l.Warn()
-	case zapcore.ErrorLevel:
-		return l.Error()
-	case zapcore.FatalLevel:
-		return l.Fatal()
-	case zapcore.PanicLevel:
-		return l.Panic()
-	case zapcore.DebugLevel:
-		fallthrough
-	default:
-		return l.Debug()
-	}
-}
-
 func (l *zapLogger) Trace() slago.Record {
 	return l.Debug()
 }
@@ -130,14 +109,6 @@ func (l *zapLogger) Fatal() slago.Record {
 
 func (l *zapLogger) Panic() slago.Record {
 	return newZapRecord(zapcore.PanicLevel)
-}
-
-func (l *zapLogger) Print(args ...interface{}) {
-	zap.S().Debug(args...)
-}
-
-func (l *zapLogger) Printf(format string, args ...interface{}) {
-	zap.S().Debugf(format, args...)
 }
 
 func (l *zapLogger) WriteRaw(p []byte) {

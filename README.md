@@ -1,8 +1,8 @@
 slago
 =====
 Simple Logging Abstraction for Go. Slago provides bridge and binder for logger which
-can sent log from logger to another logger you preferred. Slago also provide some 
-builtin writers which is easy to configure.
+can sent log from logger to another logger you preferred. Slago also provides unified writers, 
+encoders and filters, it brings different logger with same apis and configurations.
 
 Usage
 ====
@@ -22,8 +22,7 @@ slago.Install(bridge.NewZapBrige())
 ```go
 cw := slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(
-			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-				"#level) #message #fields")
+			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +"#level) #message #fields")
 	})
 slago.Logger().AddWriter(cw)
 fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
@@ -50,11 +49,13 @@ slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
 zap.L().With().Warn("this is zap")
 log.Printf("this is builtin logger")
 ```
+Note: only global logger will send log to bound logger if 
+using logger like zap or zerolog or other loggers.  
 
 License
 =======
 
-    Copyright (C) 2019 Anbillon Team
+    Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

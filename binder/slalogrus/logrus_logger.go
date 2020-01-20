@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ type logrusLogger struct {
 }
 
 // NewLogrusLogger creates a new instance of logrusLogger used to be bound to slago
-func NewLogrusLogger() *logrusLogger {
+func NewLogrusLogger() slago.SlaLogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: slago.TimestampFormat,
 		FieldMap: logrus.FieldMap{
@@ -46,10 +46,11 @@ func NewLogrusLogger() *logrusLogger {
 			logrus.FieldKeyMsg:   slago.MessageFieldKey,
 		},
 	})
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.TraceLevel)
 
 	writer := slago.NewMultiWriter()
-	logrus.SetOutput(writer)
+	transformer := newTransformer(writer)
+	logrus.SetOutput(transformer)
 
 	return &logrusLogger{
 		multiWriter: writer,
@@ -70,29 +71,6 @@ func (l *logrusLogger) ResetWriter() {
 
 func (l *logrusLogger) SetLevel(lvl slago.Level) {
 	logrus.SetLevel(slagoLvlToLogrusLvl[lvl])
-}
-
-func (l *logrusLogger) Level(lvl slago.Level) slago.Record {
-	logrusLevel := slagoLvlToLogrusLvl[lvl]
-
-	switch logrusLevel {
-	case logrus.DebugLevel:
-		return l.Debug()
-	case logrus.InfoLevel:
-		return l.Info()
-	case logrus.WarnLevel:
-		return l.Warn()
-	case logrus.ErrorLevel:
-		return l.Error()
-	case logrus.FatalLevel:
-		return l.Fatal()
-	case logrus.PanicLevel:
-		return l.Panic()
-	case logrus.TraceLevel:
-		fallthrough
-	default:
-		return l.Trace()
-	}
 }
 
 func (l *logrusLogger) Trace() slago.Record {
@@ -121,14 +99,6 @@ func (l *logrusLogger) Fatal() slago.Record {
 
 func (l *logrusLogger) Panic() slago.Record {
 	return newLogrusRecord(logrus.PanicLevel)
-}
-
-func (l *logrusLogger) Print(args ...interface{}) {
-	logrus.Print(args...)
-}
-
-func (l *logrusLogger) Printf(format string, args ...interface{}) {
-	logrus.Printf(format, args...)
 }
 
 func (l *logrusLogger) WriteRaw(p []byte) {

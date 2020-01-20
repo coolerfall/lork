@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,77 +17,73 @@ package slago
 import (
 	"bytes"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
 
 // jsonEncoder encodes logging event into json format.
 type jsonEncoder struct {
-	buf   *bytes.Buffer
-	mutex sync.Mutex
+	locker sync.Mutex
+	buf    *bytes.Buffer
+	tsBuf  *bytes.Buffer
 }
 
 // NewJsonEncoder creates a new instance of encoder to encode data to json.
-func NewJsonEncoder() *jsonEncoder {
+func NewJsonEncoder() Encoder {
 	return &jsonEncoder{
-		buf: &bytes.Buffer{},
+		buf:   new(bytes.Buffer),
+		tsBuf: new(bytes.Buffer),
 	}
 }
 
-func (e *jsonEncoder) Encode(p []byte) ([]byte, error) {
-	e.mutex.Lock()
-	defer e.mutex.Unlock()
+func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
+	je.locker.Lock()
+	defer je.locker.Unlock()
 
 	var err error
-	ts, _, _, _ := jsonparser.Get(p, TimestampFieldKey)
-	bufData := e.buf.Bytes()
-	bufData, err = convertFormat(bufData, ts, TimestampFormat, jsonTimeFormat)
+	bufData := je.tsBuf.Bytes()
+	bufData, err = convertFormat(bufData, e.rfc3339Nano.Bytes(), TimestampFormat, jsonTimeFormat)
 	if err != nil {
 		return nil, err
 	}
-	e.buf.Reset()
-	e.buf.Write(bufData)
-	timestamp := e.buf.String()
-	e.buf.Reset()
+	je.tsBuf.Reset()
+	je.tsBuf.Write(bufData)
+	timestamp := je.tsBuf.Bytes()
+	je.tsBuf.Reset()
 
-	// wrtite key and value as json string
-	e.buf.WriteByte('{')
-	var start = false
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		if start {
-			e.buf.WriteByte(',')
-		} else {
-			start = true
-		}
+	// write key and value as json string
+	je.buf.WriteString("{")
+	je.writeKeyAndValue(TimestampFieldKey, timestamp, true)
+	je.writeKeyAndValue(LevelFieldKey, e.Level(), true)
+	je.writeKeyAndValue(LoggerFieldKey, e.Logger(), true)
+	je.writeKeyAndValue(MessageFieldKey, e.Message(), true)
 
-		e.buf.WriteByte('"')
-		e.buf.Write(key)
-		e.buf.WriteByte('"')
-		e.buf.WriteByte(':')
-
-		switch dataType {
-		case jsonparser.String:
-			e.buf.WriteByte('"')
-			if string(key) == TimestampFieldKey {
-				e.buf.WriteString(timestamp)
-			} else {
-				e.buf.Write(value)
-			}
-			e.buf.WriteByte('"')
-
-		default:
-			e.buf.Write(value)
-		}
-
+	_ = e.Fields(func(k, v []byte, isString bool) error {
+		je.writeKeyAndValue(string(k), v, isString)
 		return nil
 	})
-	e.buf.WriteByte('}')
-	e.buf.WriteByte('\n')
-	p = e.buf.Bytes()
-	e.buf.Reset()
 
-	return p, nil
+	je.buf.Truncate(je.buf.Len() - 1)
+	je.buf.WriteString("}\n")
+
+	p := je.buf.Bytes()
+	je.buf.Reset()
+
+	return p, err
+}
+
+func (je *jsonEncoder) writeKeyAndValue(key string, value []byte, isString bool) {
+	je.buf.WriteByte('"')
+	je.buf.WriteString(key)
+	je.buf.WriteByte('"')
+	je.buf.WriteByte(':')
+
+	if isString {
+		je.buf.WriteByte('"')
+	}
+	je.buf.Write(value)
+	if isString {
+		je.buf.WriteByte('"')
+	}
+	je.buf.WriteByte(',')
 }

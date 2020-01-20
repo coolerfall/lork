@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,12 @@ const defaultLogFilename = "slago.log"
 type fileWriter struct {
 	opts *FileWriterOption
 
-	mutex sync.Mutex
-	file  *os.File
-	size  int64
+	locker sync.Mutex
+	file   *os.File
+	size   int64
 }
 
-// FileWriterOption represents available options for file wirter.
+// FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
 	Filter        Filter
 	Encoder       Encoder
@@ -42,7 +42,7 @@ type FileWriterOption struct {
 }
 
 // NewFileWriter creates a new instance of file writer.
-func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
+func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	opts := &FileWriterOption{
 		Filename: defaultLogFilename,
 		Encoder:  NewJsonEncoder(),
@@ -55,21 +55,35 @@ func NewFileWriter(options ...func(*FileWriterOption)) *fileWriter {
 	fw := &fileWriter{
 		opts: opts,
 	}
-	opts.RollingPolicy.Attach(fw)
-	if err := opts.RollingPolicy.Prepare(); err != nil {
-		ReportfExit("start rolling policy error: \n%v", err)
+	if opts.RollingPolicy == nil {
+		opts.RollingPolicy = NewNoopRollingPolicy()
 	}
+	opts.RollingPolicy.Attach(fw)
 
 	return fw
 }
 
+func (fw *fileWriter) Start() {
+	if err := fw.openExistingOrNew(); err != nil {
+		ReportfExit("file writer start error: %v", err)
+	}
+
+	if err := fw.opts.RollingPolicy.Prepare(); err != nil {
+		ReportfExit("start rolling policy error: %v\n", err)
+	}
+}
+
+func (fw *fileWriter) Stop() {
+	_ = fw.Close()
+}
+
 func (fw *fileWriter) Write(p []byte) (n int, err error) {
-	fw.mutex.Lock()
-	defer fw.mutex.Unlock()
+	fw.locker.Lock()
+	defer fw.locker.Unlock()
 
 	writeLen := len(p)
 	if fw.file == nil {
-		if err = fw.openExistingOrNew(writeLen); err != nil {
+		if err = fw.openExistingOrNew(); err != nil {
 			return
 		}
 	}
@@ -100,8 +114,8 @@ func (fw *fileWriter) Filter() Filter {
 
 // Close implements io.Closer, and closes the current logfile.
 func (fw *fileWriter) Close() error {
-	fw.mutex.Lock()
-	defer fw.mutex.Unlock()
+	fw.locker.Lock()
+	defer fw.locker.Unlock()
 	return fw.close()
 }
 
@@ -125,7 +139,7 @@ func (fw *fileWriter) openNew() error {
 
 	f, err := os.OpenFile(fw.opts.Filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("can't open new logfile: %s", err)
+		return fmt.Errorf("can't open new log file: %s", err)
 	}
 	fw.file = f
 	fw.size = 0
@@ -136,7 +150,7 @@ func (fw *fileWriter) openNew() error {
 // openExistingOrNew opens the logfile if it exists and if the current write
 // would not put it over MaxSize.  If there is no such file or the write would
 // put it over the MaxSize, a new file is created.
-func (fw *fileWriter) openExistingOrNew(writeLen int) error {
+func (fw *fileWriter) openExistingOrNew() error {
 	filename := fw.opts.Filename
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {

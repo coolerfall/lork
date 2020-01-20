@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ type Converter interface {
 	AttachOptions(opts []string)
 
 	// Convert converts given data into buffer.
-	Convert(origin []byte, buf *bytes.Buffer)
+	Convert(origin interface{}, buf *bytes.Buffer)
 }
 
 type NewConverter func() Converter
@@ -45,7 +45,7 @@ type literalConverter struct {
 	next  Converter
 }
 
-func NewLiteralConverter(value string) *literalConverter {
+func NewLiteralConverter(value string) Converter {
 	return &literalConverter{
 		value: value,
 	}
@@ -65,7 +65,7 @@ func (c *literalConverter) AttachChild(child Converter) {
 func (c *literalConverter) AttachOptions(opt []string) {
 }
 
-func (c *literalConverter) Convert(origin []byte, buf *bytes.Buffer) {
+func (c *literalConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	buf.WriteString(c.value)
 }
 
@@ -97,10 +97,15 @@ func (c *dateConverter) AttachOptions(opts []string) {
 	}
 }
 
-func (c *dateConverter) Convert(origin []byte, buf *bytes.Buffer) {
+func (c *dateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	ts, ok := origin.([]byte)
+	if !ok {
+		return
+	}
+
 	var err error
 	bufData := buf.Bytes()
-	bufData, err = convertFormat(bufData, origin, time.RFC3339, c.opts[0])
+	bufData, err = convertFormat(bufData, ts, time.RFC3339, c.opts[0])
 	if err != nil {
 		return
 	}
@@ -134,9 +139,9 @@ func (c *indexConverter) AttachChild(child Converter) {
 func (c *indexConverter) AttachOptions(opts []string) {
 }
 
-func (c *indexConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	index, err := atoi(origin)
-	if err != nil {
+func (c *indexConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	index, ok := origin.(int)
+	if !ok {
 		return
 	}
 

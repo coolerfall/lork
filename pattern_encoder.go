@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,7 @@ package slago
 import (
 	"bytes"
 	"strconv"
-	"strings"
 	"sync"
-
-	"github.com/buger/jsonparser"
 )
 
 const (
@@ -48,31 +45,39 @@ var (
 		"whitebr":   colorBrightWhite,
 	}
 
-	levelColorMap = map[string]int{
-		"TRACE": colorWhite,
-		"DEBUG": colorBlue,
-		"INFO":  colorGreen,
-		"WARN":  colorYellow,
-		"ERROR": colorRed,
-		"FATAL": colorRed,
-		"PANIC": colorRed,
+	levelColorMap = map[Level]int{
+		TraceLevel: colorWhite,
+		DebugLevel: colorBlue,
+		InfoLevel:  colorGreen,
+		WarnLevel:  colorYellow,
+		ErrorLevel: colorRed,
+		FatalLevel: colorRed,
+		PanicLevel: colorRed,
 	}
 )
 
-// PatternEncoder encodes logging event with pattern.
-type PatternEncoder struct {
-	mutex     sync.Mutex
+// patternEncoder encodes logging event with pattern.
+type patternEncoder struct {
+	locker    sync.Mutex
 	buf       *bytes.Buffer
 	converter Converter
 }
 
+type PatternEncoderOption struct {
+	Layout     string
+	Converters map[string]NewConverter
+}
+
 // NewPatternEncoder creates a new instance of pattern encoder.
-func NewPatternEncoder(layouts ...string) *PatternEncoder {
-	var layout string
-	if len(layouts) == 0 || len(layouts[0]) == 0 {
-		layout = DefaultLayout
-	} else {
-		layout = layouts[0]
+func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
+	opts := &PatternEncoderOption{}
+	for _, f := range options {
+		f(opts)
+	}
+
+	var layout = DefaultLayout
+	if len(opts.Layout) != 0 {
+		layout = opts.Layout
 	}
 
 	patternParser := NewPatternParser(layout)
@@ -85,26 +90,30 @@ func NewPatternEncoder(layouts ...string) *PatternEncoder {
 		"color":   newColorConverter,
 		"level":   newLevelConverter,
 		"date":    newLogDateConverter,
+		"logger":  newLoggerConverter,
 		"message": newMessageConverter,
 		"fields":  newFieldsConverter,
+	}
+	for k, c := range opts.Converters {
+		converters[k] = c
 	}
 	converter, err := NewPatternCompiler(node, converters).Compile()
 	if err != nil {
 		ReportfExit("compile pattern error, %v", err)
 	}
 
-	return &PatternEncoder{
-		buf:       &bytes.Buffer{},
+	return &patternEncoder{
+		buf:       new(bytes.Buffer),
 		converter: converter,
 	}
 }
 
-func (pe *PatternEncoder) Encode(p []byte) (data []byte, err error) {
-	pe.mutex.Lock()
-	defer pe.mutex.Unlock()
+func (pe *patternEncoder) Encode(e *LogEvent) (data []byte, err error) {
+	pe.locker.Lock()
+	defer pe.locker.Unlock()
 
 	for c := pe.converter; c != nil; c = c.Next() {
-		c.Convert(p, pe.buf)
+		c.Convert(e, pe.buf)
 	}
 	pe.buf.WriteByte('\n')
 	data = pe.buf.Bytes()
@@ -142,7 +151,12 @@ func (cc *colorConverter) AttachOptions(opts []string) {
 	cc.opts = opts
 }
 
-func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
+func (cc *colorConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
+
 	if len(cc.opts) != 0 {
 		color, ok := colorMap[cc.opts[0]]
 		if !ok {
@@ -151,12 +165,11 @@ func (cc *colorConverter) Convert(origin []byte, buf *bytes.Buffer) {
 		cc.writeColor(color)
 	}
 
-	level, _, _, _ := jsonparser.Get(origin, LevelFieldKey)
+	level := e.LevelInt()
 	for c := cc.child; c != nil; c = c.Next() {
 		switch c.(type) {
 		case *levelConverter:
-			// TODO: remove strings.ToUpper
-			color, ok := levelColorMap[strings.ToUpper(string(level))]
+			color, ok := levelColorMap[level]
 			if !ok {
 				color = colorWhite
 			}
@@ -208,23 +221,23 @@ func (lc *levelConverter) AttachChild(child Converter) {
 func (lc *levelConverter) AttachOptions(opts []string) {
 }
 
-func (lc *levelConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	lvl, _, _, err := jsonparser.Get(origin, LevelFieldKey)
-	if err != nil {
+func (lc *levelConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
 		return
 	}
-	buf.Write(lvl)
+	buf.Write(e.Level())
 }
 
 type logDateConverter struct {
 	next  Converter
 	child Converter
-	opts  []string
+	opt   string
 }
 
 func newLogDateConverter() Converter {
 	return &logDateConverter{
-		opts: []string{"2006-01-02"},
+		opt: "2006-01-02",
 	}
 }
 
@@ -242,16 +255,86 @@ func (c *logDateConverter) AttachChild(child Converter) {
 
 func (c *logDateConverter) AttachOptions(opts []string) {
 	if len(opts) != 0 && len(opts[0]) != 0 {
-		c.opts = opts
+		c.opt = opts[0]
 	}
 }
 
-func (c *logDateConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	tsValue, _, _, _ := jsonparser.Get(origin, TimestampFieldKey)
+func (c *logDateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
+	tsValue := e.rfc3339Nano.Bytes()
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opts[0])
+	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opt)
 	buf.Reset()
 	buf.Write(bufData)
+}
+
+type loggerConverter struct {
+	next Converter
+	opt  int
+}
+
+func newLoggerConverter() Converter {
+	return &loggerConverter{
+		opt: -1,
+	}
+}
+
+func (lc *loggerConverter) AttatchNext(next Converter) {
+	lc.next = next
+}
+
+func (lc *loggerConverter) Next() Converter {
+	return lc.next
+}
+
+func (lc *loggerConverter) AttachChild(child Converter) {
+}
+
+func (lc *loggerConverter) AttachOptions(opts []string) {
+	if len(opts) == 0 {
+		return
+	}
+
+	opt, err := strconv.Atoi(opts[0])
+	if err != nil {
+		return
+	}
+
+	lc.opt = opt
+}
+
+func (lc *loggerConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		buf.WriteByte('-')
+		return
+	}
+
+	logger := e.Logger()
+	if !ok || len(logger) == 0 {
+		buf.WriteByte('-')
+		return
+	}
+
+	buf.Write(lc.abbreviator(logger))
+}
+
+func (lc *loggerConverter) abbreviator(name []byte) []byte {
+	length := len(name)
+	if lc.opt <= 0 || length <= lc.opt {
+		return name
+	}
+
+	index := length - lc.opt
+	abbr := name[index:]
+	if abbr[0] == '/' {
+		abbr = abbr[1:]
+	}
+
+	return abbr
 }
 
 type messageConverter struct {
@@ -276,8 +359,14 @@ func (mc *messageConverter) AttachChild(child Converter) {
 func (mc *messageConverter) AttachOptions(opts []string) {
 }
 
-func (mc *messageConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	message, _, _, _ := jsonparser.Get(origin, MessageFieldKey)
+func (mc *messageConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		buf.WriteByte('-')
+		return
+	}
+
+	message := e.Message()
 	if len(message) == 0 {
 		buf.WriteByte('-')
 		return
@@ -311,23 +400,20 @@ func (fc *fieldsConverter) AttachChild(child Converter) {
 func (fc *fieldsConverter) AttachOptions(opts []string) {
 }
 
-func (fc *fieldsConverter) Convert(origin []byte, buf *bytes.Buffer) {
-	_ = jsonparser.ObjectEach(origin, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		jsonKey := string(key)
-		switch jsonKey {
-		case TimestampFieldKey:
-		case LevelFieldKey:
-		case MessageFieldKey:
-			// do nothing for these keys
+func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+	e, ok := origin.(*LogEvent)
+	if !ok {
+		return
+	}
 
-		default:
-			buf.Write(key)
-			buf.WriteString("=")
-			buf.Write(value)
-			buf.WriteByte(' ')
-		}
-
+	_ = e.Fields(func(k, v []byte, isString bool) error {
+		buf.Write(k)
+		buf.WriteString("=")
+		buf.Write(v)
+		buf.WriteByte(' ')
 		return nil
 	})
+
+	// remove last space
+	buf.Truncate(buf.Len() - 1)
 }

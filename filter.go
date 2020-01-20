@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,29 +15,70 @@
 package slago
 
 import (
-	"github.com/buger/jsonparser"
+	"errors"
+	"strings"
 )
 
+// Filter represents a logging filter for slago.
 type Filter interface {
-	Do(p []byte) bool
+	// Do filters the logging. True means filterd, otherwise pass through.
+	Do(e *LogEvent) bool
 }
 
-// LevelFilter represents a level filter.
-type LevelFilter struct {
+// levelFilter represents a level filter.
+type levelFilter struct {
 	level Level
 }
 
-// NewLevelFilter creates a new instance of filter.
-func NewLevelFilter(lvl Level) *LevelFilter {
-	return &LevelFilter{
+// NewLevelFilter creates a new instance of levelFilter.
+func NewLevelFilter(lvl Level) Filter {
+	return &levelFilter{
 		level: lvl,
 	}
 }
 
 // Do will execute the filter.
-func (f *LevelFilter) Do(p []byte) bool {
-	lvl, _, _, _ := jsonparser.Get(p, LevelFieldKey)
-	level := ParseLevel(string(lvl))
+func (f *levelFilter) Do(e *LogEvent) bool {
+	return f.level > e.LevelInt()
+}
 
-	return f.level > level
+// keywordFilter represents a filter by key word rule.
+type keywordFilter struct {
+	keywords []string
+}
+
+// NewKeywordFilter creates a new instance of keywordFilter.
+func NewKeywordFilter(keywords ...string) Filter {
+	return &keywordFilter{
+		keywords: keywords,
+	}
+}
+
+var errFound = errors.New("found")
+
+func (f *keywordFilter) Do(e *LogEvent) bool {
+	err := e.Fields(func(k, v []byte, _ bool) error {
+		if f.compare(k, v) {
+			return errFound
+		}
+
+		return nil
+	})
+
+	return err == errFound
+}
+
+func (f *keywordFilter) compare(key []byte, value []byte) bool {
+	for _, keyword := range f.keywords {
+		if strings.Contains(keyword, "=") &&
+			keyword == string(key)+"="+string(value) {
+			return true
+		}
+
+		if keyword == string(key) || keyword == string(value) {
+			return true
+		}
+	}
+
+	return false
 }

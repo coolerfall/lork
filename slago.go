@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ const (
 	PanicLevel
 )
 
+const RootLoggerName = "ROOT"
+
 var (
 	levelMap = map[string]Level{
 		"TRACE":  TraceLevel,
@@ -57,35 +59,26 @@ type SlaLogger interface {
 	// SetLevel sets global level for root logger.
 	SetLevel(lvl Level)
 
-	// Level logs with a level.
-	Level(lvl Level) Record
-
 	// Trace logs with trace level.
 	Trace() Record
 
-	// Trace logs with debug level.
+	// Debug logs with debug level.
 	Debug() Record
 
-	// Trace logs with info level.
+	// Info logs with info level.
 	Info() Record
 
-	// Trace logs with warn level.
+	// Warn logs with warn level.
 	Warn() Record
 
-	// Trace logs with error level.
+	// Error logs with error level.
 	Error() Record
 
-	// Trace logs with faltal level.
+	// Fatal logs with faltal level.
 	Fatal() Record
 
-	// Trace logs with panic level.
+	// Panic logs with panic level.
 	Panic() Record
-
-	// Print prints the given args.
-	Print(args ...interface{})
-
-	// Printf prints with given format and args.
-	Printf(format string, args ...interface{})
 
 	// WriteRaw writes raw logging event.
 	WriteRaw(p []byte)
@@ -104,12 +97,13 @@ var (
 	loggers = make([]SlaLogger, 0)
 	bridges = make([]Bridge, 0)
 
-	onceLogger sync.Once
-	logger     SlaLogger
+	onceLogger   sync.Once
+	loggerLocker sync.Mutex
+	loggerCache  map[string]SlaLogger
 )
 
-// Logger get a global slago logger to use.
-func Logger() SlaLogger {
+// Logger get a global slago logger to use. The name will only get the first one.
+func Logger(name ...string) SlaLogger {
 	onceLogger.Do(func() {
 		loggerLen := len(loggers)
 		if loggerLen > 1 {
@@ -119,7 +113,7 @@ func Logger() SlaLogger {
 			Report("no slago logger found, default to " +
 				"no-operation (NOOP) logger implementation")
 		}
-		logger = loggers[0]
+		logger := loggers[0]
 
 		for _, b := range bridges {
 			if logger.Name() == b.Name() {
@@ -127,9 +121,51 @@ func Logger() SlaLogger {
 					b.Name(), logger.Name())
 			}
 		}
+
+		loggerCache = make(map[string]SlaLogger)
+		loggerCache[RootLoggerName] = logger
 	})
 
-	return logger
+	return findLogger(name...)
+}
+
+func findLogger(name ...string) SlaLogger {
+	loggerLocker.Lock()
+	defer loggerLocker.Unlock()
+
+	rootLogger := loggerCache[RootLoggerName]
+	var realName string
+	if len(name) > 0 {
+		realName = name[0]
+	}
+
+	child, ok := loggerCache[realName]
+	if ok {
+		return child
+	}
+
+	var i = 0
+	var logger = rootLogger
+	var childName string
+	for {
+		index := indexOfSlash(realName, i)
+		if index == -1 {
+			childName = realName
+		} else {
+			childName = realName[:index]
+		}
+		i = index + 1
+		child, ok = loggerCache[childName]
+		if !ok {
+			child = newClassicLogger(childName, rootLogger, logger)
+			loggerCache[childName] = child
+		}
+		logger = child
+
+		if index == -1 {
+			return child
+		}
+	}
 }
 
 // Bind binds an implementation of slago logger as output logger.

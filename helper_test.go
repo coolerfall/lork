@@ -14,8 +14,28 @@
 
 package slago
 
-// Encoder represents an encoder to encode logging event into different format.
-type Encoder interface {
-	// Encode encodes origin data to formatted data.
-	Encode(e *LogEvent) (data []byte, err error)
+import (
+	"bytes"
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
+func TestHelper(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "helper test")
 }
+
+var _ = Describe("helper", func() {
+	It("replace json", func() {
+		var buf = new(bytes.Buffer)
+		var json = []byte(`{"level":"INFO","int":88}`)
+		var result = `{"level":"INFO","ints":99}` + "\n"
+		err := ReplaceJson(json, buf, "int", func(k, v []byte) (nk, kv []byte, e error) {
+			return []byte("ints"), []byte("99"), nil
+		})
+		Expect(err).To(BeNil())
+		Expect(buf.String()).To(Equal(result))
+	})
+})

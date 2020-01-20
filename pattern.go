@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ func NewPatternParser(pattern string) *patternParser {
 
 // Parse parses pattern to pattern node chain.
 func (p *patternParser) Parse() (*node, error) {
-	var buf = &bytes.Buffer{}
+	var buf = new(bytes.Buffer)
 	var keywordStart bool
 	var compositeStart bool
 	var optionStart bool
@@ -196,6 +196,7 @@ func (p *patternCompiler) Compile() (Converter, error) {
 		switch n._type {
 		case typeLiteral:
 			p.appendConverter(NewLiteralConverter(n.value))
+
 		case typeSingle:
 			newConverter, ok := p.converterMap[n.value]
 			if ok {

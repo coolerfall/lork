@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package bench
 
 import (
 	"testing"
@@ -25,7 +25,9 @@ func init() {
 	slago.Bind(slazero.NewZeroLogger())
 
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		//o.Encoder = slago.NewPatternEncoder("#date{2006-01-02} #level #message #fields")
+		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+		//	opt.Layout = "#date{2006-01-02} #level #message #fields"
+		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
 		o.Filename = "slago-test.log"
@@ -36,8 +38,9 @@ func init() {
 			})
 	})
 
-	aw := slago.NewAsyncWriter(fw)
-	aw.Start()
+	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+		o.Ref = fw
+	})
 	slago.Logger().AddWriter(aw)
 }
 
@@ -46,7 +49,8 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger().Info().Int("int", 88).Msg(
+			slago.Logger().Info().Int("int", 88).Bool("bool", true).
+				Float32("float32", 2.1).Uint("uint", 9).Str("str", "wrold").Msg(
 				"The quick brown fox jumps over the lazy dog")
 		}
 	})

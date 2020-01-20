@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 
 var (
 	slagoLvlToZeroLvl = map[slago.Level]zerolog.Level{
-		slago.TraceLevel: zerolog.NoLevel,
+		slago.TraceLevel: zerolog.TraceLevel,
 		slago.DebugLevel: zerolog.DebugLevel,
 		slago.InfoLevel:  zerolog.InfoLevel,
 		slago.WarnLevel:  zerolog.WarnLevel,
@@ -39,8 +39,8 @@ type zeroLogger struct {
 }
 
 // NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
-func NewZeroLogger() *zeroLogger {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+func NewZeroLogger() slago.SlaLogger {
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.TimeFieldFormat = slago.TimestampFormat
 	zerolog.LevelFieldName = slago.LevelFieldKey
 	zerolog.TimestampFieldName = slago.TimestampFieldKey
@@ -70,26 +70,11 @@ func (l *zeroLogger) ResetWriter() {
 }
 
 func (l *zeroLogger) SetLevel(lvl slago.Level) {
-	zeroLevel := slagoLvlToZeroLvl[lvl]
-	if zeroLevel == zerolog.NoLevel {
-		zeroLevel = zerolog.TraceLevel
-	}
-
 	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
 }
 
-func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
-	zeroLevel := slagoLvlToZeroLvl[lvl]
-	if zeroLevel == zerolog.NoLevel {
-		return l.Trace()
-	}
-
-	return newZeroRecord(l.logger.WithLevel(zeroLevel))
-}
-
 func (l *zeroLogger) Trace() slago.Record {
-	return newZeroRecord(l.logger.WithLevel(zerolog.NoLevel).
-		Str(slago.LevelFieldKey, "TRACE"))
+	return newZeroRecord(l.logger.Trace())
 }
 
 func (l *zeroLogger) Debug() slago.Record {
@@ -116,14 +101,6 @@ func (l *zeroLogger) Panic() slago.Record {
 	return newZeroRecord(l.logger.Panic())
 }
 
-func (l *zeroLogger) Print(v ...interface{}) {
-	l.logger.Print(v...)
-}
-
-func (l *zeroLogger) Printf(format string, v ...interface{}) {
-	l.logger.Printf(format, v...)
-}
-
 func (l *zeroLogger) WriteRaw(p []byte) {
 	_, err := l.multiWriter.Write(p)
 	if err != nil {
@@ -133,8 +110,6 @@ func (l *zeroLogger) WriteRaw(p []byte) {
 
 func capitalLevel(l zerolog.Level) string {
 	switch l {
-	case zerolog.NoLevel:
-		return "TRACE"
 	case zerolog.DebugLevel:
 		return "DEBUG"
 	case zerolog.InfoLevel:
@@ -147,7 +122,11 @@ func capitalLevel(l zerolog.Level) string {
 		return "FATAL"
 	case zerolog.PanicLevel:
 		return "PANIC"
+	case zerolog.NoLevel:
+		fallthrough
+	case zerolog.TraceLevel:
+		fallthrough
 	default:
-		return ""
+		return "TRACE"
 	}
 }
