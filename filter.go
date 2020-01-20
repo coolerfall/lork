@@ -57,15 +57,15 @@ func NewKeywordFilter(keywords ...string) Filter {
 var errFound = errors.New("found")
 
 func (f *keywordFilter) Do(e *LogEvent) bool {
-	var filtered bool
-	e.Fields(func(k, v []byte, _ bool) {
+	err := e.Fields(func(k, v []byte, _ bool) error {
 		if f.compare(k, v) {
-			filtered = true
-			return
+			return errFound
 		}
+
+		return nil
 	})
 
-	return filtered
+	return err == errFound
 }
 
 func (f *keywordFilter) compare(key []byte, value []byte) bool {

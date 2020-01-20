@@ -58,8 +58,9 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 	je.writeKeyAndValue(LoggerFieldKey, e.Logger(), true)
 	je.writeKeyAndValue(MessageFieldKey, e.Message(), true)
 
-	e.Fields(func(k, v []byte, isString bool) {
+	_ = e.Fields(func(k, v []byte, isString bool) error {
 		je.writeKeyAndValue(string(k), v, isString)
+		return nil
 	})
 
 	je.buf.Truncate(je.buf.Len() - 1)

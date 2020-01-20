@@ -43,6 +43,6 @@ func (b *logBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	slago.Logger().Print(strings.TrimRight(string(p), "\n"))
+	slago.Logger().Trace().Msg(strings.TrimRight(string(p), "\n"))
 	return len(p), nil
 }

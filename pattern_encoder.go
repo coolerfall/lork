@@ -406,11 +406,12 @@ func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return
 	}
 
-	e.Fields(func(k, v []byte, isString bool) {
+	_ = e.Fields(func(k, v []byte, isString bool) error {
 		buf.Write(k)
 		buf.WriteString("=")
 		buf.Write(v)
 		buf.WriteByte(' ')
+		return nil
 	})
 
 	// remove last space

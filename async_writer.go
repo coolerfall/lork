@@ -27,11 +27,25 @@ type asyncWriter struct {
 	isStarted bool
 }
 
+// AsyncWriterOption represents available options for async writer.
+type AsyncWriterOption struct {
+	Ref       Writer
+	QueueSize int
+}
+
 // NewAsyncWriter creates a new instance of asynchronous writer.
-func NewAsyncWriter(ref Writer) Writer {
+func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
+	opt := &AsyncWriterOption{
+		QueueSize: defaultWriterQueueSize,
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
 	return &asyncWriter{
-		ref:   ref,
-		queue: NewBlockingQueue(defaultWriterQueueSize),
+		ref:   opt.Ref,
+		queue: NewBlockingQueue(opt.QueueSize),
 	}
 }
 
