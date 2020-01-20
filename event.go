@@ -74,7 +74,7 @@ func (e *LogEvent) Message() []byte {
 }
 
 // Fields gets extra key and value bytes.
-func (e *LogEvent) Fields(callback func(k, v []byte, isString bool)) {
+func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error {
 	var kvIndex = 0
 	var startIndex = 0
 	var ik, iv int
@@ -94,15 +94,22 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool)) {
 			if bitSet == byte(1) {
 				isString = true
 			}
-			callback(kvArr[kvIndex:kvIndex+ik], kvArr[kvIndex+ik:kvIndex+ik+iv], isString)
-			kvIndex += ik + iv
+			keyEndIndex := kvIndex + ik
+			valueEndIndex := kvIndex + ik + iv
+			err := callback(kvArr[kvIndex:keyEndIndex],
+				kvArr[keyEndIndex:valueEndIndex], isString)
+			if err != nil {
+				return err
+			}
+			kvIndex = valueEndIndex
 		}
 	}
+
+	return nil
 }
 
 func makeEvent(p []byte) *LogEvent {
 	event := eventPool.Get().(*LogEvent)
-
 	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
 		dataType jsonparser.ValueType, _ int) error {
 		switch string(k) {

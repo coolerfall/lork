@@ -101,14 +101,6 @@ func (l *zeroLogger) Panic() slago.Record {
 	return newZeroRecord(l.logger.Panic())
 }
 
-func (l *zeroLogger) Print(v ...interface{}) {
-	l.logger.Print(v...)
-}
-
-func (l *zeroLogger) Printf(format string, v ...interface{}) {
-	l.logger.Printf(format, v...)
-}
-
 func (l *zeroLogger) WriteRaw(p []byte) {
 	_, err := l.multiWriter.Write(p)
 	if err != nil {

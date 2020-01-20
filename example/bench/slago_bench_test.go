@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package bench
 
 import (
 	"testing"
@@ -38,7 +38,9 @@ func init() {
 			})
 	})
 
-	aw := slago.NewAsyncWriter(fw)
+	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+		o.Ref = fw
+	})
 	slago.Logger().AddWriter(aw)
 }
 

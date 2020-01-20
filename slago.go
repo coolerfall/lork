@@ -80,12 +80,6 @@ type SlaLogger interface {
 	// Panic logs with panic level.
 	Panic() Record
 
-	// Print prints the given args.
-	Print(args ...interface{})
-
-	// Printf prints with given format and args.
-	Printf(format string, args ...interface{})
-
 	// WriteRaw writes raw logging event.
 	WriteRaw(p []byte)
 }
@@ -108,7 +102,7 @@ var (
 	loggerCache  map[string]SlaLogger
 )
 
-// Logger get a global slago logger to use.
+// Logger get a global slago logger to use. The name will only get the first one.
 func Logger(name ...string) SlaLogger {
 	onceLogger.Do(func() {
 		loggerLen := len(loggers)
@@ -140,11 +134,11 @@ func findLogger(name ...string) SlaLogger {
 	defer loggerLocker.Unlock()
 
 	rootLogger := loggerCache[RootLoggerName]
-	if len(name) <= 0 {
-		return rootLogger
+	var realName string
+	if len(name) > 0 {
+		realName = name[0]
 	}
 
-	realName := name[0]
 	child, ok := loggerCache[realName]
 	if ok {
 		return child

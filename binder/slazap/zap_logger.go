@@ -111,14 +111,6 @@ func (l *zapLogger) Panic() slago.Record {
 	return newZapRecord(zapcore.PanicLevel)
 }
 
-func (l *zapLogger) Print(args ...interface{}) {
-	zap.S().Debug(args...)
-}
-
-func (l *zapLogger) Printf(format string, args ...interface{}) {
-	zap.S().Debugf(format, args...)
-}
-
 func (l *zapLogger) WriteRaw(p []byte) {
 	_, err := l.multiWriter.Write(p)
 	if err != nil {

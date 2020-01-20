@@ -51,7 +51,9 @@ func main() {
 				o.MaxFileSize = "10MB"
 			})
 	})
-	aw := slago.NewAsyncWriter(fw)
+	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+		o.Ref = fw
+	})
 	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Trace().Msg("slago")
@@ -61,7 +63,7 @@ func main() {
 	log.Printf("this is builtin logger")
 
 	logger := slago.Logger("github.com/slago.main")
-	logger.Trace().Msg("slago sub logger")
+	logger.Debug().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
 

@@ -101,14 +101,6 @@ func (l *logrusLogger) Panic() slago.Record {
 	return newLogrusRecord(logrus.PanicLevel)
 }
 
-func (l *logrusLogger) Print(args ...interface{}) {
-	logrus.Print(args...)
-}
-
-func (l *logrusLogger) Printf(format string, args ...interface{}) {
-	logrus.Printf(format, args...)
-}
-
 func (l *logrusLogger) WriteRaw(p []byte) {
 	_, err := l.multiWriter.Write(p)
 	if err != nil {

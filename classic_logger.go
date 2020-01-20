@@ -32,87 +32,79 @@ func newClassicLogger(name string, root SlaLogger, parent SlaLogger) SlaLogger {
 	}
 }
 
-func (dl *classicLogger) Name() string {
-	return dl.name
+func (cl *classicLogger) Name() string {
+	return cl.name
 }
 
-func (dl *classicLogger) AddWriter(w ...Writer) {
-	dl.parent.AddWriter(w...)
+func (cl *classicLogger) AddWriter(w ...Writer) {
+	cl.parent.AddWriter(w...)
 }
 
-func (dl *classicLogger) ResetWriter() {
-	dl.parent.ResetWriter()
+func (cl *classicLogger) ResetWriter() {
+	cl.parent.ResetWriter()
 }
 
-func (dl *classicLogger) SetLevel(lvl Level) {
-	dl.lvl = lvl
+func (cl *classicLogger) SetLevel(lvl Level) {
+	cl.lvl = lvl
 }
 
-func (dl *classicLogger) Trace() Record {
-	return dl.makeRecord(TraceLevel, dl.root.Trace)
+func (cl *classicLogger) Trace() Record {
+	return cl.makeRecord(TraceLevel, cl.root.Trace)
 }
 
-func (dl *classicLogger) Debug() Record {
-	return dl.makeRecord(DebugLevel, dl.root.Debug)
+func (cl *classicLogger) Debug() Record {
+	return cl.makeRecord(DebugLevel, cl.root.Debug)
 }
 
-func (dl *classicLogger) Info() Record {
-	return dl.makeRecord(InfoLevel, dl.root.Info)
+func (cl *classicLogger) Info() Record {
+	return cl.makeRecord(InfoLevel, cl.root.Info)
 }
 
-func (dl *classicLogger) Warn() Record {
-	return dl.makeRecord(WarnLevel, dl.root.Warn)
+func (cl *classicLogger) Warn() Record {
+	return cl.makeRecord(WarnLevel, cl.root.Warn)
 }
 
-func (dl *classicLogger) Error() Record {
-	return dl.makeRecord(ErrorLevel, dl.root.Error)
+func (cl *classicLogger) Error() Record {
+	return cl.makeRecord(ErrorLevel, cl.root.Error)
 }
 
-func (dl *classicLogger) Fatal() Record {
-	return dl.makeRecord(FatalLevel, dl.root.Fatal)
+func (cl *classicLogger) Fatal() Record {
+	return cl.makeRecord(FatalLevel, cl.root.Fatal)
 }
 
-func (dl *classicLogger) Panic() Record {
-	return dl.makeRecord(PanicLevel, dl.root.Panic)
+func (cl *classicLogger) Panic() Record {
+	return cl.makeRecord(PanicLevel, cl.root.Panic)
 }
 
-func (dl *classicLogger) Print(args ...interface{}) {
-	dl.parent.Print(args...)
+func (cl *classicLogger) WriteRaw(p []byte) {
+	cl.parent.WriteRaw(p)
 }
 
-func (dl *classicLogger) Printf(format string, args ...interface{}) {
-	dl.parent.Printf(format, args...)
-}
-
-func (dl *classicLogger) WriteRaw(p []byte) {
-	dl.parent.WriteRaw(p)
-}
-
-func (dl *classicLogger) makeRecord(lvl Level, newRecord func() Record) Record {
+func (cl *classicLogger) makeRecord(lvl Level, newRecord func() Record) Record {
 	var record Record
 
-	if dl.checkLevel(lvl) {
+	if cl.checkLevel(lvl) {
 		record = newRecord()
 	} else {
 		record = newNoopRecord()
 	}
 
 	// append logger name
-	return record.Str(LoggerFieldKey, dl.name)
+	return record.Str(LoggerFieldKey, cl.name)
 }
 
-func (dl *classicLogger) checkLevel(lvl Level) bool {
-	if dl.lvl > lvl {
+func (cl *classicLogger) checkLevel(lvl Level) bool {
+	if cl.lvl > lvl {
 		return false
 	}
 
-	for l := dl; l != nil; {
+	for l := cl; l != nil; {
 		p, ok := l.parent.(*classicLogger)
 		if !ok {
 			break
 		}
 
-		if dl.lvl > l.lvl {
+		if cl.lvl > l.lvl {
 			return false
 		}
 
