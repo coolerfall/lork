@@ -2,7 +2,7 @@ slago
 =====
 Simple Logging Abstraction for Go. Slago provides bridge and binder for logger which
 can sent log from logger to another logger you preferred. Slago also provides unified writers, 
-encoders and filters, it brings different logger with same apis and configurations.
+encoders and filters, it brings different logger with same apis and flexible configurations.
 
 Usage
 ====

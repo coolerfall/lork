@@ -68,11 +68,5 @@ func (l *noopLogger) Panic() Record {
 	return newNoopRecord()
 }
 
-func (l *noopLogger) Print(v ...interface{}) {
-}
-
-func (l *noopLogger) Printf(format string, v ...interface{}) {
-}
-
 func (l *noopLogger) WriteRaw(p []byte) {
 }

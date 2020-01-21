@@ -29,7 +29,12 @@ func TestRollingPolicy(t *testing.T) {
 
 var _ = Describe("time based rolling policy", func() {
 	It("should trigger", func() {
-		tbrp := NewTimeBasedRollingPolicy("slago-archive.#date{2006-01-02}.log")
+		tbrp := NewTimeBasedRollingPolicy(func(o *TimeBasedRPOption) {
+			o.FilenamePattern = "slago-archive.#date{2006-01-02}.log"
+		})
+		_ = NewFileWriter(func(o *FileWriterOption) {
+			o.RollingPolicy = tbrp
+		})
 		_ = tbrp.Prepare()
 		result := tbrp.ShouldTrigger(0)
 		Expect(result).To(BeFalse())
