@@ -63,8 +63,9 @@ func (rp *noopRollingPolicy) Rotate() error {
 }
 
 type timeBasedRollingPolicy struct {
-	fileWriter *fileWriter
-	nextCheck  time.Time
+	fileWriter          *fileWriter
+	nextCheck           time.Time
+	timeInCurrentPeriod time.Time
 
 	filenamePattern *filenamePattern
 	rollingDate     *rollingDate
@@ -95,6 +96,7 @@ func (rp *timeBasedRollingPolicy) Prepare() error {
 	}
 
 	rp.rollingDate = newRollingDate(datePattern)
+	rp.timeInCurrentPeriod = time.Now()
 	rp.calcNextCheck()
 
 	return nil
@@ -114,10 +116,12 @@ func (rp *timeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 }
 
 func (rp *timeBasedRollingPolicy) Rotate() error {
-	rollingFilename := rp.filenamePattern.convert(0)
+	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	if len(rollingFilename) == 0 {
 		rollingFilename = fmt.Sprintf("slago-%s.log", time.Now().Format("2006-01-02"))
 	}
+
+	rp.timeInCurrentPeriod = time.Now()
 
 	return rename(rp.fileWriter.Filename(), rollingFilename)
 }
@@ -180,6 +184,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	}
 
 	rp.rollingDate = newRollingDate(datePattern)
+	rp.timeInCurrentPeriod = time.Now()
 	rp.calcNextCheck()
 
 	return rp.calcIndex()
@@ -199,13 +204,14 @@ func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
-	rollingFilename := rp.filenamePattern.convert(rp.index)
+	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, rp.index)
 	if len(rollingFilename) == 0 {
 		rollingFilename = fmt.Sprintf("slago-%s.%v.log",
-			time.Now().Format("2006-01-02"), rp.index)
+			rp.timeInCurrentPeriod.Format("2006-01-02"), rp.index)
 	}
 
 	err = rename(rp.fileWriter.Filename(), rollingFilename)
+	rp.timeInCurrentPeriod = time.Now()
 	rp.index++
 
 	return
@@ -345,7 +351,7 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 	}, nil
 }
 
-func (fp *filenamePattern) convert(index int) string {
+func (fp *filenamePattern) convert(current time.Time, index int) string {
 	buf := new(bytes.Buffer)
 
 	for c := fp.converter; c != nil; c = c.Next() {
@@ -354,7 +360,7 @@ func (fp *filenamePattern) convert(index int) string {
 			c.Convert(nil, buf)
 
 		case *dateConverter:
-			ts := time.Now().Format(time.RFC3339)
+			ts := current.Format(time.RFC3339)
 			c.Convert([]byte(ts), buf)
 
 		case *indexConverter:
