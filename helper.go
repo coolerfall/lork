@@ -17,6 +17,7 @@ package slago
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -125,21 +126,73 @@ func indexOfSlash(name string, fromIndex int) int {
 	return fromIndex + i
 }
 
+// afterLastSlash get the real regex.
+func afterLastSlash(regex string) string {
+	index := strings.LastIndex(regex, "/")
+	if index == -1 {
+		return regex
+	}
+
+	return regex[index+1:]
+}
+
+// exists check if file or directory with given name exists.
+func exists(name string) bool {
+	_, err := os.Stat(name)
+	return !os.IsNotExist(err)
+}
+
+// mkdirIfNotExist makes directory if not exist.
+func mkdirIfNotExist(dir string) error {
+	if exists(dir) {
+		return nil
+	}
+
+	return os.MkdirAll(dir, os.ModePerm)
+}
+
 // rename creates directory if not existed, and rename file to a new name.
-func rename(oldPath, newFilename string) (err error) {
-	dir := filepath.Dir(oldPath)
-	err = os.MkdirAll(dir, os.FileMode(0666))
+func rename(oldPath, newPath string) (err error) {
+	oldPath, err = filepath.Abs(oldPath)
+	if err != nil {
+		return
+	}
+	newPath, err = filepath.Abs(newPath)
 	if err != nil {
 		return
 	}
 
-	newPath := filepath.Join(dir, newFilename)
+	dir := filepath.Dir(newPath)
+	err = mkdirIfNotExist(dir)
+	if err != nil {
+		return
+	}
+
 	err = os.Rename(oldPath, newPath)
+	if err == nil {
+		return
+	}
+
+	// the old path and new path may not in same volume
+	var source, dest *os.File
+	source, err = os.Open(oldPath)
+	if err != nil {
+		return
+	}
+	dest, err = os.Create(newPath)
+	if err != nil {
+		_ = source.Close()
+		return
+	}
+	defer dest.Close()
+
+	_, err = io.Copy(dest, source)
+	source.Close()
 	if err != nil {
 		return
 	}
 
-	return
+	return os.Remove(oldPath)
 }
 
 // ReplaceJson replaces key/value with given search key.

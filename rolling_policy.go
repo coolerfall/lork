@@ -19,6 +19,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
@@ -71,12 +73,27 @@ type timeBasedRollingPolicy struct {
 	rollingDate     *rollingDate
 }
 
+// SizeAndTimeBasedRPOption represents available options for size and time
+// based rolling policy.
+type TimeBasedRPOption struct {
+	FilenamePattern string
+	MaxHistory      int
+}
+
 // NewTimeBasedRollingPolicy creates a instance of time based rolling policy
 // for file writer.
-func NewTimeBasedRollingPolicy(filenamePattern string) RollingPolicy {
-	fp, err := newFilenamePattern(filenamePattern)
+func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolicy {
+	opt := &TimeBasedRPOption{
+		FilenamePattern: "slago-archive.#date{2006-01-02}.log",
+	}
+
+	for _, f := range options {
+		f(opt)
+	}
+
+	fp, err := newFilenamePattern(opt.FilenamePattern)
 	if err != nil {
-		ReportfExit("create rolling policy error: \n%v", err)
+		ReportfExit("create rolling policy error: %v\n", err)
 		return nil
 	}
 
@@ -97,6 +114,10 @@ func (rp *timeBasedRollingPolicy) Prepare() error {
 
 	rp.rollingDate = newRollingDate(datePattern)
 	rp.timeInCurrentPeriod = time.Now()
+	// check latest modification time if file existed
+	if info, err := os.Stat(rp.fileWriter.RawFilename()); err == nil {
+		rp.timeInCurrentPeriod = info.ModTime()
+	}
 	rp.calcNextCheck()
 
 	return nil
@@ -118,12 +139,13 @@ func (rp *timeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 func (rp *timeBasedRollingPolicy) Rotate() error {
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	if len(rollingFilename) == 0 {
-		rollingFilename = fmt.Sprintf("slago-%s.log", time.Now().Format("2006-01-02"))
+		rollingFilename = fmt.Sprintf("slago-%s.log",
+			rp.timeInCurrentPeriod.Format("2006-01-02"))
 	}
 
 	rp.timeInCurrentPeriod = time.Now()
 
-	return rename(rp.fileWriter.Filename(), rollingFilename)
+	return rename(rp.fileWriter.RawFilename(), rollingFilename)
 }
 
 func (rp *timeBasedRollingPolicy) calcNextCheck() {
@@ -142,6 +164,7 @@ type sizeAndTimeBasedRollingPolicy struct {
 type SizeAndTimeBasedRPOption struct {
 	FilenamePattern string
 	MaxFileSize     string
+	MaxHistory      int
 }
 
 // NewSizeAndTimeBasedRollingPolicy creates a new instance of size and time
@@ -162,7 +185,10 @@ func NewSizeAndTimeBasedRollingPolicy(options ...func(
 		ReportfExit("parse file size error: %v", err)
 	}
 
-	tbrp := NewTimeBasedRollingPolicy(opt.FilenamePattern).(*timeBasedRollingPolicy)
+	tbrp := NewTimeBasedRollingPolicy(func(o *TimeBasedRPOption) {
+		o.FilenamePattern = opt.FilenamePattern
+		o.MaxHistory = opt.MaxHistory
+	}).(*timeBasedRollingPolicy)
 	return &sizeAndTimeBasedRollingPolicy{
 		timeBasedRollingPolicy: tbrp,
 		triggerSize:            fileSize,
@@ -185,6 +211,10 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 
 	rp.rollingDate = newRollingDate(datePattern)
 	rp.timeInCurrentPeriod = time.Now()
+	// check latest modification time if file existed
+	if info, err := os.Stat(rp.fileWriter.RawFilename()); err == nil {
+		rp.timeInCurrentPeriod = info.ModTime()
+	}
 	rp.calcNextCheck()
 
 	return rp.calcIndex()
@@ -192,7 +222,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
-		rp.index = 1
+		rp.index = 0
 		return true
 	}
 
@@ -210,7 +240,11 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 			rp.timeInCurrentPeriod.Format("2006-01-02"), rp.index)
 	}
 
-	err = rename(rp.fileWriter.Filename(), rollingFilename)
+	err = rename(rp.fileWriter.RawFilename(), rollingFilename)
+	if err != nil {
+		return
+	}
+
 	rp.timeInCurrentPeriod = time.Now()
 	rp.index++
 
@@ -218,12 +252,20 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
-	files, err := ioutil.ReadDir(rp.fileWriter.Dir())
+	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
+	parentDir := filepath.Dir(rollingFilename)
+	files, err := ioutil.ReadDir(parentDir)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			rp.index = 0
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	reg := rp.filenamePattern.toFilenameRegex()
+	reg = afterLastSlash(reg)
 	filenameRegex, err := regexp.Compile(reg)
 	if err != nil {
 		return err
@@ -330,6 +372,8 @@ type filenamePattern struct {
 	converter Converter
 }
 
+var errPlace = errors.New("index pattern should be placed after date pattern")
+
 func newFilenamePattern(pattern string) (*filenamePattern, error) {
 	patternParser := NewPatternParser(pattern)
 	node, err := patternParser.Parse()
@@ -344,6 +388,20 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 	converter, err := NewPatternCompiler(node, converters).Compile()
 	if err != nil {
 		return nil, err
+	}
+
+	var gotIndex bool
+	for c := converter; c != nil; c = c.Next() {
+		switch c.(type) {
+		case *dateConverter:
+			if gotIndex {
+				return nil, errPlace
+			}
+			break
+
+		case *indexConverter:
+			gotIndex = true
+		}
 	}
 
 	return &filenamePattern{

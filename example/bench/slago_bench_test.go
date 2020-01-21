@@ -33,7 +33,7 @@ func init() {
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "/tmp/log/slago/slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
