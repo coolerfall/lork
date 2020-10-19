@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/coolerfall/slago"
+	"github.com/coolerfall/slago/binder/slazero"
+	"github.com/coolerfall/slago/bridge"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago"
-	"gitlab.com/anbillon/slago/binder/slazero"
-	"gitlab.com/anbillon/slago/bridge"
-	//_ "gitlab.com/anbillon/slago/slalogrus"
-	//_ "gitlab.com/anbillon/slago/slazap"
+	//_ "github.com/coolerfall/slago/slalogrus"
+	//_ "github.com/coolerfall/slago/slazap"
 	"go.uber.org/zap"
 )
 

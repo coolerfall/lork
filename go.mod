@@ -1,4 +1,4 @@
-module gitlab.com/anbillon/slago
+module github.com/coolerfall/slago
 
 go 1.13
 
