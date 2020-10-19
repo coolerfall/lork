@@ -38,7 +38,7 @@ func (b *logBridge) Name() string {
 	return "log"
 }
 
-func (b *logBridge) ParseLevel(lvl string) slago.Level {
+func (b *logBridge) ParseLevel(_ string) slago.Level {
 	return slago.TraceLevel
 }
 

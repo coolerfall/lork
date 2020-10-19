@@ -34,7 +34,11 @@ const (
 
 	TimestampFormat = time.RFC3339Nano
 
-	Slash = "/"
+	slash = "/"
+
+	secondsInOneMinite = 60
+	secondsInOneHour   = 60 * secondsInOneMinite
+	secondsInOneDay    = 24 * secondsInOneHour
 )
 
 // BrigeWrite writes data from bridge to slago logger.
@@ -118,7 +122,7 @@ func indexOfSlash(name string, fromIndex int) int {
 		sub = name[fromIndex:]
 	}
 
-	i := strings.Index(sub, Slash)
+	i := strings.Index(sub, slash)
 	if i < 0 {
 		return i
 	}

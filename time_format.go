@@ -78,10 +78,12 @@ const (
 var std0x = [...]int{stdZeroMonth, stdZeroDay, stdZeroHour12, stdZeroMinute, stdZeroSecond, stdYear}
 
 // some common errors
-var errBad = errors.New("bad value for field")
-var errParse = errors.New("failed to parse given timestamp")
-var errLeadingInt = errors.New("time: bad [0-9]*")
-var errAtoi = errors.New("time: invalid number")
+var (
+	errBad        = errors.New("bad value for field")
+	errParse      = errors.New("failed to parse given timestamp")
+	errLeadingInt = errors.New("time: bad [0-9]*")
+	errAtoi       = errors.New("time: invalid number")
+)
 
 // startsWithLowerCase reports whether the string has a lower-case letter at the beginning.
 // Its purpose is to prevent matching strings like "Month" when looking for "Mon".
