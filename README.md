@@ -28,11 +28,12 @@ slago.Logger().AddWriter(cw)
 fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
-		o.Filename = "slago-test.log"
+		o.Filename = "slago-archive.2020-10-16.0.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
 				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
+                o.MaxHistory = 10
 			})
 	})
 slago.Logger().AddWriter(fw)

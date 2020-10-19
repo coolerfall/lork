@@ -49,6 +49,7 @@ func main() {
 			func(o *slago.SizeAndTimeBasedRPOption) {
 				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
+				o.MaxHistory = 1
 			})
 	})
 	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {

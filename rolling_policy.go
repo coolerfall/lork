@@ -15,7 +15,6 @@
 package slago
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -53,10 +52,10 @@ func (rp *noopRollingPolicy) Prepare() error {
 	return nil
 }
 
-func (rp *noopRollingPolicy) Attach(w *fileWriter) {
+func (rp *noopRollingPolicy) Attach(_ *fileWriter) {
 }
 
-func (rp *noopRollingPolicy) ShouldTrigger(fileSize int64) bool {
+func (rp *noopRollingPolicy) ShouldTrigger(_ int64) bool {
 	return false
 }
 
@@ -68,6 +67,9 @@ type timeBasedRollingPolicy struct {
 	fileWriter          *fileWriter
 	nextCheck           time.Time
 	timeInCurrentPeriod time.Time
+
+	archiveRemover ArchiveRemover
+	maxHistory     int
 
 	filenamePattern *filenamePattern
 	rollingDate     *rollingDate
@@ -98,6 +100,7 @@ func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolic
 	}
 
 	return &timeBasedRollingPolicy{
+		maxHistory:      opt.MaxHistory,
 		filenamePattern: fp,
 	}
 }
@@ -120,6 +123,12 @@ func (rp *timeBasedRollingPolicy) Prepare() error {
 	}
 	rp.calcNextCheck()
 
+	if rp.maxHistory != 0 {
+		rp.archiveRemover = newTimeBasedArchiveRemover(rp.filenamePattern, rp.rollingDate)
+		rp.archiveRemover.MaxHistory(rp.maxHistory)
+		rp.archiveRemover.CleanAsync(time.Now())
+	}
+
 	return nil
 }
 
@@ -127,7 +136,7 @@ func (rp *timeBasedRollingPolicy) Attach(w *fileWriter) {
 	rp.fileWriter = w
 }
 
-func (rp *timeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
+func (rp *timeBasedRollingPolicy) ShouldTrigger(_ int64) bool {
 	if time.Now().After(rp.nextCheck) {
 		rp.calcNextCheck()
 		return true
@@ -145,7 +154,13 @@ func (rp *timeBasedRollingPolicy) Rotate() error {
 
 	rp.timeInCurrentPeriod = time.Now()
 
-	return rename(rp.fileWriter.RawFilename(), rollingFilename)
+	err := rename(rp.fileWriter.RawFilename(), rollingFilename)
+
+	if rp.archiveRemover != nil {
+		rp.archiveRemover.CleanAsync(time.Now())
+	}
+
+	return err
 }
 
 func (rp *timeBasedRollingPolicy) calcNextCheck() {
@@ -217,6 +232,12 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	}
 	rp.calcNextCheck()
 
+	if rp.maxHistory != 0 {
+		rp.archiveRemover = newSizeAndTimeArchiveRemover(rp.filenamePattern, rp.rollingDate)
+		rp.archiveRemover.MaxHistory(rp.maxHistory)
+		rp.archiveRemover.CleanAsync(time.Now())
+	}
+
 	return rp.calcIndex()
 }
 
@@ -247,6 +268,10 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 
 	rp.timeInCurrentPeriod = time.Now()
 	rp.index++
+
+	if rp.archiveRemover != nil {
+		rp.archiveRemover.CleanAsync(time.Now())
+	}
 
 	return
 }
@@ -294,179 +319,4 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 	rp.index = latestIndex + 1
 
 	return nil
-}
-
-const (
-	topOfSecond periodType = iota + 1
-	topOfMinute
-	topOfHour
-	topOfDay
-	topOfMonth
-)
-
-var (
-	periods = []periodType{
-		topOfSecond, topOfMinute, topOfHour, topOfDay, topOfMonth,
-	}
-)
-
-type periodType int8
-
-type rollingDate struct {
-	datePattern string
-	_type       periodType
-}
-
-func newRollingDate(datePattern string) *rollingDate {
-	rd := &rollingDate{
-		datePattern: datePattern,
-	}
-	rd._type = rd.calcPeriodType()
-
-	return rd
-}
-
-func (rd *rollingDate) calcPeriodType() periodType {
-	now := time.Now()
-	for _, t := range periods {
-		tl := now.Format(rd.datePattern)
-		next := rd.endOfPeriod(t, now)
-		tr := next.Format(rd.datePattern)
-		if tl != tr {
-			return t
-		}
-	}
-
-	return topOfSecond
-}
-
-func (rd *rollingDate) endOfPeriod(pt periodType, now time.Time) time.Time {
-	switch pt {
-	case topOfMinute:
-		return time.Date(
-			now.Year(), now.Month(), now.Day(), now.Hour(),
-			now.Minute()+1, 0, 0, now.Location())
-	case topOfHour:
-		return time.Date(
-			now.Year(), now.Month(), now.Day(), now.Hour()+1, 0, 0, 0, now.Location())
-	case topOfDay:
-		return time.Date(
-			now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
-	case topOfMonth:
-		return time.Date(
-			now.Year(), now.Month()+1, 0, 0, 0, 0, 0, now.Location())
-	case topOfSecond:
-		fallthrough
-	default:
-		return time.Date(
-			now.Year(), now.Month(), now.Day(), now.Hour(),
-			now.Minute(), now.Second()+1, 0, now.Location())
-	}
-}
-
-func (rd *rollingDate) next() time.Time {
-	return rd.endOfPeriod(rd._type, time.Now())
-}
-
-type filenamePattern struct {
-	converter Converter
-}
-
-var errPlace = errors.New("index pattern should be placed after date pattern")
-
-func newFilenamePattern(pattern string) (*filenamePattern, error) {
-	patternParser := NewPatternParser(pattern)
-	node, err := patternParser.Parse()
-	if err != nil {
-		return nil, err
-	}
-
-	converters := map[string]NewConverter{
-		"index": newIndexConverter,
-		"date":  newDateConverter,
-	}
-	converter, err := NewPatternCompiler(node, converters).Compile()
-	if err != nil {
-		return nil, err
-	}
-
-	var gotIndex bool
-	for c := converter; c != nil; c = c.Next() {
-		switch c.(type) {
-		case *dateConverter:
-			if gotIndex {
-				return nil, errPlace
-			}
-			break
-
-		case *indexConverter:
-			gotIndex = true
-		}
-	}
-
-	return &filenamePattern{
-		converter: converter,
-	}, nil
-}
-
-func (fp *filenamePattern) convert(current time.Time, index int) string {
-	buf := new(bytes.Buffer)
-
-	for c := fp.converter; c != nil; c = c.Next() {
-		switch c.(type) {
-		case *literalConverter:
-			c.Convert(nil, buf)
-
-		case *dateConverter:
-			ts := current.Format(time.RFC3339)
-			c.Convert([]byte(ts), buf)
-
-		case *indexConverter:
-			c.Convert(index, buf)
-		}
-	}
-
-	return buf.String()
-}
-
-func (fp *filenamePattern) toFilenameRegex() string {
-	var buf = new(bytes.Buffer)
-	for c := fp.converter; c != nil; c = c.Next() {
-		switch c.(type) {
-		case *literalConverter:
-			c.Convert(nil, buf)
-
-		case *dateConverter:
-			ts := time.Now().Format(time.RFC3339)
-			c.Convert([]byte(ts), buf)
-
-		case *indexConverter:
-			buf.WriteString("(\\d{1,3})")
-		}
-	}
-
-	reg := buf.String()
-	buf.Reset()
-
-	return reg
-}
-
-func (fp *filenamePattern) hasIndexConverter() bool {
-	for c := fp.converter; c != nil; c = c.Next() {
-		if _, ok := c.(*indexConverter); ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (fp *filenamePattern) datePattern() string {
-	for c := fp.converter; c != nil; c = c.Next() {
-		if dc, ok := c.(*dateConverter); ok {
-			return dc.DatePattern()
-		}
-	}
-
-	return ""
 }

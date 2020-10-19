@@ -30,7 +30,7 @@ func init() {
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "slago-test.log"
+		o.Filename = "slago-archive.2020-10-16.0.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
 				o.FilenamePattern = "/tmp/log/slago/slago-archive.#date{2006-01-02}.#index.log"
