@@ -56,7 +56,7 @@ using logger like zap or zerolog or other loggers.
 License
 =======
 
-    Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+    Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
