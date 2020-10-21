@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coolerfall/slago"
+	"github.com/sirupsen/logrus"
 )
 
 var (

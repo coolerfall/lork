@@ -15,9 +15,9 @@
 package bridge
 
 import (
+	"github.com/coolerfall/slago"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/coolerfall/slago"
 )
 
 var (
@@ -50,7 +50,7 @@ func NewZerologBridge() slago.Bridge {
 }
 
 func (b *zerologBridge) Name() string {
-	return "zerolog"
+	return "github.com/rs/zerolog"
 }
 
 func (b *zerologBridge) ParseLevel(lvl string) slago.Level {

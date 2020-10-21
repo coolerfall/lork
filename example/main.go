@@ -22,8 +22,8 @@ import (
 	"github.com/coolerfall/slago/binder/slazero"
 	"github.com/coolerfall/slago/bridge"
 	"github.com/sirupsen/logrus"
-	//_ "github.com/coolerfall/slago/slalogrus"
-	//_ "github.com/coolerfall/slago/slazap"
+	// "github.com/coolerfall/slago/binder/slalogrus"
+	// "github.com/coolerfall/slago/binder/slazap"
 	"go.uber.org/zap"
 )
 

@@ -18,8 +18,8 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coolerfall/slago"
+	"github.com/sirupsen/logrus"
 )
 
 var (

@@ -34,151 +34,151 @@ func newNoopRecord() *noopRecord {
 	return recordPool.Get().(*noopRecord)
 }
 
-func (r *noopRecord) Str(key, val string) Record {
+func (r *noopRecord) Str(_, _ string) Record {
 	return r
 }
 
-func (r *noopRecord) Strs(key string, val []string) Record {
+func (r *noopRecord) Strs(_ string, _ []string) Record {
 	return r
 }
 
-func (r *noopRecord) Bytes(key string, val []byte) Record {
+func (r *noopRecord) Bytes(_ string, _ []byte) Record {
 	return r
 }
 
-func (r *noopRecord) Hex(key string, val []byte) Record {
+func (r *noopRecord) Hex(_ string, _ []byte) Record {
 	return r
 }
 
-func (r *noopRecord) Err(err error) Record {
+func (r *noopRecord) Err(_ error) Record {
 	return r
 }
 
-func (r *noopRecord) Errs(key string, errs []error) Record {
+func (r *noopRecord) Errs(_ string, _ []error) Record {
 	return r
 }
 
-func (r *noopRecord) Bool(key string, val bool) Record {
+func (r *noopRecord) Bool(_ string, _ bool) Record {
 	return r
 }
 
-func (r *noopRecord) Bools(key string, val []bool) Record {
+func (r *noopRecord) Bools(_ string, _ []bool) Record {
 	return r
 }
 
-func (r *noopRecord) Int(key string, val int) Record {
+func (r *noopRecord) Int(_ string, _ int) Record {
 	return r
 }
 
-func (r *noopRecord) Ints(key string, val []int) Record {
+func (r *noopRecord) Ints(_ string, _ []int) Record {
 	return r
 }
 
-func (r *noopRecord) Int8(key string, val int8) Record {
+func (r *noopRecord) Int8(_ string, _ int8) Record {
 	return r
 }
 
-func (r *noopRecord) Ints8(key string, val []int8) Record {
+func (r *noopRecord) Ints8(_ string, _ []int8) Record {
 	return r
 }
 
-func (r *noopRecord) Int16(key string, val int16) Record {
+func (r *noopRecord) Int16(_ string, _ int16) Record {
 	return r
 }
 
-func (r *noopRecord) Ints16(key string, val []int16) Record {
+func (r *noopRecord) Ints16(_ string, _ []int16) Record {
 	return r
 }
 
-func (r *noopRecord) Int32(key string, val int32) Record {
+func (r *noopRecord) Int32(_ string, _ int32) Record {
 	return r
 }
 
-func (r *noopRecord) Ints32(key string, val []int32) Record {
+func (r *noopRecord) Ints32(_ string, _ []int32) Record {
 	return r
 }
 
-func (r *noopRecord) Int64(key string, val int64) Record {
+func (r *noopRecord) Int64(_ string, _ int64) Record {
 	return r
 }
 
-func (r *noopRecord) Ints64(key string, val []int64) Record {
+func (r *noopRecord) Ints64(_ string, _ []int64) Record {
 	return r
 }
 
-func (r *noopRecord) Uint(key string, val uint) Record {
+func (r *noopRecord) Uint(_ string, _ uint) Record {
 	return r
 }
 
-func (r *noopRecord) Uints(key string, val []uint) Record {
+func (r *noopRecord) Uints(_ string, _ []uint) Record {
 	return r
 }
 
-func (r *noopRecord) Uint8(key string, val uint8) Record {
+func (r *noopRecord) Uint8(_ string, _ uint8) Record {
 	return r
 }
 
-func (r *noopRecord) Uints8(key string, val []uint8) Record {
+func (r *noopRecord) Uints8(_ string, _ []uint8) Record {
 	return r
 }
 
-func (r *noopRecord) Uint16(key string, val uint16) Record {
+func (r *noopRecord) Uint16(_ string, _ uint16) Record {
 	return r
 }
 
-func (r *noopRecord) Uints16(key string, val []uint16) Record {
+func (r *noopRecord) Uints16(_ string, _ []uint16) Record {
 	return r
 }
 
-func (r *noopRecord) Uint32(key string, val uint32) Record {
+func (r *noopRecord) Uint32(_ string, _ uint32) Record {
 	return r
 }
 
-func (r *noopRecord) Uints32(key string, val []uint32) Record {
+func (r *noopRecord) Uints32(_ string, _ []uint32) Record {
 	return r
 }
 
-func (r *noopRecord) Uint64(key string, val uint64) Record {
+func (r *noopRecord) Uint64(_ string, _ uint64) Record {
 	return r
 }
 
-func (r *noopRecord) Uints64(key string, val []uint64) Record {
+func (r *noopRecord) Uints64(_ string, _ []uint64) Record {
 	return r
 }
 
-func (r *noopRecord) Float32(key string, val float32) Record {
+func (r *noopRecord) Float32(_ string, _ float32) Record {
 	return r
 }
 
-func (r *noopRecord) Floats32(key string, val []float32) Record {
+func (r *noopRecord) Floats32(_ string, _ []float32) Record {
 	return r
 }
 
-func (r *noopRecord) Float64(key string, val float64) Record {
+func (r *noopRecord) Float64(_ string, _ float64) Record {
 	return r
 }
 
-func (r *noopRecord) Floats64(key string, val []float64) Record {
+func (r *noopRecord) Floats64(_ string, _ []float64) Record {
 	return r
 }
 
-func (r *noopRecord) Time(key string, val time.Time) Record {
+func (r *noopRecord) Time(_ string, _ time.Time) Record {
 	return r
 }
 
-func (r *noopRecord) Times(key string, val []time.Time) Record {
+func (r *noopRecord) Times(_ string, _ []time.Time) Record {
 	return r
 }
 
-func (r *noopRecord) Dur(key string, val time.Duration) Record {
+func (r *noopRecord) Dur(_ string, _ time.Duration) Record {
 	return r
 }
 
-func (r *noopRecord) Durs(key string, val []time.Duration) Record {
+func (r *noopRecord) Durs(_ string, _ []time.Duration) Record {
 	return r
 }
 
-func (r *noopRecord) Interface(key string, val interface{}) Record {
+func (r *noopRecord) Interface(_ string, _ interface{}) Record {
 	return r
 }
 
@@ -186,6 +186,6 @@ func (r *noopRecord) Msg(msg string) {
 	r.Msgf(msg)
 }
 
-func (r *noopRecord) Msgf(format string, v ...interface{}) {
+func (r *noopRecord) Msgf(_ string, _ ...interface{}) {
 	recordPool.Put(r)
 }

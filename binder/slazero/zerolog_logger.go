@@ -15,9 +15,9 @@
 package slazero
 
 import (
+	"github.com/coolerfall/slago"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/coolerfall/slago"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewZeroLogger() slago.SlaLogger {
 }
 
 func (l *zeroLogger) Name() string {
-	return "zerolog"
+	return "github.com/rs/zerolog"
 }
 
 func (l *zeroLogger) AddWriter(w ...slago.Writer) {

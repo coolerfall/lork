@@ -53,7 +53,7 @@ func NewZapBrige() *zapBridge {
 }
 
 func (b *zapBridge) Name() string {
-	return "zap"
+	return "go.uber.org/zap"
 }
 
 func (b *zapBridge) ParseLevel(lvl string) slago.Level {

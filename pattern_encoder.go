@@ -215,10 +215,10 @@ func (lc *levelConverter) Next() Converter {
 	return lc.next
 }
 
-func (lc *levelConverter) AttachChild(child Converter) {
+func (lc *levelConverter) AttachChild(_ Converter) {
 }
 
-func (lc *levelConverter) AttachOptions(opts []string) {
+func (lc *levelConverter) AttachOptions(_ []string) {
 }
 
 func (lc *levelConverter) Convert(origin interface{}, buf *bytes.Buffer) {
@@ -290,7 +290,7 @@ func (lc *loggerConverter) Next() Converter {
 	return lc.next
 }
 
-func (lc *loggerConverter) AttachChild(child Converter) {
+func (lc *loggerConverter) AttachChild(_ Converter) {
 }
 
 func (lc *loggerConverter) AttachOptions(opts []string) {
@@ -353,10 +353,10 @@ func (mc *messageConverter) Next() Converter {
 	return mc.next
 }
 
-func (mc *messageConverter) AttachChild(child Converter) {
+func (mc *messageConverter) AttachChild(_ Converter) {
 }
 
-func (mc *messageConverter) AttachOptions(opts []string) {
+func (mc *messageConverter) AttachOptions(_ []string) {
 }
 
 func (mc *messageConverter) Convert(origin interface{}, buf *bytes.Buffer) {
@@ -394,10 +394,10 @@ func (fc *fieldsConverter) Next() Converter {
 	return fc.next
 }
 
-func (fc *fieldsConverter) AttachChild(child Converter) {
+func (fc *fieldsConverter) AttachChild(_ Converter) {
 }
 
-func (fc *fieldsConverter) AttachOptions(opts []string) {
+func (fc *fieldsConverter) AttachOptions(_ []string) {
 }
 
 func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {

@@ -35,8 +35,8 @@ type fileWriter struct {
 
 // FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
-	Filter        Filter
 	Encoder       Encoder
+	Filter        Filter
 	RollingPolicy RollingPolicy
 	Filename      string
 }
