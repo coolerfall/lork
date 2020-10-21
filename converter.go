@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,13 +59,13 @@ func (c *literalConverter) Next() Converter {
 	return c.next
 }
 
-func (c *literalConverter) AttachChild(child Converter) {
+func (c *literalConverter) AttachChild(_ Converter) {
 }
 
-func (c *literalConverter) AttachOptions(opt []string) {
+func (c *literalConverter) AttachOptions(_ []string) {
 }
 
-func (c *literalConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+func (c *literalConverter) Convert(_ interface{}, buf *bytes.Buffer) {
 	buf.WriteString(c.value)
 }
 
@@ -88,7 +88,7 @@ func (c *dateConverter) Next() Converter {
 	return c.next
 }
 
-func (c *dateConverter) AttachChild(child Converter) {
+func (c *dateConverter) AttachChild(_ Converter) {
 }
 
 func (c *dateConverter) AttachOptions(opts []string) {
@@ -133,10 +133,10 @@ func (c *indexConverter) Next() Converter {
 	return c.next
 }
 
-func (c *indexConverter) AttachChild(child Converter) {
+func (c *indexConverter) AttachChild(_ Converter) {
 }
 
-func (c *indexConverter) AttachOptions(opts []string) {
+func (c *indexConverter) AttachOptions(_ []string) {
 }
 
 func (c *indexConverter) Convert(origin interface{}, buf *bytes.Buffer) {

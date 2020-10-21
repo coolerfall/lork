@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,12 +26,30 @@ type SocketReader struct {
 	locker    sync.Mutex
 	isRunning bool
 	upgrader  *websocket.Upgrader
+	path      string
+	port      int
+}
+
+type SocketReaderOption struct {
+	Path string
+	Port int
 }
 
 // NewSocketReader creates a new instance of socket reader.
-func NewSocketReader() *SocketReader {
+func NewSocketReader(options ...func(*SocketReaderOption)) *SocketReader {
+	opts := &SocketReaderOption{
+		Path: "/ws/log",
+		Port: 6060,
+	}
+
+	for _, f := range options {
+		f(opts)
+	}
+
 	return &SocketReader{
 		upgrader: &websocket.Upgrader{},
+		path:     opts.Path,
+		port:     opts.Port,
 	}
 }
 
@@ -40,8 +58,9 @@ func (sr *SocketReader) Start() {
 	sr.isRunning = true
 	sr.locker.Unlock()
 
-	http.HandleFunc("/log/socket", sr.readLog)
-	fmt.Print(http.ListenAndServe(":6060", nil))
+	Logger().Info().Msgf("socket reader is listening on %v with path %v", sr.port, sr.path)
+	http.HandleFunc(sr.path, sr.readLog)
+	fmt.Print(http.ListenAndServe(fmt.Sprintf(":%v", sr.port), nil))
 }
 
 func (sr *SocketReader) Stop() {

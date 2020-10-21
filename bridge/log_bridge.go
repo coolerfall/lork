@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"log"
 	"strings"
 
-	"gitlab.com/anbillon/slago"
+	"github.com/coolerfall/slago"
 )
 
 type logBridge struct {
@@ -38,7 +38,7 @@ func (b *logBridge) Name() string {
 	return "log"
 }
 
-func (b *logBridge) ParseLevel(lvl string) slago.Level {
+func (b *logBridge) ParseLevel(_ string) slago.Level {
 	return slago.TraceLevel
 }
 

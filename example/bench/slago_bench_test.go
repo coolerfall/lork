@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ package bench
 import (
 	"testing"
 
-	"gitlab.com/anbillon/slago"
-	"gitlab.com/anbillon/slago/binder/slazero"
+	"github.com/coolerfall/slago"
+	"github.com/coolerfall/slago/binder/slazero"
 )
 
 func init() {
@@ -30,10 +30,10 @@ func init() {
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "slago-test.log"
+		o.Filename = "slago-archive.2020-10-16.0.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "/tmp/log/slago/slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 package slazero
 
 import (
+	"github.com/coolerfall/slago"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/anbillon/slago"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewZeroLogger() slago.SlaLogger {
 }
 
 func (l *zeroLogger) Name() string {
-	return "zerolog"
+	return "github.com/rs/zerolog"
 }
 
 func (l *zeroLogger) AddWriter(w ...slago.Writer) {

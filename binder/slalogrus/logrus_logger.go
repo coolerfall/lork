@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 package slalogrus
 
 import (
+	"github.com/coolerfall/slago"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewLogrusLogger() slago.SlaLogger {
 }
 
 func (l *logrusLogger) Name() string {
-	return "logrus"
+	return "github.com/sirupsen/logrus"
 }
 
 func (l *logrusLogger) AddWriter(w ...slago.Writer) {

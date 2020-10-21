@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 package bridge
 
 import (
+	"github.com/coolerfall/slago"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/anbillon/slago"
 )
 
 var (
@@ -50,7 +50,7 @@ func NewZerologBridge() slago.Bridge {
 }
 
 func (b *zerologBridge) Name() string {
-	return "zerolog"
+	return "github.com/rs/zerolog"
 }
 
 func (b *zerologBridge) ParseLevel(lvl string) slago.Level {

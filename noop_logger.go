@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,16 +27,16 @@ func (l *noopLogger) Name() string {
 	return "noop"
 }
 
-func (l *noopLogger) AddWriter(w ...Writer) {
+func (l *noopLogger) AddWriter(_ ...Writer) {
 }
 
 func (l *noopLogger) ResetWriter() {
 }
 
-func (l *noopLogger) SetLevel(lvl Level) {
+func (l *noopLogger) SetLevel(_ Level) {
 }
 
-func (l *noopLogger) Level(lvl Level) Record {
+func (l *noopLogger) Level(_ Level) Record {
 	return newNoopRecord()
 }
 
@@ -68,11 +68,5 @@ func (l *noopLogger) Panic() Record {
 	return newNoopRecord()
 }
 
-func (l *noopLogger) Print(v ...interface{}) {
-}
-
-func (l *noopLogger) Printf(format string, v ...interface{}) {
-}
-
-func (l *noopLogger) WriteRaw(p []byte) {
+func (l *noopLogger) WriteRaw(_ []byte) {
 }

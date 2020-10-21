@@ -1,3 +1,6 @@
+# 0.5.0
+* Add log remover.
+
 # 0.4.0
 * Add sub logger.
 * Add log event instead of byte array.

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/coolerfall/slago"
+	"github.com/coolerfall/slago/binder/slazero"
+	"github.com/coolerfall/slago/bridge"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/anbillon/slago"
-	"gitlab.com/anbillon/slago/binder/slazero"
-	"gitlab.com/anbillon/slago/bridge"
-	//_ "gitlab.com/anbillon/slago/slalogrus"
-	//_ "gitlab.com/anbillon/slago/slazap"
+	// "github.com/coolerfall/slago/binder/slalogrus"
+	// "github.com/coolerfall/slago/binder/slazap"
 	"go.uber.org/zap"
 )
 
@@ -49,6 +49,7 @@ func main() {
 			func(o *slago.SizeAndTimeBasedRPOption) {
 				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
+				o.MaxHistory = 1
 			})
 	})
 	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {

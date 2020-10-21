@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Anbillon Team (anbillonteam@gmail.com).
+// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ type fileWriter struct {
 
 // FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
-	Filter        Filter
 	Encoder       Encoder
+	Filter        Filter
 	RollingPolicy RollingPolicy
 	Filename      string
 }
@@ -132,7 +132,7 @@ func (fw *fileWriter) close() error {
 // openNew opens a new log file for writing, moving any old log file out of the
 // way. This methods assumes the file has already been closed.
 func (fw *fileWriter) openNew() error {
-	err := os.MkdirAll(fw.Dir(), 0755)
+	err := os.MkdirAll(fw.dir(), 0755)
 	if err != nil {
 		return fmt.Errorf("can't make directories for new logfile: %s", err)
 	}
@@ -173,13 +173,13 @@ func (fw *fileWriter) openExistingOrNew() error {
 	return nil
 }
 
-// Dir returns the directory for the current filename.
-func (fw *fileWriter) Dir() string {
+// dir returns the directory for the current filename.
+func (fw *fileWriter) dir() string {
 	return filepath.Dir(fw.opts.Filename)
 }
 
-// Filename returns the filename of current file.
-func (fw *fileWriter) Filename() string {
+// RawFilename returns the filename of current raw log file.
+func (fw *fileWriter) RawFilename() string {
 	return fw.opts.Filename
 }
 
