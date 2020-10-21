@@ -4,6 +4,15 @@ Simple Logging Abstraction for Go. Slago provides bridge and binder for logger w
 can sent log from logger to another logger you preferred. Slago also provides unified writers, 
 encoders and filters, it brings different logger with same apis and flexible configurations.
 
+Install
+=======
+Add the following to your go.mod
+```text
+require (
+	github.com/coolerfall/slago v0.5.0
+)
+```
+
 Quick Start
 ==========
 * Add logger you want to bind to:
