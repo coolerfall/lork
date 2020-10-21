@@ -15,8 +15,8 @@
 package slalogrus
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/coolerfall/slago"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewLogrusLogger() slago.SlaLogger {
 }
 
 func (l *logrusLogger) Name() string {
-	return "logrus"
+	return "github.com/sirupsen/logrus"
 }
 
 func (l *logrusLogger) AddWriter(w ...slago.Writer) {

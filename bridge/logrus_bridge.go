@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/coolerfall/slago"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -59,7 +59,7 @@ func NewLogrusBridge() slago.Bridge {
 }
 
 func (b *logrusBridge) Name() string {
-	return "logrus"
+	return "github.com/sirupsen/logrus"
 }
 
 func (b *logrusBridge) ParseLevel(lvl string) slago.Level {

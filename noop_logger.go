@@ -27,16 +27,16 @@ func (l *noopLogger) Name() string {
 	return "noop"
 }
 
-func (l *noopLogger) AddWriter(w ...Writer) {
+func (l *noopLogger) AddWriter(_ ...Writer) {
 }
 
 func (l *noopLogger) ResetWriter() {
 }
 
-func (l *noopLogger) SetLevel(lvl Level) {
+func (l *noopLogger) SetLevel(_ Level) {
 }
 
-func (l *noopLogger) Level(lvl Level) Record {
+func (l *noopLogger) Level(_ Level) Record {
 	return newNoopRecord()
 }
 
@@ -68,5 +68,5 @@ func (l *noopLogger) Panic() Record {
 	return newNoopRecord()
 }
 
-func (l *noopLogger) WriteRaw(p []byte) {
+func (l *noopLogger) WriteRaw(_ []byte) {
 }

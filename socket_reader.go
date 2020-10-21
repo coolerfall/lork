@@ -58,6 +58,7 @@ func (sr *SocketReader) Start() {
 	sr.isRunning = true
 	sr.locker.Unlock()
 
+	Logger().Info().Msgf("socket reader is listening on %v with path %v", sr.port, sr.path)
 	http.HandleFunc(sr.path, sr.readLog)
 	fmt.Print(http.ListenAndServe(fmt.Sprintf(":%v", sr.port), nil))
 }

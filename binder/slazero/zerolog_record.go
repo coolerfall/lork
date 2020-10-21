@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/coolerfall/slago"
+	"github.com/rs/zerolog"
 )
 
 var (

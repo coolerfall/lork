@@ -68,7 +68,7 @@ func NewZapLogger() slago.SlaLogger {
 }
 
 func (l *zapLogger) Name() string {
-	return "zap"
+	return "go.uber.org/zap"
 }
 
 func (l *zapLogger) AddWriter(w ...slago.Writer) {
