@@ -42,7 +42,7 @@ fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 			func(o *slago.SizeAndTimeBasedRPOption) {
 				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
-                o.MaxHistory = 10
+				o.MaxHistory = 10
 			})
 	})
 slago.Logger().AddWriter(fw)

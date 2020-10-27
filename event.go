@@ -120,7 +120,10 @@ func makeEvent(p []byte) *LogEvent {
 		case LoggerFieldKey:
 			event.logger.Write(v)
 		case MessageFieldKey:
-			event.message.Write(v)
+			event.message.Grow(len(v))
+			temp := event.message.Bytes()
+			m, _ := jsonparser.Unescape(v, temp)
+			event.message.Write(m)
 
 		default:
 			event.fields.Write(k)
