@@ -1,3 +1,6 @@
+# 0.5.1
+* Fix bug.
+
 # 0.5.0
 * Add log remover.
 
