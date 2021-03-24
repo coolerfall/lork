@@ -1,3 +1,6 @@
+# 0.5.2
+* Hot fix for loggerc.
+
 # 0.5.1
 * Fix bug.
 
