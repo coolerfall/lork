@@ -247,7 +247,13 @@ func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 // PackageName get the package name of caller.
 func PackageName(skip int) string {
 	pc, _, _, _ := runtime.Caller(skip + 1)
-	funcName := runtime.FuncForPC(pc).Name()
-	index := strings.LastIndexByte(funcName, '.')
-	return funcName[:index]
+	fn := runtime.FuncForPC(pc).Name()
+	index := 0
+	if i := strings.LastIndex(fn, "/"); i >= 0 {
+		index = i
+	}
+	if i := strings.Index(fn[index:], "."); i >= 0 {
+		index += i
+	}
+	return fn[:index]
 }
