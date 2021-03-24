@@ -129,6 +129,13 @@ func Logger(name ...string) SlaLogger {
 	return findLogger(name...)
 }
 
+// LoggerC get a global slago logger with a caller package name.
+// Note: this will call runtime.Caller function.
+func LoggerC() SlaLogger {
+	pkgName := PackageName(1)
+	return Logger(pkgName)
+}
+
 func findLogger(name ...string) SlaLogger {
 	loggerLocker.Lock()
 	defer loggerLocker.Unlock()

@@ -267,7 +267,12 @@ func (r *zapRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *zapRecord) Msg(msg string) {
+func (r *zapRecord) Msg(originMsg ...string) {
+	var msg string
+	if len(originMsg) != 0 {
+		msg = originMsg[0]
+	}
+
 	switch r.level {
 	case zapcore.DebugLevel:
 		r.logger.Debug(msg)

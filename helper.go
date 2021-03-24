@@ -20,6 +20,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -241,4 +242,12 @@ func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 	buf.WriteByte('\n')
 
 	return nil
+}
+
+// PackageName get the package name of caller.
+func PackageName(skip int) string {
+	pc, _, _, _ := runtime.Caller(skip + 1)
+	funcName := runtime.FuncForPC(pc).Name()
+	index := strings.LastIndexByte(funcName, '.')
+	return funcName[:index]
 }
