@@ -132,7 +132,7 @@ type Record interface {
 	Interface(key string, val interface{}) Record
 
 	// Msg adds a message to this record and output log.
-	Msg(msg string)
+	Msg(msg... string)
 
 	// Msgf adds a message with format to this record and output log.
 	Msgf(format string, v ...interface{})

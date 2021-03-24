@@ -182,8 +182,8 @@ func (r *noopRecord) Interface(_ string, _ interface{}) Record {
 	return r
 }
 
-func (r *noopRecord) Msg(msg string) {
-	r.Msgf(msg)
+func (r *noopRecord) Msg(_ ...string) {
+	recordPool.Put(r)
 }
 
 func (r *noopRecord) Msgf(_ string, _ ...interface{}) {

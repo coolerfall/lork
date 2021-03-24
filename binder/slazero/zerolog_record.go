@@ -225,7 +225,11 @@ func (r *zeroRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *zeroRecord) Msg(msg string) {
+func (r *zeroRecord) Msg(originMsg ...string) {
+	var msg string
+	if len(originMsg) != 0 {
+		msg = originMsg[0]
+	}
 	r.event.Msg(msg)
 	recordPool.Put(r)
 }
