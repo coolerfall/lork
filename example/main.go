@@ -57,7 +57,7 @@ func main() {
 	})
 	slago.Logger().AddWriter(aw)
 
-	slago.Logger().Trace().Msg("slago")
+	slago.Logger().Trace().Msg("slago\nThis is a message \n")
 	slago.Logger("github.com/slago/foo.main").Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
