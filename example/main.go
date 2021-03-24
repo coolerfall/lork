@@ -67,6 +67,7 @@ func main() {
 	logger.Debug().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
+	slago.LoggerC().Info().Msg("test for auto logger name")
 
 	time.Sleep(time.Second * 2)
 }
