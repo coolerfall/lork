@@ -15,10 +15,8 @@
 package bridge
 
 import (
-	"log"
-	"strings"
-
 	"github.com/coolerfall/slago"
+	"log"
 )
 
 type logBridge struct {
@@ -43,6 +41,6 @@ func (b *logBridge) ParseLevel(_ string) slago.Level {
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	slago.Logger().Trace().Msg(strings.TrimRight(string(p), "\n"))
+	slago.Logger().Trace().Msg(string(p))
 	return len(p), nil
 }
