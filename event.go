@@ -123,7 +123,7 @@ func makeEvent(p []byte) *LogEvent {
 			event.message.Grow(len(v))
 			temp := event.message.Bytes()
 			m, _ := jsonparser.Unescape(v, temp)
-			event.message.Write(m)
+			event.message.Write(bytes.TrimRight(m, "\n"))
 
 		default:
 			event.fields.Write(k)
