@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 package bridge
 
 import (
-	"github.com/coolerfall/slago"
 	"log"
+
+	"github.com/coolerfall/slago"
 )
 
 type logBridge struct {
