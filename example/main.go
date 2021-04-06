@@ -58,12 +58,12 @@ func main() {
 	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Trace().Msg("slago\nThis is a message \n\n")
-	slago.Logger("github.com/slago/foo.main").Info().Int("int", 88).Interface("slago", "val").Msg("")
+	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).Interface("slago", "val").Msg("")
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
 	log.Printf("this is builtin logger\n\n")
 
-	logger := slago.Logger("github.com/slago.main")
+	logger := slago.Logger("github.com/slago")
 	logger.Debug().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
