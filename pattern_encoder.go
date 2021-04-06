@@ -328,10 +328,32 @@ func (lc *loggerConverter) abbreviator(name []byte) []byte {
 		return name
 	}
 
-	index := length - lc.opt
-	abbr := name[index:]
-	if abbr[0] == '/' {
-		abbr = abbr[1:]
+	var abbr []byte
+	var gotAbbr bool
+	index := bytes.LastIndex(name, []byte("/"))
+	if index <= 0 {
+		return name
+	}
+
+	for i := 0; i < length-1; i++ {
+		tmp := name[i]
+		if tmp == '/' || tmp == '.' {
+			if i == index || (len(abbr)+length-i+1) <= lc.opt {
+				abbr = append(abbr, name[i:]...)
+				break
+			}
+
+			abbr = append(abbr, name[i])
+			gotAbbr = false
+			continue
+		}
+
+		if gotAbbr {
+			continue
+		}
+
+		abbr = append(abbr, name[i])
+		gotAbbr = true
 	}
 
 	return abbr
