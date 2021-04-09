@@ -1,6 +1,13 @@
 # 0.5.2
 * Hot fix for loggerc.
 
+# 0.5.3
+* Fix new line bug.
+* Update abbreviation strategy for logger name.
+
+# 0.5.2
+* Fix LoggerC.
+
 # 0.5.1
 * Fix bug.
 
