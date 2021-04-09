@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ func makeEvent(p []byte) *LogEvent {
 			event.message.Grow(len(v))
 			temp := event.message.Bytes()
 			m, _ := jsonparser.Unescape(v, temp)
-			event.message.Write(m)
+			event.message.Write(bytes.TrimRight(m, "\n"))
 
 		default:
 			event.fields.Write(k)

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package bridge
 
 import (
 	"log"
-	"strings"
 
 	"github.com/coolerfall/slago"
 )
@@ -43,6 +42,6 @@ func (b *logBridge) ParseLevel(_ string) slago.Level {
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	slago.Logger().Trace().Msg(strings.TrimRight(string(p), "\n"))
+	slago.Logger().Trace().Msg(string(p))
 	return len(p), nil
 }
