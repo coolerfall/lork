@@ -184,13 +184,11 @@ func (fw *fileWriter) RawFilename() string {
 }
 
 func (fw *fileWriter) rotate() (err error) {
-	err = fw.close()
-	if err != nil {
+	if err = fw.close(); err != nil {
 		return err
 	}
 
-	err = fw.opts.RollingPolicy.Rotate()
-	if err != nil {
+	if err = fw.opts.RollingPolicy.Rotate(); err != nil {
 		return
 	}
 
