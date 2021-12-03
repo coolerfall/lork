@@ -96,8 +96,8 @@ func (rd *rollingDate) endOfThisPeriod(pt periodicType, now time.Time) time.Time
 	return rd._endOfNextNPeriod(pt, now, 1)
 }
 
-func (rd *rollingDate) next() time.Time {
-	return rd.endOfNextNPeriod(time.Now(), 1)
+func (rd *rollingDate) next(t time.Time) time.Time {
+	return rd.endOfNextNPeriod(t, 1)
 }
 
 func (rd *rollingDate) periodCrossed(start int64, end int64) int {
