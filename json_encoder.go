@@ -42,7 +42,7 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 
 	var err error
 	bufData := je.tsBuf.Bytes()
-	bufData, err = convertFormat(bufData, e.rfc3339Nano.Bytes(), TimestampFormat, jsonTimeFormat)
+	bufData, err = convertFormat(bufData, e.Time(), TimestampFormat, jsonTimeFormat)
 	if err != nil {
 		return nil, err
 	}

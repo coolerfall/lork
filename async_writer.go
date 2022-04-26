@@ -18,13 +18,13 @@ import (
 	"sync"
 )
 
-const defaultWriterQueueSize = 256
+const defaultWriterQueueSize = 512
 
 type asyncWriter struct {
 	ref       Writer
 	locker    sync.Mutex
 	queue     *blockingQueue
-	isStarted bool
+	isRunning bool
 }
 
 // AsyncWriterOption represents available options for async writer.
@@ -50,13 +50,13 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
 }
 
 func (w *asyncWriter) Start() {
-	if w.isStarted {
+	if w.isRunning {
 		return
 	}
 	if lc, ok := w.ref.(Lifecycle); ok {
 		lc.Start()
 	}
-	w.isStarted = true
+	w.isRunning = true
 	go w.startWorker()
 }
 
@@ -66,7 +66,7 @@ func (w *asyncWriter) Stop() {
 	if lc, ok := w.ref.(Lifecycle); ok {
 		lc.Stop()
 	}
-	w.isStarted = false
+	w.isRunning = false
 }
 
 func (w *asyncWriter) Write(p []byte) (n int, err error) {
@@ -93,7 +93,7 @@ func (w *asyncWriter) Filter() Filter {
 
 func (w *asyncWriter) startWorker() {
 	for {
-		if !w.isStarted {
+		if !w.isRunning {
 			break
 		}
 
@@ -103,8 +103,8 @@ func (w *asyncWriter) startWorker() {
 }
 
 func (w *asyncWriter) write(p []byte) {
-	event := makeEvent(p)
-	defer event.recycle()
+	event := MakeEvent(p)
+	defer event.Recycle()
 
 	var err error
 	if w.ref.Filter() != nil && w.ref.Filter().Do(event) {

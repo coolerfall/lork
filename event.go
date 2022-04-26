@@ -48,6 +48,11 @@ var (
 	}
 )
 
+// NewLogEvent gets a LogEvent from pool.
+func NewLogEvent() *LogEvent {
+	return eventPool.Get().(*LogEvent)
+}
+
 // Time returns rfc3339nano bytes.
 func (e *LogEvent) Time() []byte {
 	return e.rfc3339Nano.Bytes()
@@ -108,36 +113,22 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error
 	return nil
 }
 
-func makeEvent(p []byte) *LogEvent {
+func MakeEvent(p []byte) *LogEvent {
 	event := eventPool.Get().(*LogEvent)
 	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
 		dataType jsonparser.ValueType, _ int) error {
 		switch string(k) {
 		case TimestampFieldKey:
-			event.rfc3339Nano.Write(v)
+			event.makeTimestamp(v)
 		case LevelFieldKey:
-			event.level.Write(v)
+			event.makeLevel(v)
 		case LoggerFieldKey:
-			event.logger.Write(v)
+			event.makeLogger(v)
 		case MessageFieldKey:
-			event.message.Grow(len(v))
-			temp := event.message.Bytes()
-			m, _ := jsonparser.Unescape(v, temp)
-			event.message.Write(bytes.TrimRight(m, "\n"))
+			event.makeMessage(v)
 
 		default:
-			event.fields.Write(k)
-			event.fields.Write(v)
-			event.fieldsIndex.WriteString(strconv.Itoa(len(k)))
-			event.fieldsIndex.WriteByte(',')
-			event.fieldsIndex.WriteString(strconv.Itoa(len(v)))
-			isString := dataType == jsonparser.String
-			var bitSet = byte(0)
-			if isString {
-				bitSet = byte(1)
-			}
-			event.fieldsIndex.WriteByte(bitSet)
-			event.fieldsIndex.WriteByte('|')
+			event.makeFileds(k, v, dataType == jsonparser.String)
 		}
 
 		return nil
@@ -146,7 +137,40 @@ func makeEvent(p []byte) *LogEvent {
 	return event
 }
 
-func (e *LogEvent) recycle() {
+func (e *LogEvent) makeTimestamp(v []byte) {
+	e.rfc3339Nano.Write(v)
+}
+
+func (e *LogEvent) makeLevel(v []byte) {
+	e.level.Write(v)
+}
+
+func (e *LogEvent) makeLogger(v []byte) {
+	e.logger.Write(v)
+}
+
+func (e *LogEvent) makeMessage(v []byte) {
+	e.message.Grow(len(v))
+	temp := e.message.Bytes()
+	m, _ := jsonparser.Unescape(v, temp)
+	e.message.Write(bytes.TrimRight(m, "\n"))
+}
+
+func (e *LogEvent) makeFileds(k, v []byte, isString bool) {
+	e.fields.Write(k)
+	e.fields.Write(v)
+	e.fieldsIndex.WriteString(strconv.Itoa(len(k)))
+	e.fieldsIndex.WriteByte(',')
+	e.fieldsIndex.WriteString(strconv.Itoa(len(v)))
+	var bitSet = byte(0)
+	if isString {
+		bitSet = byte(1)
+	}
+	e.fieldsIndex.WriteByte(bitSet)
+	e.fieldsIndex.WriteByte('|')
+}
+
+func (e *LogEvent) Recycle() {
 	e.rfc3339Nano.Reset()
 	e.level.Reset()
 	e.logger.Reset()

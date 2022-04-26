@@ -19,6 +19,11 @@ import (
 	"sync"
 )
 
+type EventWriter interface {
+
+	Write(event *LogEvent) (err error)
+}
+
 // Writer is the interface that wraps the io.Writer, add adds
 // Encoder and Filter func for slago to ecnode and filter logs.
 type Writer interface {
@@ -106,8 +111,8 @@ func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	event := makeEvent(p)
-	defer event.recycle()
+	event := MakeEvent(p)
+	defer event.Recycle()
 	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(event) {
 			return

@@ -147,8 +147,14 @@ A simple keyword filter which matches the specified keyword.
 
 Credits
 ======
-[slf4j][1]: Simple Logging Facade for Java
-[logback][2]: The reliable, generic, fast and flexible logging framework for Java.
+* [slf4j][1]: Simple Logging Facade for Java
+* [logback][2]: The reliable, generic, fast and flexible logging framework for Java.
+
+Supports
+=======
+If you enjoy this project and want to support it, you can buy a coffee.
+
+<a href="https://www.buymeacoffee.com/coolerfall" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 
 License

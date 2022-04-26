@@ -27,7 +27,7 @@ func TestFilter(t *testing.T) {
 }
 
 var _ = Describe("level filter", func() {
-	var event = makeEvent([]byte(`{"level":"INFO","int":88}`))
+	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
 	It("not filter", func() {
 		filter := NewLevelFilter(InfoLevel)
 		result := filter.Do(event)
@@ -40,7 +40,7 @@ var _ = Describe("level filter", func() {
 	})
 })
 var _ = Describe("keyword filter", func() {
-	var event = makeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
+	var event = MakeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
 	It("not filter", func() {
 		filter := NewKeywordFilter("logger")
 		result := filter.Do(event)
