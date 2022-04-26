@@ -26,7 +26,7 @@ func TestEncoder(t *testing.T) {
 	RunSpecs(t, "encoder test")
 }
 
-var logEvent = makeEvent([]byte(
+var logEvent = MakeEvent([]byte(
 	`{"level":"INFO","time":"2019-12-27T10:40:14.465199844+08:00","key":"value"}`,
 ))
 var _ = Describe("json encoder", func() {

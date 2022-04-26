@@ -229,11 +229,11 @@ func (r *logrusRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *logrusRecord) Msg(originMsg ...string) {
-	var msg string
-	if len(originMsg) != 0 {
-		msg = originMsg[0]
-	}
+func (r *logrusRecord) Msge() {
+	r.Msg("")
+}
+
+func (r *logrusRecord) Msg(msg string) {
 	r.entry.Log(r.level, msg)
 	recordPool.Put(r)
 }
