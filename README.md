@@ -9,7 +9,7 @@ Install
 Add the following to your go.mod
 ```text
 require (
-	github.com/coolerfall/slago v0.5.0
+	github.com/coolerfall/slago v0.5.3
 )
 ```
 
@@ -29,23 +29,28 @@ slago.Install(bridge.NewZapBrige())
 
 * Configure the output writer:
 ```go
-cw := slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(
-			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) #message #fields")
-	})
-slago.Logger().AddWriter(cw)
+slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
+    o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+        opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+"#level) #color([#logger{16}]){magenta} : #message #fields"
+    })
+}))
 fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
-		o.Filename = "slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
-				o.MaxHistory = 10
-			})
-	})
-slago.Logger().AddWriter(fw)
+    o.Encoder = slago.NewJsonEncoder()
+    o.Filter = slago.NewLevelFilter(slago.DebugLevel)
+    o.Filename = "example/slago-test.log"
+    o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+        func(o *slago.SizeAndTimeBasedRPOption) {
+            o.FilenamePattern = "example/slago-archive.#date{2006-01-02}.#index.log"
+            o.MaxFileSize = "10MB"
+            o.MaxHistory = 10
+    })
+})
+aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+    o.Ref = fw
+})
+slago.Logger().AddWriter(aw)
+
 ```
 
 * Add logging:

@@ -26,7 +26,7 @@ func init() {
 
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
-		//	opt.Layout = "#date{2006-01-02} #level #message #fields"
+		//	opt.Pattern = "#date{2006-01-02} #level #message #fields"
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
