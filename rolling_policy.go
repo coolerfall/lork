@@ -68,6 +68,7 @@ type timeBasedRollingPolicy struct {
 	nextCheck           time.Time
 	timeInCurrentPeriod time.Time
 
+	archiver       Archiver
 	archiveRemover ArchiveRemover
 	maxHistory     int
 
@@ -75,7 +76,7 @@ type timeBasedRollingPolicy struct {
 	rollingDate     *rollingDate
 }
 
-// SizeAndTimeBasedRPOption represents available options for size and time
+// TimeBasedRPOption represents available options for size and time
 // based rolling policy.
 type TimeBasedRPOption struct {
 	FilenamePattern string
@@ -102,6 +103,7 @@ func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolic
 	return &timeBasedRollingPolicy{
 		maxHistory:      opt.MaxHistory,
 		filenamePattern: fp,
+		archiver:        newArchiver(opt.FilenamePattern),
 	}
 }
 
@@ -135,7 +137,7 @@ func (rp *timeBasedRollingPolicy) Rotate() error {
 
 	rp.timeInCurrentPeriod = time.Now()
 
-	err := rename(rp.fileWriter.RawFilename(), rollingFilename)
+	err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
 
 	if rp.archiveRemover != nil {
 		rp.archiveRemover.CleanAsync(time.Now())
@@ -251,7 +253,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 			rp.timeInCurrentPeriod.Format("2006-01-02"), rp.index)
 	}
 
-	err = rename(rp.fileWriter.RawFilename(), rollingFilename)
+	archiver := rp.timeBasedRollingPolicy.archiver
+	err = archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
 	if err != nil {
 		return
 	}

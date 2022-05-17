@@ -30,18 +30,18 @@ func init() {
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "slago-archive.2020-10-16.0.log"
+		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/log/slago/slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log.zip"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
-		o.Ref = fw
-	})
-	slago.Logger().AddWriter(aw)
+	//aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+	//	o.Ref = fw
+	//})
+	slago.Logger().AddWriter(fw)
 }
 
 func BenchmarkSlagoZerolog(b *testing.B) {

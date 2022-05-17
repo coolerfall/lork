@@ -21,8 +21,6 @@ import (
 	"sync"
 )
 
-var _ Writer = (*fileWriter)(nil)
-
 const defaultLogFilename = "slago.log"
 
 type fileWriter struct {
