@@ -57,6 +57,10 @@ func (a *gzipArchiver) Archive(filename, archiveFilename string) error {
 	}
 
 	w := gzip.NewWriter(target)
+	w.Header = gzip.Header{
+		ModTime: time.Now(),
+		Name:    strings.TrimSuffix(archiveFilename, ".gz"),
+	}
 	go func() {
 		_, _ = io.Copy(w, origin)
 		_ = w.Close()
@@ -78,7 +82,11 @@ func (a *zipArchiver) Archive(filename, archiveFilename string) error {
 
 	entryName := strings.TrimSuffix(archiveFilename, ".zip")
 	zw := zip.NewWriter(target)
-	w, err := zw.Create(entryName)
+	w, err := zw.CreateHeader(&zip.FileHeader{
+		Name:     entryName,
+		Modified: time.Now(),
+		Method:   zip.Deflate,
+	})
 	if err != nil {
 		return err
 	}
