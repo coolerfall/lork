@@ -33,7 +33,7 @@ func init() {
 		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log.zip"
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
@@ -49,8 +49,9 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger().Info().Int("int", 88).Bool("bool", true).
-				Float32("float32", 2.1).Uint("uint", 9).Str("str", "wrold").Msg(
+			slago.Logger().Info().Int("int", 88888).Bool("bool", true).
+				Float32("float32", 9999.1).Uint("uint", 999).Str("str",
+				"this is long long hello wrold").Msg(
 				"The quick brown fox jumps over the lazy dog")
 		}
 	})
