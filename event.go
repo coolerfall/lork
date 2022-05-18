@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/buger/jsonparser"
 )
@@ -30,11 +31,15 @@ type LogEvent struct {
 	message     *bytes.Buffer
 	fields      *bytes.Buffer
 	fieldsIndex *bytes.Buffer
+	appender    *bytes.Buffer
+	tmp         *bytes.Buffer
 }
 
 var (
 	eventPool = &sync.Pool{
 		New: func() interface{} {
+			tmp := new(bytes.Buffer)
+			tmp.Grow(128)
 			return &LogEvent{
 				level:       new(bytes.Buffer),
 				rfc3339Nano: new(bytes.Buffer),
@@ -43,6 +48,8 @@ var (
 				message:     new(bytes.Buffer),
 				fields:      new(bytes.Buffer),
 				fieldsIndex: new(bytes.Buffer),
+				appender:    new(bytes.Buffer),
+				tmp:         tmp,
 			}
 		},
 	}
@@ -119,14 +126,14 @@ func MakeEvent(p []byte) *LogEvent {
 		case TimestampFieldKey:
 			event.makeTimestamp(v)
 		case LevelFieldKey:
-			event.makeLevel(v)
+			event.appendLevelBytes(v)
 		case LoggerFieldKey:
-			event.makeLogger(v)
+			event.appendLogger(v)
 		case MessageFieldKey:
-			event.makeMessage(v)
+			event.appendMessageBytes(v)
 
 		default:
-			event.makeFields(k, v, dataType == jsonparser.String)
+			event.makeFileds(k, v, dataType == jsonparser.String)
 		}
 
 		return nil
@@ -139,22 +146,22 @@ func (e *LogEvent) makeTimestamp(v []byte) {
 	e.rfc3339Nano.Write(v)
 }
 
-func (e *LogEvent) makeLevel(v []byte) {
+func (e *LogEvent) appendLevel(lvl Level) {
+	e.tmp.WriteString(lvl.String())
+	data := e.tmp.Bytes()
+	e.tmp.Reset()
+	e.appendLevelBytes(data)
+}
+
+func (e *LogEvent) appendLevelBytes(v []byte) {
 	e.level.Write(v)
 }
 
-func (e *LogEvent) makeLogger(v []byte) {
+func (e *LogEvent) appendLogger(v []byte) {
 	e.logger.Write(v)
 }
 
-func (e *LogEvent) makeMessage(v []byte) {
-	e.message.Grow(len(v))
-	temp := e.message.Bytes()
-	m, _ := jsonparser.Unescape(v, temp)
-	e.message.Write(bytes.TrimRight(m, "\n"))
-}
-
-func (e *LogEvent) makeFields(k, v []byte, isString bool) {
+func (e *LogEvent) makeFileds(k, v []byte, isString bool) {
 	e.fields.Write(k)
 	e.fields.Write(v)
 	e.fieldsIndex.WriteString(strconv.Itoa(len(k)))
@@ -168,6 +175,188 @@ func (e *LogEvent) makeFields(k, v []byte, isString bool) {
 	e.fieldsIndex.WriteByte('|')
 }
 
+func (e *LogEvent) appendTimestamp() {
+	data := e.tmp.Bytes()
+	data, err := appendFormat(data, time.Now(), TimestampFormat)
+	if err != nil {
+		return
+	}
+	e.makeTimestamp(data)
+}
+
+func (e *LogEvent) appendMessageBytes(msg []byte) {
+	e.message.Grow(len(msg))
+	temp := e.message.Bytes()
+	m, _ := jsonparser.Unescape(msg, temp)
+	e.message.Write(bytes.TrimRight(m, "\n"))
+}
+
+func (e *LogEvent) appendMessage(msg string) {
+	e.message.WriteString(msg)
+	v := e.message.Bytes()
+	e.message.Reset()
+	e.appendMessageBytes(v)
+}
+
+func (e *LogEvent) appendKeyValue(key string, value []byte, isString bool) {
+	e.fields.WriteString(key)
+	e.fieldsIndex.WriteString(strconv.Itoa(len(key)))
+	e.fieldsIndex.WriteByte(',')
+	e.fields.Write(value)
+	e.fieldsIndex.WriteString(strconv.Itoa(len(value)))
+	var bitSet = byte(0)
+	if isString {
+		bitSet = byte(1)
+	}
+	e.fieldsIndex.WriteByte(bitSet)
+	e.fieldsIndex.WriteByte('|')
+}
+
+func (e *LogEvent) appendString(key, value string) {
+	if key == LoggerFieldKey {
+		e.logger.WriteString(value)
+		return
+	}
+	e.appender.WriteString(value)
+	data := e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, true)
+}
+
+func (e *LogEvent) appendStrings(key string, value []string) {
+	e.appender.WriteString("[")
+	for _, v := range value {
+		if e.appender.Len() > 1 {
+			e.appender.WriteString(",")
+		}
+		e.appender.WriteString(`"`)
+		e.appender.WriteString(v)
+		e.appender.WriteString(`"`)
+	}
+	e.appender.WriteString("]")
+	data := e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendBytes(key string, value []byte) {
+	e.appender.WriteString("[")
+	for _, v := range value {
+		if e.appender.Len() > 1 {
+			e.appender.WriteString(",")
+		}
+		e.appender.WriteString(strconv.Itoa(int(v)))
+	}
+	e.appender.WriteString("]")
+	data := e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendBool(key string, value bool) {
+	data := e.tmp.Bytes()
+	data = strconv.AppendBool(data, value)
+	e.tmp.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendBools(key string, value []bool) {
+	data := e.tmp.Bytes()
+	e.appender.WriteString("[")
+	for _, v := range value {
+		if e.appender.Len() > 1 {
+			e.appender.WriteString(",")
+		}
+		data = strconv.AppendBool(data[:0], v)
+		e.appender.Write(data)
+	}
+	e.appender.WriteString("]")
+	data = e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendInt(key string, value int64) {
+	data := e.tmp.Bytes()
+	data = strconv.AppendInt(data, value, 10)
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendInts(key string, value []int) {
+	data := e.tmp.Bytes()
+	e.appender.WriteString("[")
+	for _, v := range value {
+		if e.appender.Len() > 1 {
+			e.appender.WriteString(",")
+		}
+		data = strconv.AppendInt(data[:0], int64(v), 10)
+		e.appender.Write(data)
+	}
+	e.appender.WriteString("]")
+	data = e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendInts8(key string, value []int8) {
+	data := e.tmp.Bytes()
+	e.appender.WriteString("[")
+	for _, v := range value {
+		if e.appender.Len() > 1 {
+			e.appender.WriteString(",")
+		}
+		data = strconv.AppendInt(data[:0], int64(v), 10)
+		e.appender.Write(data)
+	}
+	e.appender.WriteString("]")
+	data = e.appender.Bytes()
+	e.appender.Reset()
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendUint(key string, value uint64) {
+	data := e.tmp.Bytes()
+	data = strconv.AppendUint(data, value, 10)
+	e.appendKeyValue(key, data, false)
+}
+
+func (e *LogEvent) appendField(key string, val interface{}) {
+	switch value := val.(type) {
+	case string:
+		e.appendString(key, value)
+	case []string:
+		e.appendStrings(key, value)
+	case bool:
+		e.appendBool(key, value)
+	case []bool:
+		e.appendBools(key, value)
+	case int:
+		e.appendInt(key, int64(value))
+	case []int:
+		e.appendInts(key, value)
+	case int8:
+		e.appendInt(key, int64(value))
+	case []int8:
+		e.appendInts8(key, value)
+	case int32:
+		e.appendInt(key, int64(value))
+	case int64:
+		e.appendInt(key, value)
+	case uint:
+		e.appendUint(key, uint64(value))
+	case uint8:
+		e.appendUint(key, uint64(value))
+	case uint16:
+		e.appendUint(key, uint64(value))
+	case uint32:
+		e.appendUint(key, uint64(value))
+	case uint64:
+		e.appendUint(key, value)
+	default:
+		return
+	}
+}
+
 func (e *LogEvent) Recycle() {
 	e.rfc3339Nano.Reset()
 	e.level.Reset()
@@ -176,5 +365,7 @@ func (e *LogEvent) Recycle() {
 	e.message.Reset()
 	e.fields.Reset()
 	e.fieldsIndex.Reset()
+	e.appender.Reset()
+	e.tmp.Reset()
 	eventPool.Put(e)
 }

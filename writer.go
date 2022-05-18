@@ -15,16 +15,13 @@
 package slago
 
 import (
+	"errors"
 	"io"
 	"sync"
 )
 
-type EventWriter interface {
-	Write(event *LogEvent) (err error)
-}
-
-// Writer is the interface that wraps the io.Writer, add
-// Encoder and Filter func for slago to encode and filter logs.
+// Writer is the interface that wraps the io.Writer, add adds
+// Encoder and Filter func for slago to ecnode and filter logs.
 type Writer interface {
 	io.Writer
 
@@ -93,6 +90,32 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	}
 
 	return len(p), nil
+}
+
+func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
+	if len(mw.writers) == 0 {
+		return 0, nil
+	}
+
+	defer event.Recycle()
+
+	for _, w := range mw.writers {
+		if w.Filter() != nil && w.Filter().Do(event) {
+			return
+		}
+
+		if w.Encoder() == nil {
+			return 0, errors.New("no encoder found in writer")
+		}
+
+		encoded, err := w.Encoder().Encode(event)
+		if err != nil {
+			return 0, err
+		}
+		n, err = w.Write(encoded)
+	}
+
+	return n, nil
 }
 
 func (mw *MultiWriter) writeAsync(p []byte) (n int, err error) {

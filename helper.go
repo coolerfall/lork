@@ -32,6 +32,7 @@ const (
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
 	LoggerFieldKey    = "logger_name"
+	ErrorFieldKey     = "error"
 
 	TimestampFormat = time.RFC3339Nano
 

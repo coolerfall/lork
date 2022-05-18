@@ -18,11 +18,11 @@ import (
 	"testing"
 
 	"github.com/coolerfall/slago"
-	"github.com/coolerfall/slago/binder/slazero"
 )
 
 func init() {
-	slago.Bind(slazero.NewZeroLogger())
+	//slago.Bind(slazero.NewZeroLogger())
+	slago.Bind(slago.NewLogbackLogger())
 
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
@@ -44,15 +44,24 @@ func init() {
 	slago.Logger().AddWriter(fw)
 }
 
+var (
+	longStr = "this is super long long long long long long long text from slago to hello wrold"
+	strs    = []string{"hello world", "hello go"}
+	ints    = []int{5, 1, 2}
+	bools   = []bool{true, false, true}
+	bytes   = []byte{0x36, 0x37, 0x88}
+)
+
 func BenchmarkSlagoZerolog(b *testing.B) {
 	b.ReportAllocs()
-
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger().Info().Int("int", 88888).Bool("bool", true).
-				Float32("float32", 9999.1).Uint("uint", 999).Str("str",
-				"this is long long hello wrold").Msg(
-				"The quick brown fox jumps over the lazy dog")
+			slago.Logger("github.com/coolerfall/slago/bench").
+				Info().Bytes("bytes", bytes).Int("int", 88888).Ints("ints", ints).
+				Bool("bool", true).Bools("bools", bools).
+				Float32("float32", 9999.1).Uint("uint", 999).
+				Str("str", longStr).Strs("strs", strs).
+				Msg("The quick brown fox jumps over the lazy dog")
 		}
 	})
 }
