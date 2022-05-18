@@ -79,10 +79,8 @@ var std0x = [...]int{stdZeroMonth, stdZeroDay, stdZeroHour12, stdZeroMinute, std
 
 // some common errors
 var (
-	errBad        = errors.New("bad value for field")
-	errParse      = errors.New("failed to parse given timestamp")
-	errLeadingInt = errors.New("time: bad [0-9]*")
-	errAtoi       = errors.New("time: invalid number")
+	errBad   = errors.New("bad value for field")
+	errParse = errors.New("failed to parse given timestamp")
 )
 
 // startsWithLowerCase reports whether the string has a lower-case letter at the beginning.
@@ -239,44 +237,6 @@ func nextStdChunk(layout string) (prefix string, std int, suffix string) {
 		}
 	}
 	return layout, 0, ""
-}
-
-func atoi(s []byte) (x int, err error) {
-	neg := false
-	if s != nil && (s[0] == '-' || s[0] == '+') {
-		neg = s[0] == '-'
-		s = s[1:]
-	}
-	q, rem, err := leadingInt(s)
-	x = int(q)
-	if err != nil || rem == nil {
-		return 0, errAtoi
-	}
-	if neg {
-		x = -x
-	}
-	return x, nil
-}
-
-// leadingInt consumes the leading [0-9]* from s.
-func leadingInt(s []byte) (x int64, rem []byte, err error) {
-	i := 0
-	for ; i < len(s); i++ {
-		c := s[i]
-		if c < '0' || c > '9' {
-			break
-		}
-		if x > (1<<63-1)/10 {
-			// overflow
-			return 0, nil, errLeadingInt
-		}
-		x = x*10 + int64(c) - '0'
-		if x < 0 {
-			// overflow
-			return 0, nil, errLeadingInt
-		}
-	}
-	return x, s[i:], nil
 }
 
 // skip removes the given prefix from value,

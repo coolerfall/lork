@@ -80,19 +80,17 @@ func (e *LogEvent) Message() []byte {
 
 // Fields gets extra key and value bytes.
 func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error {
-	var kvIndex = 0
 	var startIndex = 0
+	var kvIndex = 0
 	var ik, iv int
 	kvArr := e.fields.Bytes()
 	indexArr := e.fieldsIndex.Bytes()
 	for i := 0; i < len(indexArr); i++ {
 		if indexArr[i] == ',' {
-			var s = string(indexArr[startIndex:i])
-			ik, _ = strconv.Atoi(s)
+			ik, _ = atoi(indexArr[startIndex:i])
 			startIndex = i + 1
 		} else if indexArr[i] == '|' {
-			var s = string(indexArr[startIndex : i-1])
-			iv, _ = strconv.Atoi(s)
+			iv, _ = atoi(indexArr[startIndex : i-1])
 			startIndex = i + 1
 			bitSet := indexArr[i-1]
 			var isString bool
