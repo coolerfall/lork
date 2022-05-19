@@ -15,7 +15,6 @@
 package slalogrus
 
 import (
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -56,11 +55,6 @@ func (r *logrusRecord) Strs(key string, val []string) slago.Record {
 
 func (r *logrusRecord) Bytes(key string, val []byte) slago.Record {
 	r.entry = r.entry.WithField(key, val)
-	return r
-}
-
-func (r *logrusRecord) Hex(key string, val []byte) slago.Record {
-	r.Interface(key, hex.EncodeToString(val))
 	return r
 }
 
