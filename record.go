@@ -29,9 +29,6 @@ type Record interface {
 	// Bytes adds byte array value to this record.
 	Bytes(key string, val []byte) Record
 
-	// Hex adds hex byte array value to this record.
-	Hex(key string, val []byte) Record
-
 	// Err adds err to this record.
 	Err(err error) Record
 

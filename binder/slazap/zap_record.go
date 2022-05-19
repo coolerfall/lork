@@ -15,7 +15,6 @@
 package slazap
 
 import (
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -58,11 +57,6 @@ func (r *zapRecord) Strs(key string, val []string) slago.Record {
 
 func (r *zapRecord) Bytes(key string, val []byte) slago.Record {
 	r.logger = r.logger.With(zap.ByteString(key, val))
-	return r
-}
-
-func (r *zapRecord) Hex(key string, val []byte) slago.Record {
-	r.logger = r.logger.With(zap.String(key, hex.EncodeToString(val)))
 	return r
 }
 

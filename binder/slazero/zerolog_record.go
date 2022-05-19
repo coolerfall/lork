@@ -55,11 +55,6 @@ func (r *zeroRecord) Bytes(key string, val []byte) slago.Record {
 	return r
 }
 
-func (r *zeroRecord) Hex(key string, val []byte) slago.Record {
-	r.event.Hex(key, val)
-	return r
-}
-
 func (r *zeroRecord) Err(err error) slago.Record {
 	r.event.Err(err)
 	return r
