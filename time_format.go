@@ -495,7 +495,7 @@ func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, er
 		return b, err
 	}
 
-	localTime := utcUnixNano - int64(offset*1000000000)
+	localTime := utcUnixNano + int64(offset*1000000000)
 	unixSec := localTime / 1000000000
 	abs := uint64(unixSec + (unixToInternal + internalToAbsolute))
 	nano := localTime % 1000000000
@@ -756,8 +756,9 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 			zoneOffset = (hr*60+mm)*60 + ss
 			switch sign[0] {
 			case '+':
-			case '-':
 				zoneOffset = -zoneOffset
+			case '-':
+				zoneOffset = +zoneOffset
 			default:
 				err = errBad
 			}
