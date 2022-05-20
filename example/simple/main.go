@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/coolerfall/slago"
-	"github.com/coolerfall/slago/binder/slazero"
 	"github.com/coolerfall/slago/bridge"
 	"github.com/sirupsen/logrus"
 	// "github.com/coolerfall/slago/binder/slalogrus"
@@ -28,12 +27,10 @@ import (
 )
 
 func main() {
-	slago.Install(bridge.NewLogBridge())
+	slago.Install(slago.NewLogBridge())
 	slago.Install(bridge.NewLogrusBridge())
 	//slago.Install(bridge.NewZerologBridge())
 	slago.Install(bridge.NewZapBrige())
-	slago.Bind(slazero.NewZeroLogger())
-	//slago.Bind(slalogrus.NewLogrusLogger())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
@@ -44,10 +41,10 @@ func main() {
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.DebugLevel)
-		o.Filename = "example/slago-test.log"
+		o.Filename = "/tmp/slago/slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "example/slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 				o.MaxHistory = 10
 			})

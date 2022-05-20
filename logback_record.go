@@ -53,12 +53,8 @@ func (r *logbackRecord) Strs(key string, val []string) Record {
 }
 
 func (r *logbackRecord) Bytes(key string, val []byte) Record {
+	// TODO
 	r.event.appendBytes(key, val)
-	return r
-}
-
-func (r *logbackRecord) Hex(key string, val []byte) Record {
-	r.event.appendField(key, val)
 	return r
 }
 
@@ -68,7 +64,7 @@ func (r *logbackRecord) Err(err error) Record {
 }
 
 func (r *logbackRecord) Errs(key string, errs []error) Record {
-	r.event.appendField(key, errs)
+	r.event.appendErrors(key, errs)
 	return r
 }
 
@@ -98,7 +94,7 @@ func (r *logbackRecord) Int8(key string, val int8) Record {
 }
 
 func (r *logbackRecord) Ints8(key string, val []int8) Record {
-	r.event.appendField(key, val)
+	r.event.appendInts8(key, val)
 	return r
 }
 
@@ -108,7 +104,7 @@ func (r *logbackRecord) Int16(key string, val int16) Record {
 }
 
 func (r *logbackRecord) Ints16(key string, val []int16) Record {
-	r.event.appendField(key, val)
+	r.event.appendInts16(key, val)
 	return r
 }
 
@@ -118,7 +114,7 @@ func (r *logbackRecord) Int32(key string, val int32) Record {
 }
 
 func (r *logbackRecord) Ints32(key string, val []int32) Record {
-	r.event.appendField(key, val)
+	r.event.appendInts32(key, val)
 	return r
 }
 
@@ -128,7 +124,7 @@ func (r *logbackRecord) Int64(key string, val int64) Record {
 }
 
 func (r *logbackRecord) Ints64(key string, val []int64) Record {
-	r.event.appendField(key, val)
+	r.event.appendInts64(key, val)
 	return r
 }
 
@@ -138,7 +134,7 @@ func (r *logbackRecord) Uint(key string, val uint) Record {
 }
 
 func (r *logbackRecord) Uints(key string, val []uint) Record {
-	r.event.appendField(key, val)
+	r.event.appendUints(key, val)
 	return r
 }
 
@@ -148,7 +144,7 @@ func (r *logbackRecord) Uint8(key string, val uint8) Record {
 }
 
 func (r *logbackRecord) Uints8(key string, val []uint8) Record {
-	r.event.appendField(key, val)
+	r.event.appendUints8(key, val)
 	return r
 }
 
@@ -158,7 +154,7 @@ func (r *logbackRecord) Uint16(key string, val uint16) Record {
 }
 
 func (r *logbackRecord) Uints16(key string, val []uint16) Record {
-	r.event.appendField(key, val)
+	r.event.appendUints16(key, val)
 	return r
 }
 
@@ -168,7 +164,7 @@ func (r *logbackRecord) Uint32(key string, val uint32) Record {
 }
 
 func (r *logbackRecord) Uints32(key string, val []uint32) Record {
-	r.event.appendField(key, val)
+	r.event.appendUints32(key, val)
 	return r
 }
 
@@ -178,52 +174,52 @@ func (r *logbackRecord) Uint64(key string, val uint64) Record {
 }
 
 func (r *logbackRecord) Uints64(key string, val []uint64) Record {
-	r.event.appendField(key, val)
+	r.event.appendUints64(key, val)
 	return r
 }
 
 func (r *logbackRecord) Float32(key string, val float32) Record {
-	r.event.appendField(key, val)
+	r.event.appendFloat32(key, val)
 	return r
 }
 
 func (r *logbackRecord) Floats32(key string, val []float32) Record {
-	r.event.appendField(key, val)
+	r.event.appendFloats32(key, val)
 	return r
 }
 
 func (r *logbackRecord) Float64(key string, val float64) Record {
-	r.event.appendField(key, val)
+	r.event.appendFloat64(key, val)
 	return r
 }
 
 func (r *logbackRecord) Floats64(key string, val []float64) Record {
-	r.event.appendField(key, val)
+	r.event.appendFloats64(key, val)
 	return r
 }
 
 func (r *logbackRecord) Time(key string, val time.Time) Record {
-	r.event.appendField(key, val)
+	r.event.appendTime(key, val)
 	return r
 }
 
 func (r *logbackRecord) Times(key string, val []time.Time) Record {
-	r.event.appendField(key, val)
+	r.event.appendTimes(key, val)
 	return r
 }
 
 func (r *logbackRecord) Dur(key string, val time.Duration) Record {
-	r.event.appendField(key, val)
+	r.event.appendDuration(key, val)
 	return r
 }
 
 func (r *logbackRecord) Durs(key string, val []time.Duration) Record {
-	r.event.appendField(key, val)
+	r.event.appendDurations(key, val)
 	return r
 }
 
 func (r *logbackRecord) Interface(key string, val interface{}) Record {
-	r.event.appendField(key, val)
+	// TODO
 	return r
 }
 

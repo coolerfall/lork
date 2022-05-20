@@ -70,4 +70,8 @@ func (l *logbackLogger) Panic() Record {
 }
 
 func (l *logbackLogger) WriteRaw(p []byte) {
+	_, err := l.multiWriter.Write(p)
+	if err != nil {
+		l.Error().Err(err).Msg("write raw error")
+	}
 }

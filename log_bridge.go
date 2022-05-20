@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package bridge
+package slago
 
 import (
 	"log"
-
-	"github.com/coolerfall/slago"
 )
 
 type logBridge struct {
@@ -37,11 +35,11 @@ func (b *logBridge) Name() string {
 	return "log"
 }
 
-func (b *logBridge) ParseLevel(_ string) slago.Level {
-	return slago.TraceLevel
+func (b *logBridge) ParseLevel(_ string) Level {
+	return TraceLevel
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	slago.Logger().Trace().Msg(string(p))
+	Logger().Trace().Msg(string(p))
 	return len(p), nil
 }

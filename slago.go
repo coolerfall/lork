@@ -109,7 +109,7 @@ func Logger(name ...string) SlaLogger {
 		if loggerLen > 1 {
 			Report("multiple slago logger implementation found")
 		} else if loggerLen == 0 {
-			Bind(newNoopLogger())
+			Bind(NewLogbackLogger())
 			Report("no slago logger found, default to " +
 				"no-operation (NOOP) logger implementation")
 		}

@@ -16,6 +16,7 @@ package bench
 
 import (
 	"testing"
+	"time"
 
 	"github.com/coolerfall/slago"
 )
@@ -30,18 +31,18 @@ func init() {
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "slago-test.log"
+		o.Filename = "/tmp/slago/slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	//aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
-	//	o.Ref = fw
-	//})
-	slago.Logger().AddWriter(fw)
+	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+		o.Ref = fw
+	})
+	slago.Logger().AddWriter(aw)
 }
 
 var (
@@ -50,16 +51,23 @@ var (
 	ints    = []int{5, 1, 2}
 	bools   = []bool{true, false, true}
 	bytes   = []byte{0x36, 0x37, 0x88}
+	t       = time.Now()
+	times   = []time.Time{time.Now(), time.Now()}
+	d       = time.Second * 13
+	ds      = []time.Duration{time.Second * 14, time.Minute * 2}
 )
 
-func BenchmarkSlagoZerolog(b *testing.B) {
+func BenchmarkSlagoBuiltin(b *testing.B) {
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			slago.Logger("github.com/coolerfall/slago/bench").
-				Info().Bytes("bytes", bytes).Int("int", 88888).Ints("ints", ints).
+				Info().
+				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).
+				Time("timef", t).Times("times", times).
+				Dur("dur", d).Durs("durs", ds).
 				Str("str", longStr).Strs("strs", strs).
 				Msg("The quick brown fox jumps over the lazy dog")
 		}
