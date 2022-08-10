@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,11 +52,6 @@ func (r *zeroRecord) Strs(key string, val []string) slago.Record {
 
 func (r *zeroRecord) Bytes(key string, val []byte) slago.Record {
 	r.event.Bytes(key, val)
-	return r
-}
-
-func (r *zeroRecord) Hex(key string, val []byte) slago.Record {
-	r.event.Hex(key, val)
 	return r
 }
 
@@ -225,11 +220,11 @@ func (r *zeroRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *zeroRecord) Msg(originMsg ...string) {
-	var msg string
-	if len(originMsg) != 0 {
-		msg = originMsg[0]
-	}
+func (r *zeroRecord) Msge() {
+	r.Msg("")
+}
+
+func (r *zeroRecord) Msg(msg string) {
 	r.event.Msg(msg)
 	recordPool.Put(r)
 }

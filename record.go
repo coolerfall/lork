@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,9 +29,6 @@ type Record interface {
 	// Bytes adds byte array value to this record.
 	Bytes(key string, val []byte) Record
 
-	// Hex adds hex byte array value to this record.
-	Hex(key string, val []byte) Record
-
 	// Err adds err to this record.
 	Err(err error) Record
 
@@ -53,7 +50,7 @@ type Record interface {
 	// Int8 adds int8 value to this record.
 	Int8(key string, val int8) Record
 
-	// ints8 adds int8 array value to this record.
+	// Ints8 adds int8 array value to this record.
 	Ints8(key string, val []int8) Record
 
 	// Int16 adds int16 value to this record.
@@ -65,13 +62,13 @@ type Record interface {
 	// Int32 adds int32 value to this record.
 	Int32(key string, val int32) Record
 
-	// Int32 adds int32 array value to this record.
+	// Ints32 adds int32 array value to this record.
 	Ints32(key string, val []int32) Record
 
 	// Int64 adds int64 value to this record.
 	Int64(key string, val int64) Record
 
-	// Int64 adds int64 array value to this record.
+	// Ints64 adds int64 array value to this record.
 	Ints64(key string, val []int64) Record
 
 	// Uint adds uint value to this record.
@@ -95,7 +92,7 @@ type Record interface {
 	// Uint32 adds uint32 value to this record.
 	Uint32(key string, val uint32) Record
 
-	// Uint32 adds uint32 array value to this record.
+	// Uints32 adds uint32 array value to this record.
 	Uints32(key string, val []uint32) Record
 
 	// Uint64 adds uint64 value to this record.
@@ -125,14 +122,17 @@ type Record interface {
 	// Dur adds duration value to this record.
 	Dur(key string, val time.Duration) Record
 
-	// Time adds duration array value to this record.
+	// Durs adds duration array value to this record.
 	Durs(key string, val []time.Duration) Record
 
 	// Interface adds interface value to this record.
 	Interface(key string, val interface{}) Record
 
+	// Msge ouputs log without message
+	Msge()
+
 	// Msg adds a message to this record and output log.
-	Msg(msg... string)
+	Msg(msg string)
 
 	// Msgf adds a message with format to this record and output log.
 	Msgf(format string, v ...interface{})

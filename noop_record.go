@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	recordPool = &sync.Pool{
+	noopRecordPool = &sync.Pool{
 		New: func() interface{} {
 			return &noopRecord{}
 		},
@@ -31,7 +31,7 @@ type noopRecord struct {
 }
 
 func newNoopRecord() *noopRecord {
-	return recordPool.Get().(*noopRecord)
+	return noopRecordPool.Get().(*noopRecord)
 }
 
 func (r *noopRecord) Str(_, _ string) Record {
@@ -182,10 +182,14 @@ func (r *noopRecord) Interface(_ string, _ interface{}) Record {
 	return r
 }
 
-func (r *noopRecord) Msg(_ ...string) {
-	recordPool.Put(r)
+func (r *noopRecord) Msge() {
+	noopRecordPool.Put(r)
+}
+
+func (r *noopRecord) Msg(_ string) {
+	noopRecordPool.Put(r)
 }
 
 func (r *noopRecord) Msgf(_ string, _ ...interface{}) {
-	recordPool.Put(r)
+	noopRecordPool.Put(r)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	DefaultLayout = "#color(#date{2006-01-02 15:04:05}){cyan} " +
+	DefaultPattern = "#color(#date{2006-01-02 15:04:05}){cyan} " +
 		"#color(#level) #message #fields"
 )
 
@@ -64,7 +64,7 @@ type patternEncoder struct {
 }
 
 type PatternEncoderOption struct {
-	Layout     string
+	Pattern    string
 	Converters map[string]NewConverter
 }
 
@@ -75,12 +75,12 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		f(opts)
 	}
 
-	var layout = DefaultLayout
-	if len(opts.Layout) != 0 {
-		layout = opts.Layout
+	var pattern = DefaultPattern
+	if len(opts.Pattern) != 0 {
+		pattern = opts.Pattern
 	}
 
-	patternParser := NewPatternParser(layout)
+	patternParser := NewPatternParser(pattern)
 	node, err := patternParser.Parse()
 	if err != nil {
 		ReportfExit("parse pattern error, %v", err)

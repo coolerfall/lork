@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ func TestEncoder(t *testing.T) {
 	RunSpecs(t, "encoder test")
 }
 
-var logEvent = makeEvent([]byte(
+var logEvent = MakeEvent([]byte(
 	`{"level":"INFO","time":"2019-12-27T10:40:14.465199844+08:00","key":"value"}`,
 ))
 var _ = Describe("json encoder", func() {
@@ -49,7 +49,7 @@ var _ = Describe("pattern encoder", func() {
 	It("encode", func() {
 		result := []byte(string(rt) + ` INFO - key=value` + "\n")
 		pe := NewPatternEncoder(func(o *PatternEncoderOption) {
-			o.Layout = "#date{2006-01-02 15:04:05} #level #message #fields"
+			o.Pattern = "#date{2006-01-02 15:04:05} #level #message #fields"
 		})
 		out, err := pe.Encode(logEvent)
 		Expect(err).To(BeNil())

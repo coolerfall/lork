@@ -1,7 +1,7 @@
 slago
 =====
 Simple Logging Abstraction for Go. Slago provides bridge and binder for logger which
-can sent log from logger to another logger you preferred. Slago also provides unified writers, 
+can send log from logger to another logger you preferred. Slago also provides unified writers, 
 encoders and filters, it brings different logger with same apis and flexible configurations.
 
 Install
@@ -9,7 +9,7 @@ Install
 Add the following to your go.mod
 ```text
 require (
-	github.com/coolerfall/slago v0.5.0
+	github.com/coolerfall/slago v0.5.4
 )
 ```
 
@@ -29,23 +29,28 @@ slago.Install(bridge.NewZapBrige())
 
 * Configure the output writer:
 ```go
-cw := slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(
-			"#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) #message #fields")
-	})
-slago.Logger().AddWriter(cw)
+slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
+    o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+        opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+"#level) #color([#logger{16}]){magenta} : #message #fields"
+    })
+}))
 fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewLevelFilter(slago.TraceLevel)
-		o.Filename = "slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
-				o.MaxHistory = 10
-			})
-	})
-slago.Logger().AddWriter(fw)
+    o.Encoder = slago.NewJsonEncoder()
+    o.Filter = slago.NewLevelFilter(slago.DebugLevel)
+    o.Filename = "example/slago-test.log"
+    o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+        func(o *slago.SizeAndTimeBasedRPOption) {
+            o.FilenamePattern = "example/slago-archive.#date{2006-01-02}.#index.log"
+            o.MaxFileSize = "10MB"
+            o.MaxHistory = 10
+    })
+})
+aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+    o.Ref = fw
+})
+slago.Logger().AddWriter(aw)
+
 ```
 
 * Add logging:
@@ -147,14 +152,20 @@ A simple keyword filter which matches the specified keyword.
 
 Credits
 ======
-[slf4j][1]: Simple Logging Facade for Java
-[logback][2]: The reliable, generic, fast and flexible logging framework for Java.
+* [slf4j][1]: Simple Logging Facade for Java
+* [logback][2]: The reliable, generic, fast and flexible logging framework for Java.
+
+Supports
+=======
+If you enjoy this project and want to support it, you can buy a coffee.
+
+<a href="https://www.buymeacoffee.com/coolerfall" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 
 License
 =======
 
-    Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+    Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

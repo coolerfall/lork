@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,6 +68,7 @@ type timeBasedRollingPolicy struct {
 	nextCheck           time.Time
 	timeInCurrentPeriod time.Time
 
+	archiver       Archiver
 	archiveRemover ArchiveRemover
 	maxHistory     int
 
@@ -75,7 +76,7 @@ type timeBasedRollingPolicy struct {
 	rollingDate     *rollingDate
 }
 
-// SizeAndTimeBasedRPOption represents available options for size and time
+// TimeBasedRPOption represents available options for size and time
 // based rolling policy.
 type TimeBasedRPOption struct {
 	FilenamePattern string
@@ -102,6 +103,7 @@ func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolic
 	return &timeBasedRollingPolicy{
 		maxHistory:      opt.MaxHistory,
 		filenamePattern: fp,
+		archiver:        newArchiver(opt.FilenamePattern),
 	}
 }
 
@@ -110,26 +112,7 @@ func (rp *timeBasedRollingPolicy) Prepare() error {
 		return errors.New("invalid filename pattern, contains index pattern")
 	}
 
-	datePattern := rp.filenamePattern.datePattern()
-	if len(datePattern) == 0 {
-		return errors.New("invalid filename pattern, missing date pattern")
-	}
-
-	rp.rollingDate = newRollingDate(datePattern)
-	rp.timeInCurrentPeriod = time.Now()
-	// check latest modification time if file existed
-	if info, err := os.Stat(rp.fileWriter.RawFilename()); err == nil {
-		rp.timeInCurrentPeriod = info.ModTime()
-	}
-	rp.calcNextCheck()
-
-	if rp.maxHistory != 0 {
-		rp.archiveRemover = newTimeBasedArchiveRemover(rp.filenamePattern, rp.rollingDate)
-		rp.archiveRemover.MaxHistory(rp.maxHistory)
-		rp.archiveRemover.CleanAsync(time.Now())
-	}
-
-	return nil
+	return rp.prepare(newTimeBasedArchiveRemover)
 }
 
 func (rp *timeBasedRollingPolicy) Attach(w *fileWriter) {
@@ -154,7 +137,7 @@ func (rp *timeBasedRollingPolicy) Rotate() error {
 
 	rp.timeInCurrentPeriod = time.Now()
 
-	err := rename(rp.fileWriter.RawFilename(), rollingFilename)
+	err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
 
 	if rp.archiveRemover != nil {
 		rp.archiveRemover.CleanAsync(time.Now())
@@ -163,8 +146,36 @@ func (rp *timeBasedRollingPolicy) Rotate() error {
 	return err
 }
 
+func (rp *timeBasedRollingPolicy) prepare(
+	newArchiveRemover func(*filenamePattern, *rollingDate) ArchiveRemover) error {
+	datePattern := rp.filenamePattern.datePattern()
+	if len(datePattern) == 0 {
+		return errors.New("invalid filename pattern, missing date pattern")
+	}
+
+	rp.rollingDate = newRollingDate(datePattern)
+	rp.timeInCurrentPeriod = time.Now()
+	// check latest modification time if file existed
+	if info, err := os.Stat(rp.fileWriter.RawFilename()); err == nil {
+		rp.timeInCurrentPeriod = info.ModTime()
+	}
+	rp.initNextCheck()
+
+	if rp.maxHistory != 0 {
+		rp.archiveRemover = newArchiveRemover(rp.filenamePattern, rp.rollingDate)
+		rp.archiveRemover.MaxHistory(rp.maxHistory)
+		rp.archiveRemover.CleanAsync(time.Now())
+	}
+
+	return nil
+}
+
 func (rp *timeBasedRollingPolicy) calcNextCheck() {
-	rp.nextCheck = rp.rollingDate.next()
+	rp.nextCheck = rp.rollingDate.next(time.Now())
+}
+
+func (rp *timeBasedRollingPolicy) initNextCheck() {
+	rp.nextCheck = rp.rollingDate.next(rp.timeInCurrentPeriod)
 }
 
 type sizeAndTimeBasedRollingPolicy struct {
@@ -215,27 +226,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 		return errors.New("rolling policy is not attached to a file writer")
 	}
 
-	if !rp.filenamePattern.hasIndexConverter() {
-		return errors.New("invalid filename pattern, missing index pattern")
-	}
-
-	datePattern := rp.filenamePattern.datePattern()
-	if len(datePattern) == 0 {
-		return errors.New("invalid filename pattern, missing date pattern")
-	}
-
-	rp.rollingDate = newRollingDate(datePattern)
-	rp.timeInCurrentPeriod = time.Now()
-	// check latest modification time if file existed
-	if info, err := os.Stat(rp.fileWriter.RawFilename()); err == nil {
-		rp.timeInCurrentPeriod = info.ModTime()
-	}
-	rp.calcNextCheck()
-
-	if rp.maxHistory != 0 {
-		rp.archiveRemover = newSizeAndTimeArchiveRemover(rp.filenamePattern, rp.rollingDate)
-		rp.archiveRemover.MaxHistory(rp.maxHistory)
-		rp.archiveRemover.CleanAsync(time.Now())
+	if err := rp.prepare(newSizeAndTimeArchiveRemover); err != nil {
+		return err
 	}
 
 	return rp.calcIndex()
@@ -261,7 +253,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 			rp.timeInCurrentPeriod.Format("2006-01-02"), rp.index)
 	}
 
-	err = rename(rp.fileWriter.RawFilename(), rollingFilename)
+	archiver := rp.timeBasedRollingPolicy.archiver
+	err = archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
 	if err != nil {
 		return
 	}

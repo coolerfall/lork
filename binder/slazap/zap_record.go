@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package slazap
 
 import (
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -58,11 +57,6 @@ func (r *zapRecord) Strs(key string, val []string) slago.Record {
 
 func (r *zapRecord) Bytes(key string, val []byte) slago.Record {
 	r.logger = r.logger.With(zap.ByteString(key, val))
-	return r
-}
-
-func (r *zapRecord) Hex(key string, val []byte) slago.Record {
-	r.logger = r.logger.With(zap.String(key, hex.EncodeToString(val)))
 	return r
 }
 
@@ -267,12 +261,11 @@ func (r *zapRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *zapRecord) Msg(originMsg ...string) {
-	var msg string
-	if len(originMsg) != 0 {
-		msg = originMsg[0]
-	}
+func (r *zapRecord) Msge() {
+	r.Msg("")
+}
 
+func (r *zapRecord) Msg(msg string) {
 	switch r.level {
 	case zapcore.DebugLevel:
 		r.logger.Debug(msg)

@@ -1,5 +1,7 @@
-# 0.5.2
-* Hot fix for loggerc.
+# 0.5.4
+* Fix alloc for atoi and `Msg`.
+* Remove hex log.
+* Fix archiver and time format.
 
 # 0.5.3
 * Fix new line bug.

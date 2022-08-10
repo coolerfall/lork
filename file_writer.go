@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ import (
 	"path/filepath"
 	"sync"
 )
-
-var _ Writer = (*fileWriter)(nil)
 
 const defaultLogFilename = "slago.log"
 
@@ -184,13 +182,11 @@ func (fw *fileWriter) RawFilename() string {
 }
 
 func (fw *fileWriter) rotate() (err error) {
-	err = fw.close()
-	if err != nil {
+	if err = fw.close(); err != nil {
 		return err
 	}
 
-	err = fw.opts.RollingPolicy.Rotate()
-	if err != nil {
+	if err = fw.opts.RollingPolicy.Rotate(); err != nil {
 		return
 	}
 

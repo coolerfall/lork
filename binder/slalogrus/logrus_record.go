@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package slalogrus
 
 import (
-	"encoding/hex"
 	"sync"
 	"time"
 
@@ -56,11 +55,6 @@ func (r *logrusRecord) Strs(key string, val []string) slago.Record {
 
 func (r *logrusRecord) Bytes(key string, val []byte) slago.Record {
 	r.entry = r.entry.WithField(key, val)
-	return r
-}
-
-func (r *logrusRecord) Hex(key string, val []byte) slago.Record {
-	r.Interface(key, hex.EncodeToString(val))
 	return r
 }
 
@@ -229,11 +223,11 @@ func (r *logrusRecord) Interface(key string, val interface{}) slago.Record {
 	return r
 }
 
-func (r *logrusRecord) Msg(originMsg ...string) {
-	var msg string
-	if len(originMsg) != 0 {
-		msg = originMsg[0]
-	}
+func (r *logrusRecord) Msge() {
+	r.Msg("")
+}
+
+func (r *logrusRecord) Msg(msg string) {
 	r.entry.Log(r.level, msg)
 	recordPool.Put(r)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ func TestFilter(t *testing.T) {
 }
 
 var _ = Describe("level filter", func() {
-	var event = makeEvent([]byte(`{"level":"INFO","int":88}`))
+	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
 	It("not filter", func() {
 		filter := NewLevelFilter(InfoLevel)
 		result := filter.Do(event)
@@ -40,7 +40,7 @@ var _ = Describe("level filter", func() {
 	})
 })
 var _ = Describe("keyword filter", func() {
-	var event = makeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
+	var event = MakeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
 	It("not filter", func() {
 		filter := NewKeywordFilter("logger")
 		result := filter.Do(event)

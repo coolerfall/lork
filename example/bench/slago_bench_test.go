@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,22 +26,22 @@ func init() {
 
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
-		//	opt.Layout = "#date{2006-01-02} #level #message #fields"
+		//	opt.Pattern = "#date{2006-01-02} #level #message #fields"
 		//})
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "slago-archive.2020-10-16.0.log"
+		o.Filename = "slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/log/slago/slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
-		o.Ref = fw
-	})
-	slago.Logger().AddWriter(aw)
+	//aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+	//	o.Ref = fw
+	//})
+	slago.Logger().AddWriter(fw)
 }
 
 func BenchmarkSlagoZerolog(b *testing.B) {
@@ -49,8 +49,9 @@ func BenchmarkSlagoZerolog(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger().Info().Int("int", 88).Bool("bool", true).
-				Float32("float32", 2.1).Uint("uint", 9).Str("str", "wrold").Msg(
+			slago.Logger().Info().Int("int", 88888).Bool("bool", true).
+				Float32("float32", 9999.1).Uint("uint", 999).Str("str",
+				"this is long long hello wrold").Msg(
 				"The quick brown fox jumps over the lazy dog")
 		}
 	})

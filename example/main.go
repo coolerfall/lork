@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,19 +37,19 @@ func main() {
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
-			opt.Layout = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
+			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{16}]){magenta} : #message #fields"
 		})
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
 		o.Filter = slago.NewLevelFilter(slago.DebugLevel)
-		o.Filename = "slago-test.log"
+		o.Filename = "example/slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "slago-archive.#date{2006-01-02}.#index.log"
+				o.FilenamePattern = "example/slago-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
-				o.MaxHistory = 1
+				o.MaxHistory = 10
 			})
 	})
 	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
@@ -69,5 +69,5 @@ func main() {
 	logger.Trace().Msg("this will not print")
 	slago.LoggerC().Info().Msg("test for auto logger name")
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 5)
 }
