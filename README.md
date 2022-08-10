@@ -9,7 +9,7 @@ Install
 Add the following to your go.mod
 ```text
 require (
-	github.com/coolerfall/slago v0.5.3
+	github.com/coolerfall/slago v0.5.4
 )
 ```
 
