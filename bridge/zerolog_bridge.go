@@ -64,7 +64,7 @@ func (b *zerologBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {
-	err := slago.BrigeWrite(b, p)
+	err := slago.BridgeWrite(b, p)
 	if err != nil {
 		slago.Reportf("zerolog bridge write error", err)
 	}

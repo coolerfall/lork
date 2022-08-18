@@ -16,7 +16,6 @@ package slago
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -106,7 +105,7 @@ func (r *timeBasedArchiveRemover) calcParentCleanFlag() bool {
 		return true
 	}
 
-	// if literal string subsequent to dtc contains /, the parent should be removed
+	// if literal string after dtc contains /, the parent should be removed
 	c := r.fp.headConverter()
 	for ; c != nil; c = c.Next() {
 		if _, ok := c.(*dateConverter); ok {
@@ -164,7 +163,7 @@ func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
 	if err != nil {
 		return matchingFiles
 	}
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return matchingFiles
 	}

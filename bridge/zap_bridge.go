@@ -66,7 +66,7 @@ func (b *zapBridge) ParseLevel(lvl string) slago.Level {
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	err := slago.BrigeWrite(b, p)
+	err := slago.BridgeWrite(b, p)
 	if err != nil {
 		slago.Reportf("zap bridge write error", err)
 	}

@@ -233,7 +233,7 @@ func (p *patternCompiler) appendConverter(c Converter) {
 		p.head = c
 		p.tail = c
 	} else {
-		p.tail.AttatchNext(c)
+		p.tail.AttachNext(c)
 		p.tail = c
 	}
 }

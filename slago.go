@@ -33,13 +33,13 @@ const RootLoggerName = "ROOT"
 
 var (
 	levelMap = map[string]Level{
-		"TRACE":  TraceLevel,
-		"DEBUG":  DebugLevel,
-		"INFO":   InfoLevel,
-		"WARN":   WarnLevel,
-		"ERROR":  ErrorLevel,
-		"FALTAL": FatalLevel,
-		"PANIC":  PanicLevel,
+		"TRACE": TraceLevel,
+		"DEBUG": DebugLevel,
+		"INFO":  InfoLevel,
+		"WARN":  WarnLevel,
+		"ERROR": ErrorLevel,
+		"FATAL": FatalLevel,
+		"PANIC": PanicLevel,
 	}
 )
 
@@ -74,7 +74,7 @@ type SlaLogger interface {
 	// Error logs with error level.
 	Error() Record
 
-	// Fatal logs with faltal level.
+	// Fatal logs with fatal level.
 	Fatal() Record
 
 	// Panic logs with panic level.
@@ -181,7 +181,7 @@ func Bind(logger SlaLogger) {
 }
 
 // Install installs a logging framework bridge into slago. All the log of the bridge
-// will be delegated to slagto if the logging framework bridge was installed.
+// will be delegated to slago if the logging framework bridge was installed.
 func Install(bridge Bridge) {
 	bridges = append(bridges, bridge)
 }
@@ -197,7 +197,7 @@ func (l Level) String() string {
 	case ErrorLevel:
 		return "ERROR"
 	case FatalLevel:
-		return "FALTAL"
+		return "FATAL"
 	case PanicLevel:
 		return "PANIC"
 	case TraceLevel:

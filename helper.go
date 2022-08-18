@@ -37,13 +37,13 @@ const (
 
 	slash = "/"
 
-	secondsInOneMinite = 60
-	secondsInOneHour   = 60 * secondsInOneMinite
+	secondsInOneMinute = 60
+	secondsInOneHour   = 60 * secondsInOneMinute
 	secondsInOneDay    = 24 * secondsInOneHour
 )
 
-// BrigeWrite writes data from bridge to slago logger.
-func BrigeWrite(bridge Bridge, p []byte) error {
+// BridgeWrite writes data from bridge to slago logger.
+func BridgeWrite(bridge Bridge, p []byte) error {
 	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
 	msg, _ := jsonparser.GetString(p, MessageFieldKey)
 
@@ -90,18 +90,18 @@ func makeRecord(lvl Level) Record {
 	}
 }
 
-// Report reports message in stdou
+// Report reports message in stdout
 func Report(msg string) {
 	Reportf(msg)
 }
 
-// Reportf reports message with arguments in stdou
+// Reportf reports message with arguments in stdout
 func Reportf(format string, args ...interface{}) {
 	format = "slago: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
 }
 
-// ReportfExit reportes message with arguments in stdout and exit process.
+// ReportfExit reports message with arguments in stdout and exit process.
 func ReportfExit(format string, args ...interface{}) {
 	Reportf(format, args...)
 	os.Exit(0)

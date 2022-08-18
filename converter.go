@@ -22,10 +22,10 @@ import (
 
 // Converter represents a pattern converter which will convert pattern to string.
 type Converter interface {
-	// AttatchNext attatches next converter to the chain.
-	AttatchNext(next Converter)
+	// AttachNext attaches next converter to the chain.
+	AttachNext(next Converter)
 
-	// Next gets next from the chain.
+	// Next will get next converter from the chain.
 	Next() Converter
 
 	// AttachChild attaches child converter to current converter.
@@ -51,7 +51,7 @@ func NewLiteralConverter(value string) Converter {
 	}
 }
 
-func (c *literalConverter) AttatchNext(next Converter) {
+func (c *literalConverter) AttachNext(next Converter) {
 	c.next = next
 }
 
@@ -80,7 +80,7 @@ func newDateConverter() Converter {
 	}
 }
 
-func (c *dateConverter) AttatchNext(next Converter) {
+func (c *dateConverter) AttachNext(next Converter) {
 	c.next = next
 }
 
@@ -125,7 +125,7 @@ func newIndexConverter() Converter {
 	return &indexConverter{}
 }
 
-func (c *indexConverter) AttatchNext(next Converter) {
+func (c *indexConverter) AttachNext(next Converter) {
 	c.next = next
 }
 
