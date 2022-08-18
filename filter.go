@@ -21,7 +21,7 @@ import (
 
 // Filter represents a logging filter for slago.
 type Filter interface {
-	// Do filters the logging. True means filterd, otherwise pass through.
+	// Do filters the logging. True means filtered, otherwise pass through.
 	Do(e *LogEvent) bool
 }
 

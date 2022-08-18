@@ -126,7 +126,7 @@ func MakeEvent(p []byte) *LogEvent {
 			event.makeMessage(v)
 
 		default:
-			event.makeFileds(k, v, dataType == jsonparser.String)
+			event.makeFields(k, v, dataType == jsonparser.String)
 		}
 
 		return nil
@@ -154,7 +154,7 @@ func (e *LogEvent) makeMessage(v []byte) {
 	e.message.Write(bytes.TrimRight(m, "\n"))
 }
 
-func (e *LogEvent) makeFileds(k, v []byte, isString bool) {
+func (e *LogEvent) makeFields(k, v []byte, isString bool) {
 	e.fields.Write(k)
 	e.fields.Write(v)
 	e.fieldsIndex.WriteString(strconv.Itoa(len(k)))

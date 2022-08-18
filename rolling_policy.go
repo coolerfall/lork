@@ -17,7 +17,6 @@ package slago
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -83,7 +82,7 @@ type TimeBasedRPOption struct {
 	MaxHistory      int
 }
 
-// NewTimeBasedRollingPolicy creates a instance of time based rolling policy
+// NewTimeBasedRollingPolicy creates an instance of time based rolling policy
 // for file writer.
 func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolicy {
 	opt := &TimeBasedRPOption{
@@ -272,7 +271,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	parentDir := filepath.Dir(rollingFilename)
-	files, err := ioutil.ReadDir(parentDir)
+	files, err := os.ReadDir(parentDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			rp.index = 0

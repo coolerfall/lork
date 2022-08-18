@@ -373,7 +373,7 @@ func absDate(abs uint64, full bool) (year int, month time.Month, day int, yday i
 	// Split into time and day.
 	d := abs / secondsPerDay
 
-	// Account for 400 year cycles.
+	// Account for 400-year cycles.
 	n := d / daysPer400Years
 	y := 400 * n
 	d -= daysPer400Years * n
@@ -476,7 +476,7 @@ func isLeap(year int) bool {
 }
 
 // convertFormat parses the origin timestamp in 2006-01-02T15:04:05.000Z07:00 format,
-// and convert to new layout. This will appends the textual representation to b and
+// and convert to new layout. This will append the textual representation to b and
 // returns the extended buffer.
 func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
 	var (
@@ -723,7 +723,7 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 					// Fractional second in the layout; proceed normally
 					break
 				}
-				// No fractional second in the layout but we have one in the input.
+				// No fractional second in the layout, but we have one in the input.
 				n := 2
 				for ; n < len(value) && isDigit(value, n); n++ {
 				}

@@ -20,12 +20,11 @@ import (
 )
 
 type EventWriter interface {
-
 	Write(event *LogEvent) (err error)
 }
 
-// Writer is the interface that wraps the io.Writer, add adds
-// Encoder and Filter func for slago to ecnode and filter logs.
+// Writer is the interface that wraps the io.Writer, add
+// Encoder and Filter func for slago to encode and filter logs.
 type Writer interface {
 	io.Writer
 

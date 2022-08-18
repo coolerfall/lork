@@ -47,7 +47,7 @@ type socketWriter struct {
 	reconnDelay time.Duration
 }
 
-// NewSocketWriter create a logging writter via socket.
+// NewSocketWriter create a logging writer via socket.
 func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 	opts := &SocketWriterOption{
 		QueueSize:         defaultSocketQueueSize,

@@ -104,7 +104,7 @@ func (rd *rollingDate) periodCrossed(start int64, end int64) int {
 	diff := end - start
 	switch rd._type {
 	case topOfMinute:
-		return int(diff / secondsInOneMinite)
+		return int(diff / secondsInOneMinute)
 
 	case topOfHour:
 		return int(diff / secondsInOneHour)

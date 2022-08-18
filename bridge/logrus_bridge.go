@@ -88,7 +88,7 @@ func (b *logrusBridge) Write(p []byte) (int, error) {
 	p = b.buf.Bytes()
 	b.buf.Reset()
 
-	err := slago.BrigeWrite(b, p)
+	err := slago.BridgeWrite(b, p)
 	if err != nil {
 		slago.Reportf("logrus bridge write error", err)
 	}
