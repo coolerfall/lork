@@ -32,8 +32,11 @@ const (
 	TimestampFieldKey = "time"
 	MessageFieldKey   = "message"
 	LoggerFieldKey    = "logger_name"
+	ErrorFieldKey     = "error"
 
 	TimestampFormat = time.RFC3339Nano
+
+	TimeFormatRFC3339 = "2006-01-02T15:04:05.000Z07:00"
 
 	slash = "/"
 

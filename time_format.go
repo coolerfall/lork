@@ -479,6 +479,19 @@ func isLeap(year int) bool {
 // and convert to new layout. This will append the textual representation to b and
 // returns the extended buffer.
 func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
+	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
+	if err != nil {
+		return b, err
+	}
+
+	return appendFormatUnix(b, utcUnixNano, newLayout)
+}
+
+func appendFormat(b []byte, t time.Time, layout string) ([]byte, error) {
+	return appendFormatUnix(b, t.UnixNano(), layout)
+}
+
+func appendFormatUnix(b []byte, utcUnixNano int64, layout string) ([]byte, error) {
 	var (
 		year  = -1
 		month time.Month
@@ -490,10 +503,6 @@ func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, er
 
 	local := time.Now()
 	zoneName, offset := local.Zone()
-	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
-	if err != nil {
-		return b, err
-	}
 
 	localTime := utcUnixNano + int64(offset*1000000000)
 	unixSec := localTime / 1000000000
@@ -501,15 +510,15 @@ func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, er
 	nano := localTime % 1000000000
 
 	// Each iteration generates one std value.
-	for newLayout != "" {
-		prefix, std, suffix := nextStdChunk(newLayout)
+	for layout != "" {
+		prefix, std, suffix := nextStdChunk(layout)
 		if prefix != "" {
 			b = append(b, prefix...)
 		}
 		if std == 0 {
 			break
 		}
-		newLayout = suffix
+		layout = suffix
 
 		// Compute year, month, day if needed.
 		if year < 0 && std&stdNeedDate != 0 {

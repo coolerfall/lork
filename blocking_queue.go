@@ -15,7 +15,6 @@
 package slago
 
 import (
-	"bytes"
 	"sync"
 )
 
@@ -23,7 +22,7 @@ type blockingQueue struct {
 	locker   *sync.Mutex
 	notEmpty *sync.Cond
 	notFull  *sync.Cond
-	items    []*bytes.Buffer
+	items    []interface{}
 
 	count     int
 	takeIndex int
@@ -34,16 +33,11 @@ type blockingQueue struct {
 func NewBlockingQueue(capacity int) *blockingQueue {
 	lock := new(sync.Mutex)
 
-	items := make([]*bytes.Buffer, capacity)
-	for i := 0; i < capacity; i++ {
-		items[i] = new(bytes.Buffer)
-	}
-
 	return &blockingQueue{
 		locker:   lock,
 		notEmpty: sync.NewCond(lock),
 		notFull:  sync.NewCond(lock),
-		items:    items,
+		items:    make([]interface{}, capacity),
 	}
 }
 
@@ -56,7 +50,7 @@ func (q *blockingQueue) RemainCapacity() int {
 }
 
 // Put puts an item into queue.
-func (q *blockingQueue) Put(item []byte) {
+func (q *blockingQueue) Put(item interface{}) {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
@@ -64,7 +58,7 @@ func (q *blockingQueue) Put(item []byte) {
 		q.notFull.Wait()
 	}
 
-	q.items[q.putIndex].Write(item)
+	q.items[q.putIndex] = item
 	q.putIndex++
 	if q.putIndex == len(q.items) {
 		q.putIndex = 0
@@ -75,7 +69,7 @@ func (q *blockingQueue) Put(item []byte) {
 }
 
 // Take takes an item from queue.
-func (q *blockingQueue) Take() []byte {
+func (q *blockingQueue) Take() interface{} {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
@@ -90,10 +84,7 @@ func (q *blockingQueue) Take() []byte {
 	}
 	q.count--
 
-	data := next.Bytes()
-	next.Reset()
-
 	q.notFull.Signal()
 
-	return data
+	return next
 }

@@ -71,7 +71,7 @@ func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 
 	conn, _, err := websocket.DefaultDialer.Dial(opts.RemoteUrl.String(), nil)
 	if err != nil {
-		ReportfExit("connect socket server error: %v", err)
+		ReportfExit("connect socket server error, check your remote url: %v", err)
 	}
 
 	return &socketWriter{
@@ -127,9 +127,8 @@ func (w *socketWriter) startWorker() {
 			break
 		}
 
-		p := w.queue.Take()
-
-		err := w.conn.WriteMessage(websocket.BinaryMessage, p)
+		event := (w.queue.Take()).([]byte)
+		err := w.conn.WriteMessage(websocket.BinaryMessage, event)
 		if err == nil {
 			continue
 		}
