@@ -32,7 +32,7 @@ var logEvent = MakeEvent([]byte(
 var _ = Describe("json encoder", func() {
 	var data []byte
 	rt, _ := convertFormat(data,
-		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, jsonTimeFormat)
+		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, TimeFormatRFC3339)
 	It("encode", func() {
 		result := []byte(`{"time":"` + string(rt) + `","level":"INFO","logger_name":"","message":"","key":"value"}` + "\n")
 		je := NewJsonEncoder()
