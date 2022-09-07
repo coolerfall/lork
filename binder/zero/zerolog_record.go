@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slazero
+package zero
 
 import (
 	"sync"
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	recordPool = &sync.Pool{
+	zeroRecordPool = &sync.Pool{
 		New: func() interface{} {
 			return &zeroRecord{}
 		},
@@ -35,7 +35,7 @@ type zeroRecord struct {
 }
 
 func newZeroRecord(e *zerolog.Event) *zeroRecord {
-	r := recordPool.Get().(*zeroRecord)
+	r := zeroRecordPool.Get().(*zeroRecord)
 	r.event = e
 	return r
 }
@@ -226,10 +226,10 @@ func (r *zeroRecord) Msge() {
 
 func (r *zeroRecord) Msg(msg string) {
 	r.event.Msg(msg)
-	recordPool.Put(r)
+	zeroRecordPool.Put(r)
 }
 
 func (r *zeroRecord) Msgf(format string, v ...interface{}) {
 	r.event.Msgf(format, v...)
-	recordPool.Put(r)
+	zeroRecordPool.Put(r)
 }

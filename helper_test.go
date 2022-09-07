@@ -16,19 +16,12 @@ package slago
 
 import (
 	"bytes"
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestHelper(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "helper test")
-}
-
-var _ = Describe("helper", func() {
-	It("replace json", func() {
+var _ = ginkgo.Describe("helper", func() {
+	ginkgo.It("replace json", func() {
 		var buf = new(bytes.Buffer)
 		var json = []byte(`{"level":"INFO","int":88}`)
 		var result = `{"level":"INFO","ints":99}` + "\n"

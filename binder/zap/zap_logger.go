@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slazap
+package zap
 
 import (
 	"time"
@@ -109,6 +109,10 @@ func (l *zapLogger) Fatal() slago.Record {
 
 func (l *zapLogger) Panic() slago.Record {
 	return newZapRecord(zapcore.PanicLevel)
+}
+
+func (l *zapLogger) Level(lvl slago.Level) slago.Record {
+	return newZapRecord(slagoLvlToZapLvl[lvl])
 }
 
 func (l *zapLogger) WriteRaw(p []byte) {

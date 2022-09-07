@@ -15,22 +15,48 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"time"
 
 	"github.com/coolerfall/slago"
+	logrusb "github.com/coolerfall/slago/binder/logrus"
+	zapb "github.com/coolerfall/slago/binder/zap"
+	"github.com/coolerfall/slago/binder/zero"
 	"github.com/coolerfall/slago/bridge"
 	"github.com/sirupsen/logrus"
-	// "github.com/coolerfall/slago/binder/slalogrus"
-	// "github.com/coolerfall/slago/binder/slazap"
 	"go.uber.org/zap"
 )
 
 func main() {
+	var binderName string
+	flag.StringVar(&binderName, "b", "builtin", "")
+	flag.Parse()
+
+	switch binderName {
+	case "logrus":
+		slago.Bind(logrusb.NewLogrusLogger())
+		slago.Install(bridge.NewZerologBridge())
+		slago.Install(bridge.NewZapBrige())
+
+	case "zerolog":
+		slago.Bind(zero.NewZeroLogger())
+		slago.Install(bridge.NewLogrusBridge())
+		slago.Install(bridge.NewZapBrige())
+
+	case "zap":
+		slago.Bind(zapb.NewZapLogger())
+		slago.Install(bridge.NewLogrusBridge())
+		slago.Install(bridge.NewZerologBridge())
+
+	default:
+		slago.Bind(slago.NewClassicLogger())
+		slago.Install(bridge.NewLogrusBridge())
+		slago.Install(bridge.NewZapBrige())
+		slago.Install(bridge.NewZerologBridge())
+	}
+
 	slago.Install(slago.NewLogBridge())
-	slago.Install(bridge.NewLogrusBridge())
-	//slago.Install(bridge.NewZerologBridge())
-	slago.Install(bridge.NewZapBrige())
 
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
@@ -54,8 +80,10 @@ func main() {
 	})
 	slago.Logger().AddWriter(aw)
 
+	slago.Logger().Info().Msgf("bind with: %s", slago.Logger().Name())
 	slago.Logger().Trace().Msg("slago\nThis is a message \n\n")
-	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).Interface("slago", "val").Msg("")
+	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).
+		Interface("slago", "val").Msge()
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
 	log.Printf("this is builtin logger\n\n")
@@ -64,7 +92,11 @@ func main() {
 	logger.Debug().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
-	slago.LoggerC().Info().Msg("test for auto logger name")
+	logger.Info().Interface("intf", map[string]interface{}{
+		"name": "dog",
+		"age":  2,
+	}).Msg("this is interface")
+	slago.LoggerC().Info().Bytes("sss", []byte("ABCK")).Msg("test for auto logger name")
 
 	time.Sleep(time.Second * 5)
 }

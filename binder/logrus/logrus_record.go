@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slalogrus
+package logrus
 
 import (
 	"sync"
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	recordPool = &sync.Pool{
+	logrusRecordPool = &sync.Pool{
 		New: func() interface{} {
 			return &logrusRecord{}
 		},
@@ -36,7 +36,7 @@ type logrusRecord struct {
 }
 
 func newLogrusRecord(lvl logrus.Level) *logrusRecord {
-	r := recordPool.Get().(*logrusRecord)
+	r := logrusRecordPool.Get().(*logrusRecord)
 	r.entry = logrus.NewEntry(logrus.StandardLogger())
 	r.level = lvl
 
@@ -229,10 +229,10 @@ func (r *logrusRecord) Msge() {
 
 func (r *logrusRecord) Msg(msg string) {
 	r.entry.Log(r.level, msg)
-	recordPool.Put(r)
+	logrusRecordPool.Put(r)
 }
 
 func (r *logrusRecord) Msgf(format string, v ...interface{}) {
 	r.entry.Logf(r.level, format, v...)
-	recordPool.Put(r)
+	logrusRecordPool.Put(r)
 }

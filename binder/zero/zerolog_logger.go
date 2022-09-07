@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slazero
+package zero
 
 import (
 	"github.com/coolerfall/slago"
@@ -99,6 +99,10 @@ func (l *zeroLogger) Fatal() slago.Record {
 
 func (l *zeroLogger) Panic() slago.Record {
 	return newZeroRecord(l.logger.Panic())
+}
+
+func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
+	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
 }
 
 func (l *zeroLogger) WriteRaw(p []byte) {
