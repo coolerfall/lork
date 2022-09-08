@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slalogrus
+package logrus
 
 import (
 	"github.com/coolerfall/slago"
@@ -99,6 +99,10 @@ func (l *logrusLogger) Fatal() slago.Record {
 
 func (l *logrusLogger) Panic() slago.Record {
 	return newLogrusRecord(logrus.PanicLevel)
+}
+
+func (l *logrusLogger) Level(lvl slago.Level) slago.Record {
+	return newLogrusRecord(slagoLvlToLogrusLvl[lvl])
 }
 
 func (l *logrusLogger) WriteRaw(p []byte) {

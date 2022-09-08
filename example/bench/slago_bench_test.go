@@ -22,27 +22,7 @@ import (
 )
 
 func init() {
-	//slago.Bind(slazero.NewZeroLogger())
-	slago.Bind(slago.NewLogbackLogger())
 
-	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		//o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
-		//	opt.Pattern = "#date{2006-01-02} #level #message #fields"
-		//})
-		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
-		o.Filename = "/tmp/slago/slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
-			})
-	})
-
-	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
-		o.Ref = fw
-	})
-	slago.Logger().AddWriter(aw)
 }
 
 var (
@@ -57,12 +37,119 @@ var (
 	ds      = []time.Duration{time.Second * 14, time.Minute * 2}
 )
 
-func BenchmarkSlagoBuiltin(b *testing.B) {
+func init() {
+	slago.Bind(slago.NewClassicLogger())
+}
+
+func BenchmarkJsonFileWirter(b *testing.B) {
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		o.Encoder = slago.NewJsonEncoder()
+		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
+		o.Filename = "/tmp/slago/slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
+	})
+
+	slago.Logger().AddWriter(fw)
+
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			slago.Logger("github.com/coolerfall/slago/bench").
 				Info().
+				Bytes("bytes", bytes).
+				Int("int", 88888).Ints("ints", ints).
+				Bool("bool", true).Bools("bools", bools).
+				Float32("float32", 9999.1).Uint("uint", 999).
+				Time("timef", t).Times("times", times).
+				Dur("dur", d).Durs("durs", ds).
+				Str("str", longStr).Strs("strs", strs).
+				Msg("The quick brown fox jumps over the lazy dog")
+		}
+	})
+}
+
+func BenchmarkPatternFileWirter(b *testing.B) {
+	slago.Logger().ResetWriter()
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+			opt.Pattern = "#date{2006-01-02} #level #message #fields"
+		})
+		o.Filename = "/tmp/slago/slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
+	})
+
+	slago.Logger().AddWriter(fw)
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			slago.Logger("github.com/coolerfall/slago/bench").
+				Info().
+				Bytes("bytes", bytes).
+				Int("int", 88888).Ints("ints", ints).
+				Bool("bool", true).Bools("bools", bools).
+				Float32("float32", 9999.1).Uint("uint", 999).
+				Time("timef", t).Times("times", times).
+				Dur("dur", d).Durs("durs", ds).
+				Str("str", longStr).Strs("strs", strs).
+				Msg("The quick brown fox jumps over the lazy dog")
+		}
+	})
+}
+
+func BenchmarkAsyncFileWirter(b *testing.B) {
+	slago.Logger().ResetWriter()
+	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
+		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+			opt.Pattern = "#date{2006-01-02} #level #message #fields"
+		})
+		o.Filename = "/tmp/slago/slago-test.log"
+		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
+			func(o *slago.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+				o.MaxFileSize = "10MB"
+			})
+	})
+
+	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+		o.Ref = fw
+	})
+	slago.Logger().AddWriter(aw)
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			slago.Logger("github.com/coolerfall/slago/bench").
+				Info().
+				Bytes("bytes", bytes).
+				Int("int", 88888).Ints("ints", ints).
+				Bool("bool", true).Bools("bools", bools).
+				Float32("float32", 9999.1).Uint("uint", 999).
+				Time("timef", t).Times("times", times).
+				Dur("dur", d).Durs("durs", ds).
+				Str("str", longStr).Strs("strs", strs).
+				Msg("The quick brown fox jumps over the lazy dog")
+		}
+	})
+}
+
+func BenchmarkNoWirter(b *testing.B) {
+	slago.Logger().ResetWriter()
+
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			slago.Logger("github.com/coolerfall/slago/bench").
+				Info().
+				Bytes("bytes", bytes).
 				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).

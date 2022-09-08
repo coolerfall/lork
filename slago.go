@@ -80,6 +80,9 @@ type SlaLogger interface {
 	// Panic logs with panic level.
 	Panic() Record
 
+	// Level logs with specified level.
+	Level(lvl Level) Record
+
 	// WriteRaw writes raw logging event.
 	WriteRaw(p []byte)
 }
@@ -109,9 +112,8 @@ func Logger(name ...string) SlaLogger {
 		if loggerLen > 1 {
 			Report("multiple slago logger implementation found")
 		} else if loggerLen == 0 {
-			Bind(NewLogbackLogger())
-			Report("no slago logger found, default to " +
-				"no-operation (NOOP) logger implementation")
+			Bind(NewClassicLogger())
+			Report("no slago logger found, default to builtin logger implementation")
 		}
 		logger := loggers[0]
 
@@ -144,6 +146,8 @@ func findLogger(name ...string) SlaLogger {
 	var realName string
 	if len(name) > 0 {
 		realName = name[0]
+	} else {
+		return rootLogger
 	}
 
 	child, ok := loggerCache[realName]
@@ -164,7 +168,7 @@ func findLogger(name ...string) SlaLogger {
 		i = index + 1
 		child, ok = loggerCache[childName]
 		if !ok {
-			child = newClassicLogger(childName, rootLogger, logger)
+			child = newNamedLogger(childName, rootLogger, logger)
 			loggerCache[childName] = child
 		}
 		logger = child

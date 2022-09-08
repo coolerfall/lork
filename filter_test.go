@@ -15,38 +15,31 @@
 package slago
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestFilter(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "filter test")
-}
-
-var _ = Describe("level filter", func() {
+var _ = ginkgo.Describe("level filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
-	It("not filter", func() {
+	ginkgo.It("not filter", func() {
 		filter := NewLevelFilter(InfoLevel)
 		result := filter.Do(event)
 		Expect(result).To(Equal(false))
 	})
-	It("filter", func() {
+	ginkgo.It("filter", func() {
 		filter := NewLevelFilter(ErrorLevel)
 		result := filter.Do(event)
 		Expect(result).To(Equal(true))
 	})
 })
-var _ = Describe("keyword filter", func() {
+var _ = ginkgo.Describe("keyword filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
-	It("not filter", func() {
+	ginkgo.It("not filter", func() {
 		filter := NewKeywordFilter("logger")
 		result := filter.Do(event)
 		Expect(result).To(Equal(false))
 	})
-	It("filter", func() {
+	ginkgo.It("filter", func() {
 		filter := NewKeywordFilter("name=key", "int")
 		result := filter.Do(event)
 		Expect(result).To(Equal(true))

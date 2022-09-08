@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	slago.Bind(slago.NewLogbackLogger())
+	slago.Install(slago.NewLogBridge())
+	slago.Bind(slago.NewClassicLogger())
 
 	sw := slago.NewSocketWriter(func(o *slago.SocketWriterOption) {
 		o.RemoteUrl, _ = url.Parse("ws://localhost:6060/ws/log")
@@ -24,7 +25,7 @@ func main() {
 	slago.Logger().AddWriter(sw)
 
 	for now := range time.Tick(5 * time.Second) {
-		slago.Logger("slago/example/socket/client").Info().Time("tick",
-			now).Msg("This is log from client")
+		slago.Logger("slago/example/socket/client").Info().Time("tick", now).
+			Msg("This is log from client")
 	}
 }

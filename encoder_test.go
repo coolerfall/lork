@@ -15,25 +15,18 @@
 package slago
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestEncoder(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "encoder test")
-}
 
 var logEvent = MakeEvent([]byte(
 	`{"level":"INFO","time":"2019-12-27T10:40:14.465199844+08:00","key":"value"}`,
 ))
-var _ = Describe("json encoder", func() {
+var _ = ginkgo.Describe("json encoder", func() {
 	var data []byte
 	rt, _ := convertFormat(data,
 		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, TimeFormatRFC3339)
-	It("encode", func() {
+	ginkgo.It("encode", func() {
 		result := []byte(`{"time":"` + string(rt) + `","level":"INFO","logger_name":"","message":"","key":"value"}` + "\n")
 		je := NewJsonEncoder()
 		out, err := je.Encode(logEvent)
@@ -42,11 +35,11 @@ var _ = Describe("json encoder", func() {
 	})
 })
 
-var _ = Describe("pattern encoder", func() {
+var _ = ginkgo.Describe("pattern encoder", func() {
 	var data []byte
 	rt, _ := convertFormat(data,
 		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, "2006-01-02 15:04:05")
-	It("encode", func() {
+	ginkgo.It("encode", func() {
 		result := []byte(string(rt) + ` INFO - key=value` + "\n")
 		pe := NewPatternEncoder(func(o *PatternEncoderOption) {
 			o.Pattern = "#date{2006-01-02 15:04:05} #level #message #fields"

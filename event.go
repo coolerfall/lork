@@ -274,7 +274,10 @@ func (e *LogEvent) appendBytes(key string, value []byte) {
 		if e.appender.Len() > 1 {
 			e.appender.WriteString(",")
 		}
-		e.appender.WriteString(strconv.Itoa(int(v)))
+		data := e.tmp.Bytes()
+		data = strconv.AppendInt(data, int64(v), 10)
+		e.tmp.Reset()
+		e.appender.Write(data)
 	}
 	e.appender.WriteString("]")
 	data := e.appender.Bytes()

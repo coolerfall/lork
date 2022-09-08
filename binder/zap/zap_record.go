@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slazap
+package zap
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	recordPool = &sync.Pool{
+	zapRecordPool = &sync.Pool{
 		New: func() interface{} {
 			return &zapRecord{}
 		},
@@ -38,7 +38,7 @@ type zapRecord struct {
 }
 
 func newZapRecord(lvl zapcore.Level) *zapRecord {
-	r := recordPool.Get().(*zapRecord)
+	r := zapRecordPool.Get().(*zapRecord)
 	r.logger = zap.L()
 	r.level = lvl
 
@@ -281,7 +281,7 @@ func (r *zapRecord) Msg(msg string) {
 		r.logger.Panic(msg)
 	}
 
-	recordPool.Put(r)
+	zapRecordPool.Put(r)
 }
 
 func (r *zapRecord) Msgf(format string, v ...interface{}) {
@@ -302,5 +302,5 @@ func (r *zapRecord) Msgf(format string, v ...interface{}) {
 		sl.Panicf(format, v...)
 	}
 
-	recordPool.Put(r)
+	zapRecordPool.Put(r)
 }
