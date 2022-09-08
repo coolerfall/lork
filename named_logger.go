@@ -77,7 +77,24 @@ func (cl *namedLogger) Panic() Record {
 }
 
 func (cl *namedLogger) Level(lvl Level) Record {
-	return cl.makeRecord(lvl, cl.root.Panic)
+	switch lvl {
+	case DebugLevel:
+		return cl.makeRecord(lvl, cl.root.Debug)
+	case InfoLevel:
+		return cl.makeRecord(lvl, cl.root.Info)
+	case WarnLevel:
+		return cl.makeRecord(lvl, cl.root.Warn)
+	case ErrorLevel:
+		return cl.makeRecord(lvl, cl.root.Error)
+	case FatalLevel:
+		return cl.makeRecord(lvl, cl.root.Fatal)
+	case PanicLevel:
+		return cl.makeRecord(lvl, cl.root.Panic)
+	case TraceLevel:
+		fallthrough
+	default:
+		return cl.makeRecord(lvl, cl.root.Trace)
+	}
 }
 
 func (cl *namedLogger) WriteRaw(p []byte) {

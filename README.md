@@ -155,10 +155,10 @@ Benchmarks
 Benchmarks with complex log field, diferent encoder and writer.
 ```text
 cpu: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
-BenchmarkJsonFileWirter-8      	  250128	      5290 ns/op	       0 B/op	       0 allocs/op
-BenchmarkPatternFileWirter-8   	  313402	      3777 ns/op	       0 B/op	       0 allocs/op
-BenchmarkAsyncFileWirter-8     	 1107603	      1060 ns/op	       0 B/op	       0 allocs/op
-BenchmarkNoWirter-8            	 1441761	       843.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkJsonFileWirter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
+BenchmarkPatternFileWirter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
+BenchmarkAsyncFileWirter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
+BenchmarkNoWirter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
 ```
 
 Credits
