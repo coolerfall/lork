@@ -105,8 +105,8 @@ func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
 	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
 }
 
-func (l *zeroLogger) WriteRaw(p []byte) {
-	_, err := l.multiWriter.Write(p)
+func (l *zeroLogger) WriteEvent(e *slago.LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

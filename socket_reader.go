@@ -101,7 +101,7 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			LoggerC().WriteRaw(data)
+			LoggerC().WriteEvent(MakeEvent(data))
 		}
 	}
 }

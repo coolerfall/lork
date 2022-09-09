@@ -115,8 +115,8 @@ func (l *zapLogger) Level(lvl slago.Level) slago.Record {
 	return newZapRecord(slagoLvlToZapLvl[lvl])
 }
 
-func (l *zapLogger) WriteRaw(p []byte) {
-	_, err := l.multiWriter.Write(p)
+func (l *zapLogger) WriteEvent(e *slago.LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

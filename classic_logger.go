@@ -73,8 +73,8 @@ func (l *classicLogger) Level(lvl Level) Record {
 	return newClassicRecord(lvl, l.multiWriter)
 }
 
-func (l *classicLogger) WriteRaw(p []byte) {
-	_, err := l.multiWriter.Write(p)
+func (l *classicLogger) WriteEvent(e *LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}
