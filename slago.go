@@ -83,8 +83,8 @@ type SlaLogger interface {
 	// Level logs with specified level.
 	Level(lvl Level) Record
 
-	// WriteRaw writes raw logging event.
-	WriteRaw(p []byte)
+	// WriteEvent writes raw logging event.
+	WriteEvent(e *LogEvent)
 }
 
 // Bridge represents bridge between other logging framework and slago logger.

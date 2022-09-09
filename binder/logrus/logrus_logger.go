@@ -105,8 +105,8 @@ func (l *logrusLogger) Level(lvl slago.Level) slago.Record {
 	return newLogrusRecord(slagoLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) WriteRaw(p []byte) {
-	_, err := l.multiWriter.Write(p)
+func (l *logrusLogger) WriteEvent(e *slago.LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")
 	}

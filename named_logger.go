@@ -97,8 +97,8 @@ func (cl *namedLogger) Level(lvl Level) Record {
 	}
 }
 
-func (cl *namedLogger) WriteRaw(p []byte) {
-	cl.parent.WriteRaw(p)
+func (cl *namedLogger) WriteEvent(e *LogEvent) {
+	cl.parent.WriteEvent(e)
 }
 
 func (cl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {
