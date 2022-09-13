@@ -125,8 +125,8 @@ type Record interface {
 	// Durs adds duration array value to this record.
 	Durs(key string, val []time.Duration) Record
 
-	// Interface adds interface value to this record.
-	Interface(key string, val interface{}) Record
+	// Any adds any value to this record.
+	Any(key string, val interface{}) Record
 
 	// Msge ouputs log without message
 	Msge()

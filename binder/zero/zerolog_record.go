@@ -215,7 +215,7 @@ func (r *zeroRecord) Durs(key string, val []time.Duration) slago.Record {
 	return r
 }
 
-func (r *zeroRecord) Interface(key string, val interface{}) slago.Record {
+func (r *zeroRecord) Any(key string, val interface{}) slago.Record {
 	r.event.Interface(key, val)
 	return r
 }

@@ -218,7 +218,7 @@ func (r *classicRecord) Durs(key string, val []time.Duration) Record {
 	return r
 }
 
-func (r *classicRecord) Interface(key string, val interface{}) Record {
+func (r *classicRecord) Any(key string, val interface{}) Record {
 	switch val.(type) {
 	case string:
 		r.Str(key, val.(string))

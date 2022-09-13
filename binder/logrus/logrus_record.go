@@ -218,7 +218,7 @@ func (r *logrusRecord) Durs(key string, val []time.Duration) slago.Record {
 	return r
 }
 
-func (r *logrusRecord) Interface(key string, val interface{}) slago.Record {
+func (r *logrusRecord) Any(key string, val interface{}) slago.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
