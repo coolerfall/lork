@@ -83,7 +83,7 @@ func main() {
 	slago.Logger().Info().Msgf("bind with: %s", slago.Logger().Name())
 	slago.Logger().Trace().Msg("slago\nThis is a message \n\n")
 	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).
-		Interface("slago", "val").Msge()
+		Any("slago", "val").Msge()
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
 	log.Printf("this is builtin logger\n\n")
@@ -92,7 +92,7 @@ func main() {
 	logger.Debug().Msg("slago sub logger")
 	logger.SetLevel(slago.InfoLevel)
 	logger.Trace().Msg("this will not print")
-	logger.Info().Interface("intf", map[string]interface{}{
+	logger.Info().Any("any", map[string]interface{}{
 		"name": "dog",
 		"age":  2,
 	}).Msg("this is interface")

@@ -178,7 +178,7 @@ func (r *noopRecord) Durs(_ string, _ []time.Duration) Record {
 	return r
 }
 
-func (r *noopRecord) Interface(_ string, _ interface{}) Record {
+func (r *noopRecord) Any(_ string, _ interface{}) Record {
 	return r
 }
 

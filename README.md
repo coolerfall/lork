@@ -1,6 +1,6 @@
 slago
 =====
-Simple Logging Abstraction for Go. Slago provides bridge and binder for logger which
+The flexible, extensible and structured logging for Go. Slago provides bridge and binder for logger which
 can send log from logger to another logger you preferred. Slago also provides unified writers, 
 encoders and filters, it brings different logger with same apis and flexible configurations.
 
@@ -56,7 +56,7 @@ slago.Logger().AddWriter(aw)
 * Add logging:
 ```go
 slago.Logger().Trace().Msg("slago")
-slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
+slago.Logger().Info().Int("int", 88).Any("slago", "val").Msg("")
 ```
 
 * If you log with other logger, it will send to the bound logger:

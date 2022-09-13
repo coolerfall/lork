@@ -220,7 +220,7 @@ func (r *zapRecord) Durs(key string, val []time.Duration) slago.Record {
 	return r
 }
 
-func (r *zapRecord) Interface(key string, val interface{}) slago.Record {
+func (r *zapRecord) Any(key string, val interface{}) slago.Record {
 	switch val.(type) {
 	case string:
 		return r.Str(key, val.(string))
