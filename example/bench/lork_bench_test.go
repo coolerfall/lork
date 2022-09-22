@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 )
 
 func init() {
@@ -26,7 +26,7 @@ func init() {
 }
 
 var (
-	longStr = "this is super long long long long long long long text from slago to hello wrold"
+	longStr = "this is super long long long long long long long text from lork to hello wrold"
 	strs    = []string{"hello world", "hello go"}
 	ints    = []int{5, 1, 2}
 	bools   = []bool{true, false, true}
@@ -38,27 +38,27 @@ var (
 )
 
 func init() {
-	slago.Bind(slago.NewClassicLogger())
+	lork.Bind(lork.NewClassicLogger())
 }
 
 func BenchmarkJsonFileWirter(b *testing.B) {
-	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewThresholdFilter(slago.InfoLevel)
-		o.Filename = "/tmp/slago/slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+		o.Encoder = lork.NewJsonEncoder()
+		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
+		o.Filename = "/tmp/lork/lork-test.log"
+		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+			func(o *lork.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	slago.Logger().AddWriter(fw)
+	lork.Logger().AddWriter(fw)
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger("github.com/coolerfall/slago/bench").
+			lork.Logger("github.com/coolerfall/lork/bench").
 				Info().
 				Bytes("bytes", bytes).
 				Int("int", 88888).Ints("ints", ints).
@@ -73,25 +73,25 @@ func BenchmarkJsonFileWirter(b *testing.B) {
 }
 
 func BenchmarkPatternFileWirter(b *testing.B) {
-	slago.Logger().ResetWriter()
-	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+	lork.Logger().ResetWriter()
+	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#date{2006-01-02} #level #message #fields"
 		})
-		o.Filename = "/tmp/slago/slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+		o.Filename = "/tmp/lork/lork-test.log"
+		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+			func(o *lork.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	slago.Logger().AddWriter(fw)
+	lork.Logger().AddWriter(fw)
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger("github.com/coolerfall/slago/bench").
+			lork.Logger("github.com/coolerfall/lork/bench").
 				Info().
 				Bytes("bytes", bytes).
 				Int("int", 88888).Ints("ints", ints).
@@ -106,28 +106,28 @@ func BenchmarkPatternFileWirter(b *testing.B) {
 }
 
 func BenchmarkAsyncFileWirter(b *testing.B) {
-	slago.Logger().ResetWriter()
-	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+	lork.Logger().ResetWriter()
+	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#date{2006-01-02} #level #message #fields"
 		})
-		o.Filename = "/tmp/slago/slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+		o.Filename = "/tmp/lork/lork-test.log"
+		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+			func(o *lork.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 			})
 	})
 
-	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
 		o.Ref = fw
 	})
-	slago.Logger().AddWriter(aw)
+	lork.Logger().AddWriter(aw)
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger("github.com/coolerfall/slago/bench").
+			lork.Logger("github.com/coolerfall/lork/bench").
 				Info().
 				Bytes("bytes", bytes).
 				Int("int", 88888).Ints("ints", ints).
@@ -142,12 +142,12 @@ func BenchmarkAsyncFileWirter(b *testing.B) {
 }
 
 func BenchmarkNoWirter(b *testing.B) {
-	slago.Logger().ResetWriter()
+	lork.Logger().ResetWriter()
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			slago.Logger("github.com/coolerfall/slago/bench").
+			lork.Logger("github.com/coolerfall/lork/bench").
 				Info().
 				Bytes("bytes", bytes).
 				Int("int", 88888).Ints("ints", ints).

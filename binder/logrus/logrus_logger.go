@@ -15,40 +15,40 @@
 package logrus
 
 import (
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	slagoLvlToLogrusLvl = map[slago.Level]logrus.Level{
-		slago.TraceLevel: logrus.TraceLevel,
-		slago.DebugLevel: logrus.DebugLevel,
-		slago.InfoLevel:  logrus.InfoLevel,
-		slago.WarnLevel:  logrus.WarnLevel,
-		slago.ErrorLevel: logrus.ErrorLevel,
-		slago.FatalLevel: logrus.FatalLevel,
-		slago.PanicLevel: logrus.PanicLevel,
+	lorkLvlToLogrusLvl = map[lork.Level]logrus.Level{
+		lork.TraceLevel: logrus.TraceLevel,
+		lork.DebugLevel: logrus.DebugLevel,
+		lork.InfoLevel:  logrus.InfoLevel,
+		lork.WarnLevel:  logrus.WarnLevel,
+		lork.ErrorLevel: logrus.ErrorLevel,
+		lork.FatalLevel: logrus.FatalLevel,
+		lork.PanicLevel: logrus.PanicLevel,
 	}
 )
 
-// logrusLogger is an implementation of SlaLogger.
+// logrusLogger is an implementation of ILogger.
 type logrusLogger struct {
-	multiWriter *slago.MultiWriter
+	multiWriter *lork.MultiWriter
 }
 
-// NewLogrusLogger creates a new instance of logrusLogger used to be bound to slago
-func NewLogrusLogger() slago.SlaLogger {
+// NewLogrusLogger creates a new instance of logrusLogger used to be bound to lork
+func NewLogrusLogger() lork.ILogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: slago.TimestampFormat,
+		TimestampFormat: lork.TimestampFormat,
 		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyLevel: slago.LevelFieldKey,
-			logrus.FieldKeyTime:  slago.TimestampFieldKey,
-			logrus.FieldKeyMsg:   slago.MessageFieldKey,
+			logrus.FieldKeyLevel: lork.LevelFieldKey,
+			logrus.FieldKeyTime:  lork.TimestampFieldKey,
+			logrus.FieldKeyMsg:   lork.MessageFieldKey,
 		},
 	})
 	logrus.SetLevel(logrus.TraceLevel)
 
-	writer := slago.NewMultiWriter()
+	writer := lork.NewMultiWriter()
 	transformer := newTransformer(writer)
 	logrus.SetOutput(transformer)
 
@@ -61,7 +61,7 @@ func (l *logrusLogger) Name() string {
 	return "github.com/sirupsen/logrus"
 }
 
-func (l *logrusLogger) AddWriter(w ...slago.Writer) {
+func (l *logrusLogger) AddWriter(w ...lork.Writer) {
 	l.multiWriter.AddWriter(w...)
 }
 
@@ -69,43 +69,43 @@ func (l *logrusLogger) ResetWriter() {
 	l.multiWriter.Reset()
 }
 
-func (l *logrusLogger) SetLevel(lvl slago.Level) {
-	logrus.SetLevel(slagoLvlToLogrusLvl[lvl])
+func (l *logrusLogger) SetLevel(lvl lork.Level) {
+	logrus.SetLevel(lorkLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) Trace() slago.Record {
+func (l *logrusLogger) Trace() lork.Record {
 	return newLogrusRecord(logrus.TraceLevel)
 }
 
-func (l *logrusLogger) Debug() slago.Record {
+func (l *logrusLogger) Debug() lork.Record {
 	return newLogrusRecord(logrus.DebugLevel)
 }
 
-func (l *logrusLogger) Info() slago.Record {
+func (l *logrusLogger) Info() lork.Record {
 	return newLogrusRecord(logrus.InfoLevel)
 }
 
-func (l *logrusLogger) Warn() slago.Record {
+func (l *logrusLogger) Warn() lork.Record {
 	return newLogrusRecord(logrus.WarnLevel)
 }
 
-func (l *logrusLogger) Error() slago.Record {
+func (l *logrusLogger) Error() lork.Record {
 	return newLogrusRecord(logrus.ErrorLevel)
 }
 
-func (l *logrusLogger) Fatal() slago.Record {
+func (l *logrusLogger) Fatal() lork.Record {
 	return newLogrusRecord(logrus.FatalLevel)
 }
 
-func (l *logrusLogger) Panic() slago.Record {
+func (l *logrusLogger) Panic() lork.Record {
 	return newLogrusRecord(logrus.PanicLevel)
 }
 
-func (l *logrusLogger) Level(lvl slago.Level) slago.Record {
-	return newLogrusRecord(slagoLvlToLogrusLvl[lvl])
+func (l *logrusLogger) Level(lvl lork.Level) lork.Record {
+	return newLogrusRecord(lorkLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) WriteEvent(e *slago.LogEvent) {
+func (l *logrusLogger) WriteEvent(e *lork.LogEvent) {
 	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")

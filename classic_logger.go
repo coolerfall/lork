@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 type classicLogger struct {
 	multiWriter *MultiWriter
 }
 
-func NewClassicLogger() SlaLogger {
+func NewClassicLogger() ILogger {
 	return &classicLogger{
 		multiWriter: NewMultiWriter(),
 	}
 }
 
 func (l *classicLogger) Name() string {
-	return "github.com/coolerfall/slago"
+	return "github.com/coolerfall/lork"
 }
 
 func (l *classicLogger) AddWriter(w ...Writer) {

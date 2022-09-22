@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"errors"
 	"strings"
 )
 
-// Filter represents a logging filter for slago.
+// Filter represents a logging filter for lork.
 type Filter interface {
 	// Do filters the logging. True means filtered, otherwise pass through.
 	Do(e *LogEvent) bool

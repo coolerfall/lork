@@ -15,39 +15,39 @@
 package zero
 
 import (
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	slagoLvlToZeroLvl = map[slago.Level]zerolog.Level{
-		slago.TraceLevel: zerolog.TraceLevel,
-		slago.DebugLevel: zerolog.DebugLevel,
-		slago.InfoLevel:  zerolog.InfoLevel,
-		slago.WarnLevel:  zerolog.WarnLevel,
-		slago.ErrorLevel: zerolog.ErrorLevel,
-		slago.FatalLevel: zerolog.FatalLevel,
-		slago.PanicLevel: zerolog.PanicLevel,
+	lorkLvlToZeroLvl = map[lork.Level]zerolog.Level{
+		lork.TraceLevel: zerolog.TraceLevel,
+		lork.DebugLevel: zerolog.DebugLevel,
+		lork.InfoLevel:  zerolog.InfoLevel,
+		lork.WarnLevel:  zerolog.WarnLevel,
+		lork.ErrorLevel: zerolog.ErrorLevel,
+		lork.FatalLevel: zerolog.FatalLevel,
+		lork.PanicLevel: zerolog.PanicLevel,
 	}
 )
 
-// zeroLogger is an implementation of SlaLogger.
+// zeroLogger is an implementation of ILogger.
 type zeroLogger struct {
 	logger      zerolog.Logger
-	multiWriter *slago.MultiWriter
+	multiWriter *lork.MultiWriter
 }
 
-// NewZeroLogger creates a new instance of zeroLogger used to be bound to slago.
-func NewZeroLogger() slago.SlaLogger {
+// NewZeroLogger creates a new instance of zeroLogger used to be bound to lork.
+func NewZeroLogger() lork.ILogger {
 	zerolog.SetGlobalLevel(zerolog.TraceLevel)
-	zerolog.TimeFieldFormat = slago.TimestampFormat
-	zerolog.LevelFieldName = slago.LevelFieldKey
-	zerolog.TimestampFieldName = slago.TimestampFieldKey
-	zerolog.MessageFieldName = slago.MessageFieldKey
+	zerolog.TimeFieldFormat = lork.TimestampFormat
+	zerolog.LevelFieldName = lork.LevelFieldKey
+	zerolog.TimestampFieldName = lork.TimestampFieldKey
+	zerolog.MessageFieldName = lork.MessageFieldKey
 	zerolog.LevelFieldMarshalFunc = capitalLevel
 
-	multiWriter := slago.NewMultiWriter()
+	multiWriter := lork.NewMultiWriter()
 	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
 	log.Logger = logger
 
@@ -61,7 +61,7 @@ func (l *zeroLogger) Name() string {
 	return "github.com/rs/zerolog"
 }
 
-func (l *zeroLogger) AddWriter(w ...slago.Writer) {
+func (l *zeroLogger) AddWriter(w ...lork.Writer) {
 	l.multiWriter.AddWriter(w...)
 }
 
@@ -69,43 +69,43 @@ func (l *zeroLogger) ResetWriter() {
 	l.multiWriter.Reset()
 }
 
-func (l *zeroLogger) SetLevel(lvl slago.Level) {
-	zerolog.SetGlobalLevel(slagoLvlToZeroLvl[lvl])
+func (l *zeroLogger) SetLevel(lvl lork.Level) {
+	zerolog.SetGlobalLevel(lorkLvlToZeroLvl[lvl])
 }
 
-func (l *zeroLogger) Trace() slago.Record {
+func (l *zeroLogger) Trace() lork.Record {
 	return newZeroRecord(l.logger.Trace())
 }
 
-func (l *zeroLogger) Debug() slago.Record {
+func (l *zeroLogger) Debug() lork.Record {
 	return newZeroRecord(l.logger.Debug())
 }
 
-func (l *zeroLogger) Info() slago.Record {
+func (l *zeroLogger) Info() lork.Record {
 	return newZeroRecord(l.logger.Info())
 }
 
-func (l *zeroLogger) Warn() slago.Record {
+func (l *zeroLogger) Warn() lork.Record {
 	return newZeroRecord(l.logger.Warn())
 }
 
-func (l *zeroLogger) Error() slago.Record {
+func (l *zeroLogger) Error() lork.Record {
 	return newZeroRecord(l.logger.Error())
 }
 
-func (l *zeroLogger) Fatal() slago.Record {
+func (l *zeroLogger) Fatal() lork.Record {
 	return newZeroRecord(l.logger.Fatal())
 }
 
-func (l *zeroLogger) Panic() slago.Record {
+func (l *zeroLogger) Panic() lork.Record {
 	return newZeroRecord(l.logger.Panic())
 }
 
-func (l *zeroLogger) Level(lvl slago.Level) slago.Record {
-	return newZeroRecord(l.logger.WithLevel(slagoLvlToZeroLvl[lvl]))
+func (l *zeroLogger) Level(lvl lork.Level) lork.Record {
+	return newZeroRecord(l.logger.WithLevel(lorkLvlToZeroLvl[lvl]))
 }
 
-func (l *zeroLogger) WriteEvent(e *slago.LogEvent) {
+func (l *zeroLogger) WriteEvent(e *lork.LogEvent) {
 	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw error")

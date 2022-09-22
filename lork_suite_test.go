@@ -1,4 +1,4 @@
-package slago
+package lork
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestSlago(t *testing.T) {
+func TestLork(t *testing.T) {
 	RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Slago suite tests")
+	ginkgo.RunSpecs(t, "Lork suite tests")
 }

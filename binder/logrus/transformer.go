@@ -18,29 +18,29 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	logrusLvlToSlagoLvl = map[logrus.Level]slago.Level{
-		logrus.TraceLevel: slago.TraceLevel,
-		logrus.DebugLevel: slago.DebugLevel,
-		logrus.InfoLevel:  slago.InfoLevel,
-		logrus.WarnLevel:  slago.WarnLevel,
-		logrus.ErrorLevel: slago.ErrorLevel,
-		logrus.FatalLevel: slago.FatalLevel,
-		logrus.PanicLevel: slago.PanicLevel,
+	logrusLvlTolorkLvl = map[logrus.Level]lork.Level{
+		logrus.TraceLevel: lork.TraceLevel,
+		logrus.DebugLevel: lork.DebugLevel,
+		logrus.InfoLevel:  lork.InfoLevel,
+		logrus.WarnLevel:  lork.WarnLevel,
+		logrus.ErrorLevel: lork.ErrorLevel,
+		logrus.FatalLevel: lork.FatalLevel,
+		logrus.PanicLevel: lork.PanicLevel,
 	}
 )
 
 type transformer struct {
 	buf         *bytes.Buffer
 	locker      sync.Mutex
-	multiWriter *slago.MultiWriter
+	multiWriter *lork.MultiWriter
 }
 
-func newTransformer(w *slago.MultiWriter) *transformer {
+func newTransformer(w *lork.MultiWriter) *transformer {
 	return &transformer{
 		buf:         new(bytes.Buffer),
 		multiWriter: w,
@@ -51,13 +51,13 @@ func (t *transformer) Write(p []byte) (n int, err error) {
 	t.locker.Lock()
 	defer t.locker.Unlock()
 
-	_ = slago.ReplaceJson(p, t.buf, slago.LevelFieldKey,
+	_ = lork.ReplaceJson(p, t.buf, lork.LevelFieldKey,
 		func(k, v []byte) ([]byte, []byte, error) {
 			lvl, err := logrus.ParseLevel(string(v))
 			if err != nil {
 				return k, v, err
 			} else {
-				return k, []byte(logrusLvlToSlagoLvl[lvl].String()), nil
+				return k, []byte(logrusLvlTolorkLvl[lvl].String()), nil
 			}
 		})
 	p = t.buf.Bytes()

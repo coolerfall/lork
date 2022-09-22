@@ -29,4 +29,4 @@
 * Optimize pattern encoder and reduce the allocation.
 
 # 0.1.0
-* First implementation for slago.
+* First implementation for lork.

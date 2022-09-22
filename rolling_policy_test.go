@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"time"
@@ -24,7 +24,7 @@ import (
 var _ = ginkgo.Describe("time based rolling policy", func() {
 	ginkgo.It("should trigger", func() {
 		tbrp := NewTimeBasedRollingPolicy(func(o *TimeBasedRPOption) {
-			o.FilenamePattern = "slago-archive.#date{2006-01-02}.log"
+			o.FilenamePattern = "lork-archive.#date{2006-01-02}.log"
 		})
 		_ = NewFileWriter(func(o *FileWriterOption) {
 			o.RollingPolicy = tbrp

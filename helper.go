@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"bytes"
@@ -45,7 +45,7 @@ const (
 	secondsInOneDay    = 24 * secondsInOneHour
 )
 
-// BridgeWrite writes data from bridge to slago logger.
+// BridgeWrite writes data from bridge to lork logger.
 func BridgeWrite(bridge Bridge, p []byte) error {
 	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
 	msg, _ := jsonparser.GetString(p, MessageFieldKey)
@@ -100,7 +100,7 @@ func Report(msg string) {
 
 // Reportf reports message with arguments in stdout
 func Reportf(format string, args ...interface{}) {
-	format = "slago: " + format
+	format = "lork: " + format
 	fmt.Println(colorize(colorRed, fmt.Sprintf(format, args...)))
 }
 

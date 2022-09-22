@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"log"
@@ -21,7 +21,7 @@ import (
 type logBridge struct {
 }
 
-// NewLogBridge creates a new slago bridge for standard log.
+// NewLogBridge creates a new lork bridge for standard log.
 func NewLogBridge() *logBridge {
 	bridge := &logBridge{}
 	log.SetOutput(bridge)
