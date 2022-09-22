@@ -22,12 +22,12 @@ import (
 var _ = ginkgo.Describe("level filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
 	ginkgo.It("not filter", func() {
-		filter := NewLevelFilter(InfoLevel)
+		filter := NewThresholdFilter(InfoLevel)
 		result := filter.Do(event)
 		Expect(result).To(Equal(false))
 	})
 	ginkgo.It("filter", func() {
-		filter := NewLevelFilter(ErrorLevel)
+		filter := NewThresholdFilter(ErrorLevel)
 		result := filter.Do(event)
 		Expect(result).To(Equal(true))
 	})

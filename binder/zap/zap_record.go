@@ -15,7 +15,6 @@
 package zap
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -221,42 +220,7 @@ func (r *zapRecord) Durs(key string, val []time.Duration) slago.Record {
 }
 
 func (r *zapRecord) Any(key string, val interface{}) slago.Record {
-	switch val.(type) {
-	case string:
-		return r.Str(key, val.(string))
-	case bool:
-		return r.Bool(key, val.(bool))
-	case int:
-		return r.Int(key, val.(int))
-	case int8:
-		return r.Int8(key, val.(int8))
-	case int16:
-		return r.Int16(key, val.(int16))
-	case int32:
-		return r.Int32(key, val.(int32))
-	case int64:
-		return r.Int64(key, val.(int64))
-	case uint:
-		return r.Uint(key, val.(uint))
-	case uint8:
-		return r.Uint8(key, val.(uint8))
-	case uint16:
-		return r.Uint16(key, val.(uint16))
-	case uint32:
-		return r.Uint32(key, val.(uint32))
-	case uint64:
-		return r.Uint64(key, val.(uint64))
-	case float32:
-		return r.Float32(key, val.(float32))
-	case float64:
-		return r.Float64(key, val.(float64))
-	case time.Time:
-		return r.Time(key, val.(time.Time))
-	case time.Duration:
-		return r.Dur(key, val.(time.Duration))
-	default:
-		r.logger = r.logger.With(zap.String(key, fmt.Sprint(val)))
-	}
+	r.logger = r.logger.With(zap.Any(key, val))
 
 	return r
 }

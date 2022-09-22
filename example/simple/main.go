@@ -61,12 +61,12 @@ func main() {
 	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
 		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-				"#level) #color([#logger{16}]){magenta} : #message #fields"
+				"#level) #color([#logger{36}]){magenta} : #message #fields"
 		})
 	}))
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewLevelFilter(slago.DebugLevel)
+		o.Filter = slago.NewThresholdFilter(slago.DebugLevel)
 		o.Filename = "/tmp/slago/slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
@@ -81,7 +81,7 @@ func main() {
 	slago.Logger().AddWriter(aw)
 
 	slago.Logger().Info().Msgf("bind with: %s", slago.Logger().Name())
-	slago.Logger().Trace().Msg("slago\nThis is a message \n\n")
+	slago.Logger().Trace().Msg("slago\nThis is a message with new line \n\n")
 	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).
 		Any("slago", "val").Msge()
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")

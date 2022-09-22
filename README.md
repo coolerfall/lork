@@ -56,7 +56,7 @@ slago.Logger().AddWriter(aw)
 * Add logging:
 ```go
 slago.Logger().Trace().Msg("slago")
-slago.Logger().Info().Int("int", 88).Any("slago", "val").Msg("")
+slago.Logger().Info().Int("int", 88).Any("slago", "val").Msge()
 ```
 
 * If you log with other logger, it will send to the bound logger:

@@ -25,20 +25,20 @@ type Filter interface {
 	Do(e *LogEvent) bool
 }
 
-// levelFilter represents a level filter.
-type levelFilter struct {
+// thresholdFilter represents a filter with threshold.
+type thresholdFilter struct {
 	level Level
 }
 
-// NewLevelFilter creates a new instance of levelFilter.
-func NewLevelFilter(lvl Level) Filter {
-	return &levelFilter{
+// NewThresholdFilter creates a new instance of thresholdFilter.
+func NewThresholdFilter(lvl Level) Filter {
+	return &thresholdFilter{
 		level: lvl,
 	}
 }
 
 // Do will execute the filter.
-func (f *levelFilter) Do(e *LogEvent) bool {
+func (f *thresholdFilter) Do(e *LogEvent) bool {
 	return f.level > e.LevelInt()
 }
 

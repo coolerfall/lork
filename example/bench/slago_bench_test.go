@@ -44,7 +44,7 @@ func init() {
 func BenchmarkJsonFileWirter(b *testing.B) {
 	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
 		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewLevelFilter(slago.InfoLevel)
+		o.Filter = slago.NewThresholdFilter(slago.InfoLevel)
 		o.Filename = "/tmp/slago/slago-test.log"
 		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
 			func(o *slago.SizeAndTimeBasedRPOption) {
