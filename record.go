@@ -128,7 +128,7 @@ type Record interface {
 	// Any adds any value to this record.
 	Any(key string, val interface{}) Record
 
-	// Msge ouputs log without message
+	// Msge outputs log without message
 	Msge()
 
 	// Msg adds a message to this record and output log.

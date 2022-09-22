@@ -50,7 +50,7 @@ var (
 		DebugLevel: colorBlue,
 		InfoLevel:  colorGreen,
 		WarnLevel:  colorYellow,
-		ErrorLevel: colorRed,
+		ErrorLevel: colorBrightRed,
 		FatalLevel: colorRed,
 		PanicLevel: colorRed,
 	}

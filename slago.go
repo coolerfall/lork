@@ -56,7 +56,7 @@ type SlaLogger interface {
 	// ResetWriter will remove all writers added before.
 	ResetWriter()
 
-	// SetLevel sets global level for root logger.
+	// SetLevel sets global level for logger.
 	SetLevel(lvl Level)
 
 	// Trace logs with trace level.

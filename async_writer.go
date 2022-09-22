@@ -43,6 +43,10 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
 		f(opt)
 	}
 
+	if opt.Ref == nil {
+		ReportfExit("async writer need a referenced writer")
+	}
+
 	return &asyncWriter{
 		ref:   opt.Ref,
 		queue: NewBlockingQueue(opt.QueueSize),

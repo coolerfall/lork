@@ -16,7 +16,6 @@ package slago
 
 type classicLogger struct {
 	multiWriter *MultiWriter
-	lvl         Level
 }
 
 func NewClassicLogger() SlaLogger {
@@ -37,8 +36,7 @@ func (l *classicLogger) ResetWriter() {
 	l.multiWriter.Reset()
 }
 
-func (l *classicLogger) SetLevel(lvl Level) {
-	l.lvl = lvl
+func (l *classicLogger) SetLevel(_ Level) {
 }
 
 func (l *classicLogger) Trace() Record {
