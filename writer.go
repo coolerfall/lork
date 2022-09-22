@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"errors"
@@ -21,7 +21,7 @@ import (
 )
 
 // Writer is the interface that wraps the io.Writer, adds
-// Encoder and Filter func for slago to encode and filter logs.
+// Encoder and Filter func for logger to encode and filter logs.
 type Writer interface {
 	io.Writer
 
@@ -38,8 +38,8 @@ type EventWriter interface {
 	WriteEvent(event *LogEvent) (n int, err error)
 }
 
-// MultiWriter represents multiple writer which implements slago.Writer.
-// This writer is used as output which will implement SlaLogger.
+// MultiWriter represents multiple writer which implements lork.Writer.
+// This writer is used as output which will implement ILogger.
 type MultiWriter struct {
 	locker       sync.Mutex
 	writers      []Writer
@@ -54,7 +54,7 @@ func NewMultiWriter() *MultiWriter {
 	}
 }
 
-// AddWriter adds a slago writer into multi writer.
+// AddWriter adds a lork writer into multi writer.
 func (mw *MultiWriter) AddWriter(writers ...Writer) {
 	for _, w := range writers {
 		if lc, ok := w.(Lifecycle); ok {

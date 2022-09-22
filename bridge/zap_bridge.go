@@ -17,31 +17,31 @@ package bridge
 import (
 	"time"
 
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	zapLvlToSlagoLvl = map[zapcore.Level]slago.Level{
-		zapcore.DebugLevel: slago.DebugLevel,
-		zapcore.InfoLevel:  slago.InfoLevel,
-		zapcore.WarnLevel:  slago.WarnLevel,
-		zapcore.ErrorLevel: slago.ErrorLevel,
-		zapcore.FatalLevel: slago.FatalLevel,
+	zapLvlTolorkLvl = map[zapcore.Level]lork.Level{
+		zapcore.DebugLevel: lork.DebugLevel,
+		zapcore.InfoLevel:  lork.InfoLevel,
+		zapcore.WarnLevel:  lork.WarnLevel,
+		zapcore.ErrorLevel: lork.ErrorLevel,
+		zapcore.FatalLevel: lork.FatalLevel,
 	}
 )
 
 type zapBridge struct {
 }
 
-// NewZapBrige creates a new slago bridge for zap.
+// NewZapBrige creates a new lork bridge for zap.
 func NewZapBrige() *zapBridge {
 	bridge := &zapBridge{}
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.LevelKey = slago.LevelFieldKey
-	encoderConfig.TimeKey = slago.TimestampFieldKey
-	encoderConfig.MessageKey = slago.MessageFieldKey
+	encoderConfig.LevelKey = lork.LevelFieldKey
+	encoderConfig.TimeKey = lork.TimestampFieldKey
+	encoderConfig.MessageKey = lork.MessageFieldKey
 	encoderConfig.EncodeTime = rf3339Encoder
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
@@ -56,24 +56,24 @@ func (b *zapBridge) Name() string {
 	return "go.uber.org/zap"
 }
 
-func (b *zapBridge) ParseLevel(lvl string) slago.Level {
+func (b *zapBridge) ParseLevel(lvl string) lork.Level {
 	var level = zapcore.DebugLevel
 	if err := (&level).UnmarshalText([]byte(lvl)); err != nil {
-		slago.Reportf("parse zap level error: %s", err)
+		lork.Reportf("parse zap level error: %s", err)
 	}
 
-	return zapLvlToSlagoLvl[level]
+	return zapLvlTolorkLvl[level]
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	err := slago.BridgeWrite(b, p)
+	err := lork.BridgeWrite(b, p)
 	if err != nil {
-		slago.Reportf("zap bridge write error", err)
+		lork.Reportf("zap bridge write error", err)
 	}
 
 	return len(p), err
 }
 
 func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(t.Format(slago.TimestampFormat))
+	enc.AppendString(t.Format(lork.TimestampFormat))
 }

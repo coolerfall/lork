@@ -1,10 +1,10 @@
-module github.com/coolerfall/slago/binder/zap
+module github.com/coolerfall/lork/binder/zap
 
 go 1.16
 
-replace github.com/coolerfall/slago => ../../
+replace github.com/coolerfall/lork => ../../
 
 require (
-	github.com/coolerfall/slago v0.5.5
+	github.com/coolerfall/lork v0.6.0
 	go.uber.org/zap v1.21.0
 )

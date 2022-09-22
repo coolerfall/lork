@@ -19,11 +19,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/coolerfall/slago"
-	logrusb "github.com/coolerfall/slago/binder/logrus"
-	zapb "github.com/coolerfall/slago/binder/zap"
-	"github.com/coolerfall/slago/binder/zero"
-	"github.com/coolerfall/slago/bridge"
+	"github.com/coolerfall/lork"
+	logrusb "github.com/coolerfall/lork/binder/logrus"
+	zapb "github.com/coolerfall/lork/binder/zap"
+	"github.com/coolerfall/lork/binder/zero"
+	"github.com/coolerfall/lork/bridge"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 )
@@ -35,68 +35,68 @@ func main() {
 
 	switch binderName {
 	case "logrus":
-		slago.Bind(logrusb.NewLogrusLogger())
-		slago.Install(bridge.NewZerologBridge())
-		slago.Install(bridge.NewZapBrige())
+		lork.Bind(logrusb.NewLogrusLogger())
+		lork.Install(bridge.NewZerologBridge())
+		lork.Install(bridge.NewZapBrige())
 
 	case "zerolog":
-		slago.Bind(zero.NewZeroLogger())
-		slago.Install(bridge.NewLogrusBridge())
-		slago.Install(bridge.NewZapBrige())
+		lork.Bind(zero.NewZeroLogger())
+		lork.Install(bridge.NewLogrusBridge())
+		lork.Install(bridge.NewZapBrige())
 
 	case "zap":
-		slago.Bind(zapb.NewZapLogger())
-		slago.Install(bridge.NewLogrusBridge())
-		slago.Install(bridge.NewZerologBridge())
+		lork.Bind(zapb.NewZapLogger())
+		lork.Install(bridge.NewLogrusBridge())
+		lork.Install(bridge.NewZerologBridge())
 
 	default:
-		slago.Bind(slago.NewClassicLogger())
-		slago.Install(bridge.NewLogrusBridge())
-		slago.Install(bridge.NewZapBrige())
-		slago.Install(bridge.NewZerologBridge())
+		lork.Bind(lork.NewClassicLogger())
+		lork.Install(bridge.NewLogrusBridge())
+		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZerologBridge())
 	}
 
-	slago.Install(slago.NewLogBridge())
+	lork.Install(lork.NewLogBridge())
 
-	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+	lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{36}]){magenta} : #message #fields"
 		})
 	}))
-	fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-		o.Encoder = slago.NewJsonEncoder()
-		o.Filter = slago.NewThresholdFilter(slago.DebugLevel)
-		o.Filename = "/tmp/slago/slago-test.log"
-		o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-			func(o *slago.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/slago/slago-archive.#date{2006-01-02}.#index.log"
+	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+		o.Encoder = lork.NewJsonEncoder()
+		o.Filter = lork.NewThresholdFilter(lork.DebugLevel)
+		o.Filename = "/tmp/lork/lork-test.log"
+		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+			func(o *lork.SizeAndTimeBasedRPOption) {
+				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
 				o.MaxFileSize = "10MB"
 				o.MaxHistory = 10
 			})
 	})
-	aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
 		o.Ref = fw
 	})
-	slago.Logger().AddWriter(aw)
+	lork.Logger().AddWriter(aw)
 
-	slago.Logger().Info().Msgf("bind with: %s", slago.Logger().Name())
-	slago.Logger().Trace().Msg("slago\nThis is a message with new line \n\n")
-	slago.Logger("github.com/coolerfall/slago/foo").Info().Int("int", 88).
-		Any("slago", "val").Msge()
+	lork.Logger().Info().Msgf("bind with: %s", lork.Logger().Name())
+	lork.Logger().Trace().Msg("lork\nThis is a message with new line \n\n")
+	lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).
+		Any("lork", "val").Msge()
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
 	zap.L().With().Warn("this is zap")
 	log.Printf("this is builtin logger\n\n")
 
-	logger := slago.Logger("github.com/slago")
-	logger.Debug().Msg("slago sub logger")
-	logger.SetLevel(slago.InfoLevel)
+	logger := lork.Logger("github.com/lork")
+	logger.Debug().Msg("lork sub logger")
+	logger.SetLevel(lork.InfoLevel)
 	logger.Trace().Msg("this will not print")
 	logger.Info().Any("any", map[string]interface{}{
 		"name": "dog",
 		"age":  2,
 	}).Msg("this is interface")
-	slago.LoggerC().Info().Bytes("sss", []byte("ABCK")).Msg("test for auto logger name")
+	lork.LoggerC().Info().Bytes("sss", []byte("ABCK")).Msg("test for auto logger name")
 
 	time.Sleep(time.Second * 5)
 }

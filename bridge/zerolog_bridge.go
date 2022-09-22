@@ -15,34 +15,34 @@
 package bridge
 
 import (
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	zeroLvlToSlagoLvl = map[zerolog.Level]slago.Level{
-		zerolog.NoLevel:    slago.TraceLevel,
-		zerolog.TraceLevel: slago.TraceLevel,
-		zerolog.DebugLevel: slago.DebugLevel,
-		zerolog.InfoLevel:  slago.InfoLevel,
-		zerolog.WarnLevel:  slago.WarnLevel,
-		zerolog.ErrorLevel: slago.ErrorLevel,
-		zerolog.FatalLevel: slago.FatalLevel,
+	zeroLvlTolorkLvl = map[zerolog.Level]lork.Level{
+		zerolog.NoLevel:    lork.TraceLevel,
+		zerolog.TraceLevel: lork.TraceLevel,
+		zerolog.DebugLevel: lork.DebugLevel,
+		zerolog.InfoLevel:  lork.InfoLevel,
+		zerolog.WarnLevel:  lork.WarnLevel,
+		zerolog.ErrorLevel: lork.ErrorLevel,
+		zerolog.FatalLevel: lork.FatalLevel,
 	}
 )
 
 type zerologBridge struct {
 }
 
-// NewZerologBridge creates a new slago bridge for zerolog.
-func NewZerologBridge() slago.Bridge {
+// NewZerologBridge creates a new lork bridge for zerolog.
+func NewZerologBridge() lork.Bridge {
 	bridge := &zerologBridge{}
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	zerolog.TimeFieldFormat = slago.TimestampFormat
-	zerolog.LevelFieldName = slago.LevelFieldKey
-	zerolog.TimestampFieldName = slago.TimestampFieldKey
-	zerolog.MessageFieldName = slago.MessageFieldKey
+	zerolog.TimeFieldFormat = lork.TimestampFormat
+	zerolog.LevelFieldName = lork.LevelFieldKey
+	zerolog.TimestampFieldName = lork.TimestampFieldKey
+	zerolog.MessageFieldName = lork.MessageFieldKey
 	logger := zerolog.New(bridge).With().Timestamp().Logger()
 	log.Logger = logger
 
@@ -53,20 +53,20 @@ func (b *zerologBridge) Name() string {
 	return "github.com/rs/zerolog"
 }
 
-func (b *zerologBridge) ParseLevel(lvl string) slago.Level {
+func (b *zerologBridge) ParseLevel(lvl string) lork.Level {
 	level, err := zerolog.ParseLevel(lvl)
 	if err != nil {
 		level = zerolog.TraceLevel
-		slago.Reportf("parse zerolog level error: %s", err)
+		lork.Reportf("parse zerolog level error: %s", err)
 	}
 
-	return zeroLvlToSlagoLvl[level]
+	return zeroLvlTolorkLvl[level]
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {
-	err := slago.BridgeWrite(b, p)
+	err := lork.BridgeWrite(b, p)
 	if err != nil {
-		slago.Reportf("zerolog bridge write error", err)
+		lork.Reportf("zerolog bridge write error", err)
 	}
 
 	return len(p), err

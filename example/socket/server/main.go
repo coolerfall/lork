@@ -3,18 +3,18 @@
 package main
 
 import (
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 )
 
 func main() {
-	slago.Install(slago.NewLogBridge())
-	slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-		o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+	lork.Install(lork.NewLogBridge())
+	lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{32}]){magenta} : #message #fields"
 		})
 	}))
-	reader := slago.NewSocketReader(func(o *slago.SocketReaderOption) {
+	reader := lork.NewSocketReader(func(o *lork.SocketReaderOption) {
 		o.Path = "/ws/log"
 		o.Port = 6060
 	})

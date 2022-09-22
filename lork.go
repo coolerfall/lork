@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"strings"
@@ -45,9 +45,9 @@ var (
 
 type Level int8
 
-// SlaLogger represents a logging abstraction.
-type SlaLogger interface {
-	// Name returns the name of current slago logger implementation.
+// ILogger represents a logging interface defination.
+type ILogger interface {
+	// Name returns the name of current lork logger implementation.
 	Name() string
 
 	// AddWriter add one or more writer to this logger.
@@ -87,58 +87,58 @@ type SlaLogger interface {
 	WriteEvent(e *LogEvent)
 }
 
-// Bridge represents bridge between other logging framework and slago logger.
+// Bridge represents bridge between other logging framework and lork logger.
 type Bridge interface {
 	// Name returns the name of this bridge.
 	Name() string
 
-	// ParseLevel parses the given level string into slago level.
+	// ParseLevel parses the given level string into lork level.
 	ParseLevel(lvl string) Level
 }
 
 var (
-	loggers = make([]SlaLogger, 0)
+	loggers = make([]ILogger, 0)
 	bridges = make([]Bridge, 0)
 
 	onceLogger   sync.Once
 	loggerLocker sync.Mutex
-	loggerCache  map[string]SlaLogger
+	loggerCache  map[string]ILogger
 )
 
-// Logger get a global slago logger to use. The name will only get the first one.
-func Logger(name ...string) SlaLogger {
+// Logger get a global lork logger to use. The name will only get the first one.
+func Logger(name ...string) ILogger {
 	onceLogger.Do(func() {
 		loggerLen := len(loggers)
 		if loggerLen > 1 {
-			Report("multiple slago logger implementation found")
+			Report("multiple lork logger implementation found")
 		} else if loggerLen == 0 {
 			Bind(NewClassicLogger())
-			Report("no slago logger found, default to builtin logger implementation")
+			Report("no lork logger found, default to builtin logger implementation")
 		}
 		logger := loggers[0]
 
 		for _, b := range bridges {
 			if logger.Name() == b.Name() {
-				ReportfExit("cycle logger checked, %s -> slago -> %s",
+				ReportfExit("cycle logger checked, %s -> lork -> %s",
 					b.Name(), logger.Name())
 			}
 		}
 
-		loggerCache = make(map[string]SlaLogger)
+		loggerCache = make(map[string]ILogger)
 		loggerCache[RootLoggerName] = logger
 	})
 
 	return findLogger(name...)
 }
 
-// LoggerC get a global slago logger with a caller package name.
+// LoggerC get a global lork logger with a caller package name.
 // Note: this will call runtime.Caller function.
-func LoggerC() SlaLogger {
+func LoggerC() ILogger {
 	pkgName := PackageName(1)
 	return Logger(pkgName)
 }
 
-func findLogger(name ...string) SlaLogger {
+func findLogger(name ...string) ILogger {
 	loggerLocker.Lock()
 	defer loggerLocker.Unlock()
 
@@ -179,13 +179,13 @@ func findLogger(name ...string) SlaLogger {
 	}
 }
 
-// Bind binds an implementation of slago logger as output logger.
-func Bind(logger SlaLogger) {
+// Bind binds an implementation of lork logger as output logger.
+func Bind(logger ILogger) {
 	loggers = append(loggers, logger)
 }
 
-// Install installs a logging framework bridge into slago. All the log of the bridge
-// will be delegated to slago if the logging framework bridge was installed.
+// Install installs a logging framework bridge into lork. All the log of the bridge
+// will be delegated to lork if the logging framework bridge was installed.
 func Install(bridge Bridge) {
 	bridges = append(bridges, bridge)
 }
@@ -211,7 +211,7 @@ func (l Level) String() string {
 	}
 }
 
-// ParseLevel converts a level string into slago level value.
+// ParseLevel converts a level string into lork level value.
 func ParseLevel(lvl string) Level {
 	level, ok := levelMap[strings.ToUpper(lvl)]
 	if !ok {

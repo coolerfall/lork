@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"sync"
 )
 
-const defaultLogFilename = "slago.log"
+const defaultLogFilename = "lork.log"
 
 type fileWriter struct {
 	opts *FileWriterOption

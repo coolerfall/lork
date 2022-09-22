@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 // namedLogger represents a logger with name which can be used as category.
 type namedLogger struct {
 	name   string
-	root   SlaLogger
-	parent SlaLogger
+	root   ILogger
+	parent ILogger
 	lvl    Level
 }
 
 // newNamedLogger creates a new instance of named logger.
-func newNamedLogger(name string, root SlaLogger, parent SlaLogger) SlaLogger {
+func newNamedLogger(name string, root ILogger, parent ILogger) ILogger {
 	return &namedLogger{
 		name:   name,
 		root:   root,

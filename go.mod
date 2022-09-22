@@ -1,4 +1,4 @@
-module github.com/coolerfall/slago
+module github.com/coolerfall/lork
 
 go 1.16
 
