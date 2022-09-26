@@ -16,6 +16,8 @@ package lork
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"math"
 	"strconv"
 	"sync"
@@ -443,6 +445,15 @@ func (e *LogEvent) appendErrors(key string, value []error) {
 		e.tmp.Reset()
 		return d, true
 	})
+}
+
+func (e *LogEvent) appendAny(key string, val interface{}) {
+	data, err := json.Marshal(val)
+	if err != nil {
+		e.appendString(key, fmt.Sprintf("marshaling error: %v", err))
+		return
+	}
+	e.appendKeyValue(key, data, false)
 }
 
 func (e *LogEvent) Recycle() {
