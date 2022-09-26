@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"sync"
@@ -178,7 +178,7 @@ func (r *noopRecord) Durs(_ string, _ []time.Duration) Record {
 	return r
 }
 
-func (r *noopRecord) Interface(_ string, _ interface{}) Record {
+func (r *noopRecord) Any(_ string, _ interface{}) Record {
 	return r
 }
 

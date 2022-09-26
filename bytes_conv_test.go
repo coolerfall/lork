@@ -12,22 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestBytesConv(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "bytes conv test")
-}
-
-var _ = Describe("atoi", func() {
-	It("equal", func() {
+var _ = ginkgo.Describe("atoi", func() {
+	ginkgo.It("equal", func() {
 		num := []byte{0x39, 0x32}
 		i, err := atoi(num)
 		Expect(err).To(BeNil())

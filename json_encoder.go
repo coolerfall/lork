@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"bytes"
 	"sync"
 )
-
-const jsonTimeFormat = "2006-01-02T15:04:05.000Z07:00"
 
 // jsonEncoder encodes logging event into json format.
 type jsonEncoder struct {
@@ -42,7 +40,7 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 
 	var err error
 	bufData := je.tsBuf.Bytes()
-	bufData, err = convertFormat(bufData, e.Time(), TimestampFormat, jsonTimeFormat)
+	bufData, err = convertFormat(bufData, e.Time(), TimestampFormat, TimeFormatRFC3339)
 	if err != nil {
 		return nil, err
 	}

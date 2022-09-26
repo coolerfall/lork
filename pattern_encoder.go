@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"bytes"
@@ -50,7 +50,7 @@ var (
 		DebugLevel: colorBlue,
 		InfoLevel:  colorGreen,
 		WarnLevel:  colorYellow,
-		ErrorLevel: colorRed,
+		ErrorLevel: colorBrightRed,
 		FatalLevel: colorRed,
 		PanicLevel: colorRed,
 	}
@@ -135,7 +135,7 @@ func newColorConverter() Converter {
 	}
 }
 
-func (cc *colorConverter) AttatchNext(next Converter) {
+func (cc *colorConverter) AttachNext(next Converter) {
 	cc.next = next
 }
 
@@ -207,7 +207,7 @@ func newLevelConverter() Converter {
 	return &levelConverter{}
 }
 
-func (lc *levelConverter) AttatchNext(next Converter) {
+func (lc *levelConverter) AttachNext(next Converter) {
 	lc.next = next
 }
 
@@ -241,7 +241,7 @@ func newLogDateConverter() Converter {
 	}
 }
 
-func (c *logDateConverter) AttatchNext(next Converter) {
+func (c *logDateConverter) AttachNext(next Converter) {
 	c.next = next
 }
 
@@ -282,7 +282,7 @@ func newLoggerConverter() Converter {
 	}
 }
 
-func (lc *loggerConverter) AttatchNext(next Converter) {
+func (lc *loggerConverter) AttachNext(next Converter) {
 	lc.next = next
 }
 
@@ -367,7 +367,7 @@ func newMessageConverter() Converter {
 	return &messageConverter{}
 }
 
-func (mc *messageConverter) AttatchNext(next Converter) {
+func (mc *messageConverter) AttachNext(next Converter) {
 	mc.next = next
 }
 
@@ -408,7 +408,7 @@ func newFieldsConverter() Converter {
 	}
 }
 
-func (fc *fieldsConverter) AttatchNext(next Converter) {
+func (fc *fieldsConverter) AttachNext(next Converter) {
 	fc.next = next
 }
 

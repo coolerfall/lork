@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"net/url"
@@ -47,7 +47,7 @@ type socketWriter struct {
 	reconnDelay time.Duration
 }
 
-// NewSocketWriter create a logging writter via socket.
+// NewSocketWriter create a logging writer via socket.
 func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 	opts := &SocketWriterOption{
 		QueueSize:         defaultSocketQueueSize,
@@ -71,7 +71,7 @@ func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 
 	conn, _, err := websocket.DefaultDialer.Dial(opts.RemoteUrl.String(), nil)
 	if err != nil {
-		ReportfExit("connect socket server error: %v", err)
+		ReportfExit("connect socket server error, check your remote url: %v", err)
 	}
 
 	return &socketWriter{
@@ -127,9 +127,8 @@ func (w *socketWriter) startWorker() {
 			break
 		}
 
-		p := w.queue.Take()
-
-		err := w.conn.WriteMessage(websocket.BinaryMessage, p)
+		event := (w.queue.Take()).([]byte)
+		err := w.conn.WriteMessage(websocket.BinaryMessage, event)
 		if err == nil {
 			continue
 		}

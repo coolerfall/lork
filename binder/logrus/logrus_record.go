@@ -12,18 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slalogrus
+package logrus
 
 import (
 	"sync"
 	"time"
 
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	recordPool = &sync.Pool{
+	logrusRecordPool = &sync.Pool{
 		New: func() interface{} {
 			return &logrusRecord{}
 		},
@@ -36,189 +36,189 @@ type logrusRecord struct {
 }
 
 func newLogrusRecord(lvl logrus.Level) *logrusRecord {
-	r := recordPool.Get().(*logrusRecord)
+	r := logrusRecordPool.Get().(*logrusRecord)
 	r.entry = logrus.NewEntry(logrus.StandardLogger())
 	r.level = lvl
 
 	return r
 }
 
-func (r *logrusRecord) Str(key, val string) slago.Record {
+func (r *logrusRecord) Str(key, val string) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Strs(key string, val []string) slago.Record {
+func (r *logrusRecord) Strs(key string, val []string) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Bytes(key string, val []byte) slago.Record {
+func (r *logrusRecord) Bytes(key string, val []byte) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Err(err error) slago.Record {
+func (r *logrusRecord) Err(err error) lork.Record {
 	r.entry = r.entry.WithError(err)
 	return r
 }
 
-func (r *logrusRecord) Errs(key string, errs []error) slago.Record {
+func (r *logrusRecord) Errs(key string, errs []error) lork.Record {
 	r.entry = r.entry.WithField(key, errs)
 	return r
 }
 
-func (r *logrusRecord) Bool(key string, val bool) slago.Record {
+func (r *logrusRecord) Bool(key string, val bool) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Bools(key string, val []bool) slago.Record {
+func (r *logrusRecord) Bools(key string, val []bool) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Int(key string, val int) slago.Record {
+func (r *logrusRecord) Int(key string, val int) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Ints(key string, val []int) slago.Record {
+func (r *logrusRecord) Ints(key string, val []int) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Int8(key string, val int8) slago.Record {
+func (r *logrusRecord) Int8(key string, val int8) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Ints8(key string, val []int8) slago.Record {
+func (r *logrusRecord) Ints8(key string, val []int8) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Int16(key string, val int16) slago.Record {
+func (r *logrusRecord) Int16(key string, val int16) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Ints16(key string, val []int16) slago.Record {
+func (r *logrusRecord) Ints16(key string, val []int16) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Int32(key string, val int32) slago.Record {
+func (r *logrusRecord) Int32(key string, val int32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Ints32(key string, val []int32) slago.Record {
+func (r *logrusRecord) Ints32(key string, val []int32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Int64(key string, val int64) slago.Record {
+func (r *logrusRecord) Int64(key string, val int64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Ints64(key string, val []int64) slago.Record {
+func (r *logrusRecord) Ints64(key string, val []int64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uint(key string, val uint) slago.Record {
+func (r *logrusRecord) Uint(key string, val uint) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uints(key string, val []uint) slago.Record {
+func (r *logrusRecord) Uints(key string, val []uint) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uint8(key string, val uint8) slago.Record {
+func (r *logrusRecord) Uint8(key string, val uint8) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uints8(key string, val []uint8) slago.Record {
+func (r *logrusRecord) Uints8(key string, val []uint8) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uint16(key string, val uint16) slago.Record {
+func (r *logrusRecord) Uint16(key string, val uint16) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uints16(key string, val []uint16) slago.Record {
+func (r *logrusRecord) Uints16(key string, val []uint16) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uint32(key string, val uint32) slago.Record {
+func (r *logrusRecord) Uint32(key string, val uint32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uints32(key string, val []uint32) slago.Record {
+func (r *logrusRecord) Uints32(key string, val []uint32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uint64(key string, val uint64) slago.Record {
+func (r *logrusRecord) Uint64(key string, val uint64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Uints64(key string, val []uint64) slago.Record {
+func (r *logrusRecord) Uints64(key string, val []uint64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Float32(key string, val float32) slago.Record {
+func (r *logrusRecord) Float32(key string, val float32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Floats32(key string, val []float32) slago.Record {
+func (r *logrusRecord) Floats32(key string, val []float32) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Float64(key string, val float64) slago.Record {
+func (r *logrusRecord) Float64(key string, val float64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Floats64(key string, val []float64) slago.Record {
+func (r *logrusRecord) Floats64(key string, val []float64) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Time(key string, val time.Time) slago.Record {
+func (r *logrusRecord) Time(key string, val time.Time) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Times(key string, val []time.Time) slago.Record {
+func (r *logrusRecord) Times(key string, val []time.Time) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Dur(key string, val time.Duration) slago.Record {
+func (r *logrusRecord) Dur(key string, val time.Duration) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Durs(key string, val []time.Duration) slago.Record {
+func (r *logrusRecord) Durs(key string, val []time.Duration) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
 
-func (r *logrusRecord) Interface(key string, val interface{}) slago.Record {
+func (r *logrusRecord) Any(key string, val interface{}) lork.Record {
 	r.entry = r.entry.WithField(key, val)
 	return r
 }
@@ -229,10 +229,10 @@ func (r *logrusRecord) Msge() {
 
 func (r *logrusRecord) Msg(msg string) {
 	r.entry.Log(r.level, msg)
-	recordPool.Put(r)
+	logrusRecordPool.Put(r)
 }
 
 func (r *logrusRecord) Msgf(format string, v ...interface{}) {
 	r.entry.Logf(r.level, format, v...)
-	recordPool.Put(r)
+	logrusRecordPool.Put(r)
 }

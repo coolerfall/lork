@@ -12,22 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestPatternParser(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "pattern parser test")
-}
-
-var _ = Describe("pattern", func() {
-	It("parse pattern", func() {
+var _ = ginkgo.Describe("pattern", func() {
+	ginkgo.It("parse pattern", func() {
 		parser := NewPatternParser(
 			`archive-#color(#date{2016-01-02 15:04:05.000}){cyan}.#index.log`)
 		node, err := parser.Parse()

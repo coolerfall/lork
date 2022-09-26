@@ -12,34 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"errors"
 	"strings"
 )
 
-// Filter represents a logging filter for slago.
+// FilterReply defines the result of filter.
+type FilterReply int8
+
+const (
+	// Accept represents the logging will be accepted by filter.
+	Accept FilterReply = iota + 1
+	// Deny represents the logging will be denied by filter.
+	Deny
+)
+
+// Filter represents a logging filter for lork.
 type Filter interface {
-	// Do filters the logging. True means filterd, otherwise pass through.
-	Do(e *LogEvent) bool
+	// Do filters the logging. The logs will be accepted or denied according to FilterReply.
+	Do(e *LogEvent) FilterReply
 }
 
-// levelFilter represents a level filter.
-type levelFilter struct {
+// thresholdFilter represents a filter with threshold.
+type thresholdFilter struct {
 	level Level
 }
 
-// NewLevelFilter creates a new instance of levelFilter.
-func NewLevelFilter(lvl Level) Filter {
-	return &levelFilter{
+// NewThresholdFilter creates a new instance of thresholdFilter.
+func NewThresholdFilter(lvl Level) Filter {
+	return &thresholdFilter{
 		level: lvl,
 	}
 }
 
-// Do will execute the filter.
-func (f *levelFilter) Do(e *LogEvent) bool {
-	return f.level > e.LevelInt()
+func (f *thresholdFilter) Do(e *LogEvent) FilterReply {
+	if e.LevelInt() >= f.level {
+		return Accept
+	}
+
+	return Deny
 }
 
 // keywordFilter represents a filter by key word rule.
@@ -56,7 +69,7 @@ func NewKeywordFilter(keywords ...string) Filter {
 
 var errFound = errors.New("found")
 
-func (f *keywordFilter) Do(e *LogEvent) bool {
+func (f *keywordFilter) Do(e *LogEvent) FilterReply {
 	err := e.Fields(func(k, v []byte, _ bool) error {
 		if f.compare(k, v) {
 			return errFound
@@ -65,7 +78,11 @@ func (f *keywordFilter) Do(e *LogEvent) bool {
 		return nil
 	})
 
-	return err == errFound
+	if err == errFound {
+		return Accept
+	}
+
+	return Deny
 }
 
 func (f *keywordFilter) compare(key []byte, value []byte) bool {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"sync"
@@ -43,6 +43,10 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
 		f(opt)
 	}
 
+	if opt.Ref == nil {
+		ReportfExit("async writer need a referenced writer")
+	}
+
 	return &asyncWriter{
 		ref:   opt.Ref,
 		queue: NewBlockingQueue(opt.QueueSize),
@@ -69,6 +73,21 @@ func (w *asyncWriter) Stop() {
 	w.isRunning = false
 }
 
+func (w *asyncWriter) WriteEvent(event *LogEvent) (n int, err error) {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	if w.queue.RemainCapacity() <= 16 {
+		// discard
+		event.Recycle()
+		return 0, nil
+	}
+
+	w.queue.Put(event)
+
+	return 0, nil
+}
+
 func (w *asyncWriter) Write(p []byte) (n int, err error) {
 	w.locker.Lock()
 	defer w.locker.Unlock()
@@ -78,7 +97,7 @@ func (w *asyncWriter) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	w.queue.Put(p)
+	w.queue.Put(MakeEvent(p))
 
 	return len(p), nil
 }
@@ -97,27 +116,29 @@ func (w *asyncWriter) startWorker() {
 			break
 		}
 
-		p := w.queue.Take()
+		p := (w.queue.Take()).(*LogEvent)
 		w.write(p)
 	}
 }
 
-func (w *asyncWriter) write(p []byte) {
-	event := MakeEvent(p)
+func (w *asyncWriter) write(event *LogEvent) {
 	defer event.Recycle()
 
 	var err error
-	if w.ref.Filter() != nil && w.ref.Filter().Do(event) {
+	if w.ref.Filter() != nil && w.ref.Filter().Do(event) == Deny {
 		return
 	}
 
-	encoded := p
-	if w.ref.Encoder() != nil {
-		encoded, err = w.ref.Encoder().Encode(event)
-		if err != nil {
-			Reportf("async writer encode error: %v", err)
-			return
-		}
+	var encoded []byte
+	if w.ref.Encoder() == nil {
+		Reportf("no encoder found for reference writer")
+		return
+	}
+
+	encoded, err = w.ref.Encoder().Encode(event)
+	if err != nil {
+		Reportf("async writer encode error: %v", err)
+		return
 	}
 
 	_, err = w.ref.Write(encoded)

@@ -1,7 +1,7 @@
-slago
+lork
 =====
-Simple Logging Abstraction for Go. Slago provides bridge and binder for logger which
-can send log from logger to another logger you preferred. Slago also provides unified writers, 
+The flexible, extensible and structured logging for Go. Lork provides bridge and binder for logger 
+which can send log from logger to another logger you preferred. Lork also provides unified writers, 
 encoders and filters, it brings different logger with same apis and flexible configurations.
 
 Install
@@ -9,58 +9,49 @@ Install
 Add the following to your go.mod
 ```text
 require (
-	github.com/coolerfall/slago v0.5.4
+	github.com/coolerfall/lork v0.6.0
 )
 ```
 
 Quick Start
 ==========
-* Add logger you want to bind to:
-```go
-slago.Bind(salzero.NewZeroLogger())
-```
-
-* Install the bridges for other logger :
-```go
-slago.Install(bridge.NewLogBridge())
-slago.Install(bridge.NewLogrusBridge())
-slago.Install(bridge.NewZapBrige())
-```
-
 * Configure the output writer:
 ```go
-slago.Logger().AddWriter(slago.NewConsoleWriter(func(o *slago.ConsoleWriterOption) {
-    o.Encoder = slago.NewPatternEncoder(func(opt *slago.PatternEncoderOption) {
+lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+    o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
         opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-"#level) #color([#logger{16}]){magenta} : #message #fields"
+"#level) #color([#logger{32}]){magenta} : #message #fields"
     })
 }))
-fw := slago.NewFileWriter(func(o *slago.FileWriterOption) {
-    o.Encoder = slago.NewJsonEncoder()
-    o.Filter = slago.NewLevelFilter(slago.DebugLevel)
-    o.Filename = "example/slago-test.log"
-    o.RollingPolicy = slago.NewSizeAndTimeBasedRollingPolicy(
-        func(o *slago.SizeAndTimeBasedRPOption) {
-            o.FilenamePattern = "example/slago-archive.#date{2006-01-02}.#index.log"
+fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Encoder = lork.NewJsonEncoder()
+    o.Filter = lork.NewThresholdFilter(lork.DebugLevel)
+    o.Filename = "example/lork-test.log"
+    o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+        func(o *lork.SizeAndTimeBasedRPOption) {
+            o.FilenamePattern = "example/lork-archive.#date{2006-01-02}.#index.log"
             o.MaxFileSize = "10MB"
             o.MaxHistory = 10
     })
 })
-aw := slago.NewAsyncWriter(func(o *slago.AsyncWriterOption) {
+aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
     o.Ref = fw
 })
-slago.Logger().AddWriter(aw)
+lork.Logger().AddWriter(aw)
 
 ```
 
 * Add logging:
 ```go
-slago.Logger().Trace().Msg("slago")
-slago.Logger().Info().Int("int", 88).Interface("slago", "val").Msg("")
+lork.Logger().Trace().Msg("lork")
+lork.Logger().Info().Int("int", 88).Any("lork", "val").Msge()
 ```
 
 * If you log with other logger, it will send to the bound logger:
 ```go
+lork.Install(lork.NewLogBridge())
+lork.Install(bridge.NewZapBrige())
+
 zap.L().With().Warn("this is zap")
 log.Printf("this is builtin logger")
 ```
@@ -68,10 +59,10 @@ Note: only **global** logger will send log to bound logger if using logger like 
 
 Configuration
 ============
-The following shows all the configurations of slago.
+The following shows all the configurations of lork.
 
 # Writer
-Slago provides several writers for logging, and it supports to add multiple writers.
+lork provides several writers for logging, and it supports to add multiple writers.
 
 ### Console Writer
 This writer sends the logs to `Stdout` console. It supports the following options:
@@ -83,7 +74,7 @@ It supports the following options:
 * `Encoder`, encoder of logs
 * `Filter`, filter of logs
 * `Filename`, the filename of the log file to write
-* `RollingPolicy`, the policy to roll over log files. Slago provides`TimeBasedPpolicy` and `SizeAndTimeBasedPolicy`
+* `RollingPolicy`, the policy to roll over log files. lork provides`TimeBasedPpolicy` and `SizeAndTimeBasedPolicy`
 
 ### Asynchronous Writer
 This writer wraps `Console Writer` or `File Writer` to write log in background. It supports the following options: 
@@ -102,7 +93,7 @@ The server should start `Socket Reader`to receive logs, and it supports the foll
 * `Port`, the port of this server will listen
 
 ## Encoder
-Slago provides some builtin encoders which can be configured in wirters.
+lork provides some builtin encoders which can be configured in wirters.
 
 ### Pattern Encoder
 Encode logs with custom pattern format layout, for example:
@@ -142,13 +133,24 @@ This pattern adds key-value fields in logs.
 Encode logs with json format.
 
 ## Filter
-Filters can filter unused logs from origin logs. Slago provides some built in filters.
+Filters can filter unused logs from origin logs. lork provides some built in filters.
 
-### Level Filter
-This filter will filter all logs which is  lower than the level set.
+### Threshold Filter
+This filter will deny all logs which is lower than the level set.
 
 ### Keyword Filter
 A simple keyword filter which matches the specified keyword.
+
+Benchmarks
+==========
+Benchmarks with complex log field, diferent encoder and writer.
+```text
+cpu: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
+BenchmarkJsonFileWirter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
+BenchmarkPatternFileWirter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
+BenchmarkAsyncFileWirter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
+BenchmarkNoWirter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
+```
 
 Credits
 ======

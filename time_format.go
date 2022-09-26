@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slago
+package lork
 
 import (
 	"errors"
@@ -373,7 +373,7 @@ func absDate(abs uint64, full bool) (year int, month time.Month, day int, yday i
 	// Split into time and day.
 	d := abs / secondsPerDay
 
-	// Account for 400 year cycles.
+	// Account for 400-year cycles.
 	n := d / daysPer400Years
 	y := 400 * n
 	d -= daysPer400Years * n
@@ -476,9 +476,22 @@ func isLeap(year int) bool {
 }
 
 // convertFormat parses the origin timestamp in 2006-01-02T15:04:05.000Z07:00 format,
-// and convert to new layout. This will appends the textual representation to b and
+// and convert to new layout. This will append the textual representation to b and
 // returns the extended buffer.
 func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
+	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
+	if err != nil {
+		return b, err
+	}
+
+	return appendFormatUnix(b, utcUnixNano, newLayout)
+}
+
+func appendFormat(b []byte, t time.Time, layout string) ([]byte, error) {
+	return appendFormatUnix(b, t.UnixNano(), layout)
+}
+
+func appendFormatUnix(b []byte, utcUnixNano int64, layout string) ([]byte, error) {
 	var (
 		year  = -1
 		month time.Month
@@ -490,10 +503,6 @@ func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, er
 
 	local := time.Now()
 	zoneName, offset := local.Zone()
-	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
-	if err != nil {
-		return b, err
-	}
 
 	localTime := utcUnixNano + int64(offset*1000000000)
 	unixSec := localTime / 1000000000
@@ -501,15 +510,15 @@ func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, er
 	nano := localTime % 1000000000
 
 	// Each iteration generates one std value.
-	for newLayout != "" {
-		prefix, std, suffix := nextStdChunk(newLayout)
+	for layout != "" {
+		prefix, std, suffix := nextStdChunk(layout)
 		if prefix != "" {
 			b = append(b, prefix...)
 		}
 		if std == 0 {
 			break
 		}
-		newLayout = suffix
+		layout = suffix
 
 		// Compute year, month, day if needed.
 		if year < 0 && std&stdNeedDate != 0 {
@@ -723,7 +732,7 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 					// Fractional second in the layout; proceed normally
 					break
 				}
-				// No fractional second in the layout but we have one in the input.
+				// No fractional second in the layout, but we have one in the input.
 				n := 2
 				for ; n < len(value) && isDigit(value, n); n++ {
 				}

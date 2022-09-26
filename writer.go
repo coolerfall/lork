@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
+	"errors"
 	"io"
 	"sync"
 )
 
-type EventWriter interface {
-
-	Write(event *LogEvent) (err error)
-}
-
-// Writer is the interface that wraps the io.Writer, add adds
-// Encoder and Filter func for slago to ecnode and filter logs.
+// Writer is the interface that wraps the io.Writer, adds
+// Encoder and Filter func for logger to encode and filter logs.
 type Writer interface {
 	io.Writer
 
@@ -36,23 +32,29 @@ type Writer interface {
 	Filter() Filter
 }
 
-// MultiWriter represents multiple writer which implements slago.Writer.
-// This writer is used as output which will implement SlaLogger.
+// EventWriter represents writer which will write raw LogEvent.
+type EventWriter interface {
+	// WriteEvent writes LogEvent.
+	WriteEvent(event *LogEvent) (n int, err error)
+}
+
+// MultiWriter represents multiple writer which implements lork.Writer.
+// This writer is used as output which will implement ILogger.
 type MultiWriter struct {
 	locker       sync.Mutex
 	writers      []Writer
-	asyncWriters []Writer
+	asyncWriters []EventWriter
 }
 
 // NewMultiWriter creates a new multiple writer.
 func NewMultiWriter() *MultiWriter {
 	return &MultiWriter{
 		writers:      make([]Writer, 0),
-		asyncWriters: make([]Writer, 0),
+		asyncWriters: make([]EventWriter, 0),
 	}
 }
 
-// AddWriter adds a slago writer into multi writer.
+// AddWriter adds a lork writer into multi writer.
 func (mw *MultiWriter) AddWriter(writers ...Writer) {
 	for _, w := range writers {
 		if lc, ok := w.(Lifecycle); ok {
@@ -60,7 +62,7 @@ func (mw *MultiWriter) AddWriter(writers ...Writer) {
 		}
 
 		if _, ok := w.(*asyncWriter); ok {
-			mw.asyncWriters = append(mw.asyncWriters, w)
+			mw.asyncWriters = append(mw.asyncWriters, w.(*asyncWriter))
 		} else {
 			mw.writers = append(mw.writers, w)
 		}
@@ -78,7 +80,7 @@ func (mw *MultiWriter) Reset() {
 		}
 	}
 	mw.writers = make([]Writer, 0)
-	mw.asyncWriters = make([]Writer, 0)
+	mw.asyncWriters = make([]EventWriter, 0)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
@@ -96,9 +98,41 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
+func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
+	defer event.Recycle()
+
+	for _, w := range mw.writers {
+		if w.Filter() != nil && w.Filter().Do(event) == Deny {
+			return
+		}
+
+		if w.Encoder() == nil {
+			return 0, errors.New("no encoder found in writer")
+		}
+		encoded, err := w.Encoder().Encode(event)
+		if err != nil {
+			return 0, err
+		}
+		n, err = w.Write(encoded)
+	}
+
+	if len(mw.asyncWriters) == 0 {
+		return
+	}
+
+	cp := event.Copy()
+	for _, w := range mw.asyncWriters {
+		if n, err = w.WriteEvent(cp); err != nil {
+			return
+		}
+	}
+
+	return n, nil
+}
+
 func (mw *MultiWriter) writeAsync(p []byte) (n int, err error) {
 	for _, w := range mw.asyncWriters {
-		if n, err = w.Write(p); err != nil {
+		if n, err = w.WriteEvent(MakeEvent(p)); err != nil {
 			return
 		}
 	}
@@ -114,7 +148,7 @@ func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
 	event := MakeEvent(p)
 	defer event.Recycle()
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(event) {
+		if w.Filter() != nil && w.Filter().Do(event) == Deny {
 			return
 		}
 

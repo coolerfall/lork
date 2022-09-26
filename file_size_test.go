@@ -12,27 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestFileSize(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "file size test")
-}
-
-var _ = Describe("file size", func() {
-	It("parse file size", func() {
+var _ = ginkgo.Describe("file size", func() {
+	ginkgo.It("parse file size", func() {
 		size, err := parseFileSize("10Kb")
 		Expect(err).To(BeNil())
 		Expect(size).To(Equal(int64(10240)))
 	})
-	It("parse file size error", func() {
+	ginkgo.It("parse file size error", func() {
 		_, err := parseFileSize("10K")
 		Expect(err).NotTo(BeNil())
 	})

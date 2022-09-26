@@ -12,25 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
-	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestRollingPolicy(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "rolling policy test")
-}
-
-var _ = Describe("time based rolling policy", func() {
-	It("should trigger", func() {
+var _ = ginkgo.Describe("time based rolling policy", func() {
+	ginkgo.It("should trigger", func() {
 		tbrp := NewTimeBasedRollingPolicy(func(o *TimeBasedRPOption) {
-			o.FilenamePattern = "slago-archive.#date{2006-01-02}.log"
+			o.FilenamePattern = "lork-archive.#date{2006-01-02}.log"
 		})
 		_ = NewFileWriter(func(o *FileWriterOption) {
 			o.RollingPolicy = tbrp
@@ -44,8 +38,8 @@ var _ = Describe("time based rolling policy", func() {
 	})
 })
 
-var _ = Describe("size and time based rolling policy", func() {
-	It("should trigger", func() {
+var _ = ginkgo.Describe("size and time based rolling policy", func() {
+	ginkgo.It("should trigger", func() {
 		stbrp := NewSizeAndTimeBasedRollingPolicy(func(o *SizeAndTimeBasedRPOption) {
 			o.MaxFileSize = "10Kb"
 		})

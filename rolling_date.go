@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"time"
@@ -24,6 +24,12 @@ const (
 	topOfHour
 	topOfDay
 	topOfMonth
+)
+
+const (
+	secondsInOneMinute = 60
+	secondsInOneHour   = 60 * secondsInOneMinute
+	secondsInOneDay    = 24 * secondsInOneHour
 )
 
 var (
@@ -104,7 +110,7 @@ func (rd *rollingDate) periodCrossed(start int64, end int64) int {
 	diff := end - start
 	switch rd._type {
 	case topOfMinute:
-		return int(diff / secondsInOneMinite)
+		return int(diff / secondsInOneMinute)
 
 	case topOfHour:
 		return int(diff / secondsInOneHour)

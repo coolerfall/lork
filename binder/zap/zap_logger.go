@@ -12,47 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slazap
+package zap
 
 import (
 	"time"
 
-	"github.com/coolerfall/slago"
+	"github.com/coolerfall/lork"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	slagoLvlToZapLvl = map[slago.Level]zapcore.Level{
-		slago.TraceLevel: zapcore.DebugLevel,
-		slago.DebugLevel: zapcore.DebugLevel,
-		slago.InfoLevel:  zapcore.InfoLevel,
-		slago.WarnLevel:  zapcore.WarnLevel,
-		slago.ErrorLevel: zapcore.ErrorLevel,
-		slago.FatalLevel: zapcore.FatalLevel,
-		slago.PanicLevel: zapcore.PanicLevel,
+	lorkLvlToZapLvl = map[lork.Level]zapcore.Level{
+		lork.TraceLevel: zapcore.DebugLevel,
+		lork.DebugLevel: zapcore.DebugLevel,
+		lork.InfoLevel:  zapcore.InfoLevel,
+		lork.WarnLevel:  zapcore.WarnLevel,
+		lork.ErrorLevel: zapcore.ErrorLevel,
+		lork.FatalLevel: zapcore.FatalLevel,
+		lork.PanicLevel: zapcore.PanicLevel,
 	}
 )
 
-// zapLogger is an implementation of SlaLogger.
+// zapLogger is an implementation of ILogger.
 type zapLogger struct {
 	atomicLevel zap.AtomicLevel
-	multiWriter *slago.MultiWriter
+	multiWriter *lork.MultiWriter
 }
 
-// NewZapLogger creates a new instance of zapLogger used to be bound to slago.
-func NewZapLogger() slago.SlaLogger {
+// NewZapLogger creates a new instance of zapLogger used to be bound to lork.
+func NewZapLogger() lork.ILogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.LevelKey = slago.LevelFieldKey
-	encoderConfig.MessageKey = slago.MessageFieldKey
-	encoderConfig.TimeKey = slago.TimestampFieldKey
+	encoderConfig.LevelKey = lork.LevelFieldKey
+	encoderConfig.MessageKey = lork.MessageFieldKey
+	encoderConfig.TimeKey = lork.TimestampFieldKey
 	encoderConfig.EncodeTime = rf3339Encoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
-	writer := slago.NewMultiWriter()
+	writer := lork.NewMultiWriter()
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(writer),
@@ -71,7 +71,7 @@ func (l *zapLogger) Name() string {
 	return "go.uber.org/zap"
 }
 
-func (l *zapLogger) AddWriter(w ...slago.Writer) {
+func (l *zapLogger) AddWriter(w ...lork.Writer) {
 	l.multiWriter.AddWriter(w...)
 }
 
@@ -79,45 +79,49 @@ func (l *zapLogger) ResetWriter() {
 	l.multiWriter.Reset()
 }
 
-func (l *zapLogger) SetLevel(lvl slago.Level) {
-	l.atomicLevel.SetLevel(slagoLvlToZapLvl[lvl])
+func (l *zapLogger) SetLevel(lvl lork.Level) {
+	l.atomicLevel.SetLevel(lorkLvlToZapLvl[lvl])
 }
 
-func (l *zapLogger) Trace() slago.Record {
+func (l *zapLogger) Trace() lork.Record {
 	return l.Debug()
 }
 
-func (l *zapLogger) Debug() slago.Record {
+func (l *zapLogger) Debug() lork.Record {
 	return newZapRecord(zapcore.DebugLevel)
 }
 
-func (l *zapLogger) Info() slago.Record {
+func (l *zapLogger) Info() lork.Record {
 	return newZapRecord(zapcore.InfoLevel)
 }
 
-func (l *zapLogger) Warn() slago.Record {
+func (l *zapLogger) Warn() lork.Record {
 	return newZapRecord(zapcore.WarnLevel)
 }
 
-func (l *zapLogger) Error() slago.Record {
+func (l *zapLogger) Error() lork.Record {
 	return newZapRecord(zapcore.ErrorLevel)
 }
 
-func (l *zapLogger) Fatal() slago.Record {
+func (l *zapLogger) Fatal() lork.Record {
 	return newZapRecord(zapcore.FatalLevel)
 }
 
-func (l *zapLogger) Panic() slago.Record {
+func (l *zapLogger) Panic() lork.Record {
 	return newZapRecord(zapcore.PanicLevel)
 }
 
-func (l *zapLogger) WriteRaw(p []byte) {
-	_, err := l.multiWriter.Write(p)
+func (l *zapLogger) Level(lvl lork.Level) lork.Record {
+	return newZapRecord(lorkLvlToZapLvl[lvl])
+}
+
+func (l *zapLogger) WriteEvent(e *lork.LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
-		l.Error().Err(err).Msg("write raw error")
+		l.Error().Err(err).Msg("write raw event error")
 	}
 }
 
 func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(t.Format(slago.TimestampFormat))
+	enc.AppendString(t.Format(lork.TimestampFormat))
 }

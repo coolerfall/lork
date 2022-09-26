@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"time"
@@ -125,10 +125,10 @@ type Record interface {
 	// Durs adds duration array value to this record.
 	Durs(key string, val []time.Duration) Record
 
-	// Interface adds interface value to this record.
-	Interface(key string, val interface{}) Record
+	// Any adds any value to this record.
+	Any(key string, val interface{}) Record
 
-	// Msge ouputs log without message
+	// Msge outputs log without message
 	Msge()
 
 	// Msg adds a message to this record and output log.

@@ -12,104 +12,68 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
-// classicLogger represents a classic logger with name which can be used as category.
 type classicLogger struct {
-	name   string
-	root   SlaLogger
-	parent SlaLogger
-	lvl    Level
+	multiWriter *MultiWriter
 }
 
-// newClassicLogger creates a new instance of classic logger.
-func newClassicLogger(name string, root SlaLogger, parent SlaLogger) SlaLogger {
+func NewClassicLogger() ILogger {
 	return &classicLogger{
-		name:   name,
-		root:   root,
-		parent: parent,
-		lvl:    TraceLevel,
+		multiWriter: NewMultiWriter(),
 	}
 }
 
-func (cl *classicLogger) Name() string {
-	return cl.name
+func (l *classicLogger) Name() string {
+	return "github.com/coolerfall/lork"
 }
 
-func (cl *classicLogger) AddWriter(w ...Writer) {
-	cl.parent.AddWriter(w...)
+func (l *classicLogger) AddWriter(w ...Writer) {
+	l.multiWriter.AddWriter(w...)
 }
 
-func (cl *classicLogger) ResetWriter() {
-	cl.parent.ResetWriter()
+func (l *classicLogger) ResetWriter() {
+	l.multiWriter.Reset()
 }
 
-func (cl *classicLogger) SetLevel(lvl Level) {
-	cl.lvl = lvl
+func (l *classicLogger) SetLevel(_ Level) {
 }
 
-func (cl *classicLogger) Trace() Record {
-	return cl.makeRecord(TraceLevel, cl.root.Trace)
+func (l *classicLogger) Trace() Record {
+	return newClassicRecord(TraceLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Debug() Record {
-	return cl.makeRecord(DebugLevel, cl.root.Debug)
+func (l *classicLogger) Debug() Record {
+	return newClassicRecord(DebugLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Info() Record {
-	return cl.makeRecord(InfoLevel, cl.root.Info)
+func (l *classicLogger) Info() Record {
+	return newClassicRecord(InfoLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Warn() Record {
-	return cl.makeRecord(WarnLevel, cl.root.Warn)
+func (l *classicLogger) Warn() Record {
+	return newClassicRecord(WarnLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Error() Record {
-	return cl.makeRecord(ErrorLevel, cl.root.Error)
+func (l *classicLogger) Error() Record {
+	return newClassicRecord(ErrorLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Fatal() Record {
-	return cl.makeRecord(FatalLevel, cl.root.Fatal)
+func (l *classicLogger) Fatal() Record {
+	return newClassicRecord(FatalLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) Panic() Record {
-	return cl.makeRecord(PanicLevel, cl.root.Panic)
+func (l *classicLogger) Panic() Record {
+	return newClassicRecord(PanicLevel, l.multiWriter)
 }
 
-func (cl *classicLogger) WriteRaw(p []byte) {
-	cl.parent.WriteRaw(p)
+func (l *classicLogger) Level(lvl Level) Record {
+	return newClassicRecord(lvl, l.multiWriter)
 }
 
-func (cl *classicLogger) makeRecord(lvl Level, newRecord func() Record) Record {
-	var record Record
-
-	if cl.checkLevel(lvl) {
-		record = newRecord()
-	} else {
-		record = newNoopRecord()
+func (l *classicLogger) WriteEvent(e *LogEvent) {
+	_, err := l.multiWriter.WriteEvent(e)
+	if err != nil {
+		l.Error().Err(err).Msg("write raw event error")
 	}
-
-	// append logger name
-	return record.Str(LoggerFieldKey, cl.name)
-}
-
-func (cl *classicLogger) checkLevel(lvl Level) bool {
-	if cl.lvl > lvl {
-		return false
-	}
-
-	for l := cl; l != nil; {
-		p, ok := l.parent.(*classicLogger)
-		if !ok {
-			break
-		}
-
-		if cl.lvl > l.lvl {
-			return false
-		}
-
-		l = p
-	}
-
-	return true
 }

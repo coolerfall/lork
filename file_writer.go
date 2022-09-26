@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"sync"
 )
 
-const defaultLogFilename = "slago.log"
+const defaultLogFilename = "lork.log"
 
 type fileWriter struct {
 	opts *FileWriterOption
@@ -117,7 +117,6 @@ func (fw *fileWriter) Close() error {
 	return fw.close()
 }
 
-// close closes the file if it is open.
 func (fw *fileWriter) close() error {
 	if fw.file == nil {
 		return nil
@@ -128,7 +127,7 @@ func (fw *fileWriter) close() error {
 }
 
 // openNew opens a new log file for writing, moving any old log file out of the
-// way. This methods assumes the file has already been closed.
+// way. This method assumes the file has already been closed.
 func (fw *fileWriter) openNew() error {
 	err := os.MkdirAll(fw.dir(), 0755)
 	if err != nil {
@@ -146,7 +145,7 @@ func (fw *fileWriter) openNew() error {
 }
 
 // openExistingOrNew opens the logfile if it exists and if the current write
-// would not put it over MaxSize.  If there is no such file or the write would
+// would not put it over MaxSize.  If there is no such file or write would
 // put it over the MaxSize, a new file is created.
 func (fw *fileWriter) openExistingOrNew() error {
 	filename := fw.opts.Filename

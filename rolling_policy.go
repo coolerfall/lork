@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -83,11 +82,11 @@ type TimeBasedRPOption struct {
 	MaxHistory      int
 }
 
-// NewTimeBasedRollingPolicy creates a instance of time based rolling policy
+// NewTimeBasedRollingPolicy creates an instance of time based rolling policy
 // for file writer.
 func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolicy {
 	opt := &TimeBasedRPOption{
-		FilenamePattern: "slago-archive.#date{2006-01-02}.log",
+		FilenamePattern: "lork-archive.#date{2006-01-02}.log",
 	}
 
 	for _, f := range options {
@@ -131,7 +130,7 @@ func (rp *timeBasedRollingPolicy) ShouldTrigger(_ int64) bool {
 func (rp *timeBasedRollingPolicy) Rotate() error {
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	if len(rollingFilename) == 0 {
-		rollingFilename = fmt.Sprintf("slago-%s.log",
+		rollingFilename = fmt.Sprintf("lork-%s.log",
 			rp.timeInCurrentPeriod.Format("2006-01-02"))
 	}
 
@@ -199,7 +198,7 @@ func NewSizeAndTimeBasedRollingPolicy(options ...func(
 	*SizeAndTimeBasedRPOption)) RollingPolicy {
 	opt := &SizeAndTimeBasedRPOption{
 		MaxFileSize:     "128MB",
-		FilenamePattern: "slago-archive.#date{2006-01-02}.#index.log",
+		FilenamePattern: "lork-archive.#date{2006-01-02}.#index.log",
 	}
 
 	for _, f := range options {
@@ -249,7 +248,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, rp.index)
 	if len(rollingFilename) == 0 {
-		rollingFilename = fmt.Sprintf("slago-%s.%v.log",
+		rollingFilename = fmt.Sprintf("lork-%s.%v.log",
 			rp.timeInCurrentPeriod.Format("2006-01-02"), rp.index)
 	}
 
@@ -272,7 +271,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	parentDir := filepath.Dir(rollingFilename)
-	files, err := ioutil.ReadDir(parentDir)
+	files, err := os.ReadDir(parentDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			rp.index = 0

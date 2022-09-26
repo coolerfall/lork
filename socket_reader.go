@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"fmt"
@@ -58,7 +58,7 @@ func (sr *SocketReader) Start() {
 	sr.isRunning = true
 	sr.locker.Unlock()
 
-	Logger().Info().Msgf("socket reader is listening on %v with path %v", sr.port, sr.path)
+	LoggerC().Info().Msgf("socket reader is listening on %v with path %v", sr.port, sr.path)
 	http.HandleFunc(sr.path, sr.readLog)
 	fmt.Print(http.ListenAndServe(fmt.Sprintf(":%v", sr.port), nil))
 }
@@ -72,36 +72,36 @@ func (sr *SocketReader) Stop() {
 func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 	conn, err := sr.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		Logger().Error().Err(err).Msg("read log upgrade error")
+		LoggerC().Error().Err(err).Msg("read log upgrade error")
 	}
 	defer func() {
 		_ = conn.Close()
 	}()
 
-	Logger().Info().Msgf("socket reader got a client connected: %v", r.Host)
+	LoggerC().Info().Msgf("socket reader got a client connected: %v", r.Host)
 
 	for {
 		if !sr.isRunning {
-			Logger().Info().Msg("socket log reader stopped, closing...")
+			LoggerC().Info().Msg("socket log reader stopped, closing...")
 			break
 		}
 
 		if msgType, data, err := conn.ReadMessage(); err != nil {
 			if websocket.IsCloseError(err,
 				websocket.CloseNormalClosure, websocket.CloseAbnormalClosure) {
-				Logger().Info().Msg("socket client has closed")
+				LoggerC().Info().Msg("socket client has closed")
 				break
 			}
 
-			Logger().Error().Err(err).Msg("read log err")
+			LoggerC().Error().Err(err).Msg("read log err")
 			continue
 		} else {
 			if msgType != websocket.BinaryMessage {
-				Logger().Debug().Msg("not binary message for log, skip")
+				LoggerC().Debug().Msg("not binary message for log, skip")
 				continue
 			}
 
-			Logger().WriteRaw(data)
+			LoggerC().WriteEvent(MakeEvent(data))
 		}
 	}
 }

@@ -12,43 +12,36 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
-	"testing"
-
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-func TestFilter(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "filter test")
-}
-
-var _ = Describe("level filter", func() {
+var _ = ginkgo.Describe("threshold filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
-	It("not filter", func() {
-		filter := NewLevelFilter(InfoLevel)
+	ginkgo.It("not filter", func() {
+		filter := NewThresholdFilter(InfoLevel)
 		result := filter.Do(event)
-		Expect(result).To(Equal(false))
+		Expect(result).To(Equal(Accept))
 	})
-	It("filter", func() {
-		filter := NewLevelFilter(ErrorLevel)
+	ginkgo.It("filter", func() {
+		filter := NewThresholdFilter(ErrorLevel)
 		result := filter.Do(event)
-		Expect(result).To(Equal(true))
+		Expect(result).To(Equal(Deny))
 	})
 })
-var _ = Describe("keyword filter", func() {
+var _ = ginkgo.Describe("keyword filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88,"name":"key"}`))
-	It("not filter", func() {
+	ginkgo.It("not filter", func() {
 		filter := NewKeywordFilter("logger")
 		result := filter.Do(event)
-		Expect(result).To(Equal(false))
+		Expect(result).To(Equal(Deny))
 	})
-	It("filter", func() {
+	ginkgo.It("filter", func() {
 		filter := NewKeywordFilter("name=key", "int")
 		result := filter.Do(event)
-		Expect(result).To(Equal(true))
+		Expect(result).To(Equal(Accept))
 	})
 })

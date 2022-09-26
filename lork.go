@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package slago
+package lork
 
 import (
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -29,25 +30,36 @@ const (
 	PanicLevel
 )
 
-const RootLoggerName = "ROOT"
+const (
+	LevelFieldKey     = "level"
+	TimestampFieldKey = "time"
+	MessageFieldKey   = "message"
+	LoggerFieldKey    = "logger_name"
+	ErrorFieldKey     = "error"
+
+	TimestampFormat   = time.RFC3339Nano
+	TimeFormatRFC3339 = "2006-01-02T15:04:05.000Z07:00"
+
+	RootLoggerName = "ROOT"
+)
 
 var (
 	levelMap = map[string]Level{
-		"TRACE":  TraceLevel,
-		"DEBUG":  DebugLevel,
-		"INFO":   InfoLevel,
-		"WARN":   WarnLevel,
-		"ERROR":  ErrorLevel,
-		"FALTAL": FatalLevel,
-		"PANIC":  PanicLevel,
+		"TRACE": TraceLevel,
+		"DEBUG": DebugLevel,
+		"INFO":  InfoLevel,
+		"WARN":  WarnLevel,
+		"ERROR": ErrorLevel,
+		"FATAL": FatalLevel,
+		"PANIC": PanicLevel,
 	}
 )
 
 type Level int8
 
-// SlaLogger represents a logging abstraction.
-type SlaLogger interface {
-	// Name returns the name of current slago logger implementation.
+// ILogger represents lork logging interface defination.
+type ILogger interface {
+	// Name returns the name of current lork logger implementation.
 	Name() string
 
 	// AddWriter add one or more writer to this logger.
@@ -56,7 +68,7 @@ type SlaLogger interface {
 	// ResetWriter will remove all writers added before.
 	ResetWriter()
 
-	// SetLevel sets global level for root logger.
+	// SetLevel sets global level for logger.
 	SetLevel(lvl Level)
 
 	// Trace logs with trace level.
@@ -74,69 +86,70 @@ type SlaLogger interface {
 	// Error logs with error level.
 	Error() Record
 
-	// Fatal logs with faltal level.
+	// Fatal logs with fatal level.
 	Fatal() Record
 
 	// Panic logs with panic level.
 	Panic() Record
 
-	// WriteRaw writes raw logging event.
-	WriteRaw(p []byte)
+	// Level logs with specified level.
+	Level(lvl Level) Record
+
+	// WriteEvent writes raw logging event.
+	WriteEvent(e *LogEvent)
 }
 
-// Bridge represents bridge between other logging framework and slago logger.
+// Bridge represents bridge between other logging framework and lork logger.
 type Bridge interface {
 	// Name returns the name of this bridge.
 	Name() string
 
-	// ParseLevel parses the given level string into slago level.
+	// ParseLevel parses the given level string into lork level.
 	ParseLevel(lvl string) Level
 }
 
 var (
-	loggers = make([]SlaLogger, 0)
+	loggers = make([]ILogger, 0)
 	bridges = make([]Bridge, 0)
 
 	onceLogger   sync.Once
 	loggerLocker sync.Mutex
-	loggerCache  map[string]SlaLogger
+	loggerCache  map[string]ILogger
 )
 
-// Logger get a global slago logger to use. The name will only get the first one.
-func Logger(name ...string) SlaLogger {
+// Logger get a global lork logger to use. The name will only get the first one.
+func Logger(name ...string) ILogger {
 	onceLogger.Do(func() {
 		loggerLen := len(loggers)
 		if loggerLen > 1 {
-			Report("multiple slago logger implementation found")
+			Report("multiple lork logger implementation found")
 		} else if loggerLen == 0 {
-			Bind(newNoopLogger())
-			Report("no slago logger found, default to " +
-				"no-operation (NOOP) logger implementation")
+			Bind(NewClassicLogger())
 		}
 		logger := loggers[0]
 
 		for _, b := range bridges {
 			if logger.Name() == b.Name() {
-				ReportfExit("cycle logger checked, %s -> slago -> %s",
+				ReportfExit("cycle logger checked, %s -> lork -> %s",
 					b.Name(), logger.Name())
 			}
 		}
 
-		loggerCache = make(map[string]SlaLogger)
+		loggerCache = make(map[string]ILogger)
 		loggerCache[RootLoggerName] = logger
 	})
 
 	return findLogger(name...)
 }
 
-// LoggerC get a global slago logger with a caller package name.
+// LoggerC get a global lork logger with a caller package name.
 // Note: this will call runtime.Caller function.
-func LoggerC() SlaLogger {
+func LoggerC() ILogger {
 	pkgName := PackageName(1)
 	return Logger(pkgName)
 }
 
-func findLogger(name ...string) SlaLogger {
+func findLogger(name ...string) ILogger {
 	loggerLocker.Lock()
 	defer loggerLocker.Unlock()
 
@@ -144,6 +157,8 @@ func findLogger(name ...string) SlaLogger {
 	var realName string
 	if len(name) > 0 {
 		realName = name[0]
+	} else {
+		return rootLogger
 	}
 
 	child, ok := loggerCache[realName]
@@ -164,7 +179,7 @@ func findLogger(name ...string) SlaLogger {
 		i = index + 1
 		child, ok = loggerCache[childName]
 		if !ok {
-			child = newClassicLogger(childName, rootLogger, logger)
+			child = newNamedLogger(childName, rootLogger, logger)
 			loggerCache[childName] = child
 		}
 		logger = child
@@ -175,13 +190,13 @@ func findLogger(name ...string) SlaLogger {
 	}
 }
 
-// Bind binds an implementation of slago logger as output logger.
-func Bind(logger SlaLogger) {
+// Bind binds an implementation of lork logger as output logger.
+func Bind(logger ILogger) {
 	loggers = append(loggers, logger)
 }
 
-// Install installs a logging framework bridge into slago. All the log of the bridge
-// will be delegated to slagto if the logging framework bridge was installed.
+// Install installs a logging framework bridge into lork. All the log of the bridge
+// will be delegated to lork if the logging framework bridge was installed.
 func Install(bridge Bridge) {
 	bridges = append(bridges, bridge)
 }
@@ -197,7 +212,7 @@ func (l Level) String() string {
 	case ErrorLevel:
 		return "ERROR"
 	case FatalLevel:
-		return "FALTAL"
+		return "FATAL"
 	case PanicLevel:
 		return "PANIC"
 	case TraceLevel:
@@ -207,7 +222,7 @@ func (l Level) String() string {
 	}
 }
 
-// ParseLevel converts a level string into slago level value.
+// ParseLevel converts a level string into lork level value.
 func ParseLevel(lvl string) Level {
 	level, ok := levelMap[strings.ToUpper(lvl)]
 	if !ok {
