@@ -15,7 +15,6 @@
 package lork
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -283,8 +282,7 @@ func (r *classicRecord) Any(key string, val interface{}) Record {
 	case []time.Duration:
 		r.Durs(key, val.([]time.Duration))
 	default:
-		v, _ := json.Marshal(val)
-		r.Str(key, string(v))
+		r.event.appendAny(key, val)
 	}
 	return r
 }
