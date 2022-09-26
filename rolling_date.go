@@ -26,6 +26,12 @@ const (
 	topOfMonth
 )
 
+const (
+	secondsInOneMinute = 60
+	secondsInOneHour   = 60 * secondsInOneMinute
+	secondsInOneDay    = 24 * secondsInOneHour
+)
+
 var (
 	periods = []periodicType{
 		topOfSecond, topOfMinute, topOfHour, topOfDay, topOfMonth,

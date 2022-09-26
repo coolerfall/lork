@@ -102,7 +102,7 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
 	defer event.Recycle()
 
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(event) {
+		if w.Filter() != nil && w.Filter().Do(event) == Deny {
 			return
 		}
 
@@ -148,7 +148,7 @@ func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
 	event := MakeEvent(p)
 	defer event.Recycle()
 	for _, w := range mw.writers {
-		if w.Filter() != nil && w.Filter().Do(event) {
+		if w.Filter() != nil && w.Filter().Do(event) == Deny {
 			return
 		}
 

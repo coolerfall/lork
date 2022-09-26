@@ -108,7 +108,7 @@ func (l *zeroLogger) Level(lvl lork.Level) lork.Record {
 func (l *zeroLogger) WriteEvent(e *lork.LogEvent) {
 	_, err := l.multiWriter.WriteEvent(e)
 	if err != nil {
-		l.Error().Err(err).Msg("write raw error")
+		l.Error().Err(err).Msg("write raw event error")
 	}
 }
 

@@ -22,27 +22,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/buger/jsonparser"
-)
-
-const (
-	LevelFieldKey     = "level"
-	TimestampFieldKey = "time"
-	MessageFieldKey   = "message"
-	LoggerFieldKey    = "logger_name"
-	ErrorFieldKey     = "error"
-
-	TimestampFormat = time.RFC3339Nano
-
-	TimeFormatRFC3339 = "2006-01-02T15:04:05.000Z07:00"
-
-	slash = "/"
-
-	secondsInOneMinute = 60
-	secondsInOneHour   = 60 * secondsInOneMinute
-	secondsInOneDay    = 24 * secondsInOneHour
 )
 
 // BridgeWrite writes data from bridge to lork logger.
@@ -126,7 +107,7 @@ func indexOfSlash(name string, fromIndex int) int {
 		sub = name[fromIndex:]
 	}
 
-	i := strings.Index(sub, slash)
+	i := strings.Index(sub, "/")
 	if i < 0 {
 		return i
 	}
