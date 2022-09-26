@@ -66,7 +66,7 @@ func main() {
 	}))
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewJsonEncoder()
-		o.Filter = lork.NewThresholdFilter(lork.DebugLevel)
+		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
 		o.Filename = "/tmp/lork/lork-test.log"
 		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
 			func(o *lork.SizeAndTimeBasedRPOption) {
@@ -96,7 +96,7 @@ func main() {
 		"name": "dog",
 		"age":  2,
 	}).Msg("this is interface")
-	lork.LoggerC().Info().Bytes("sss", []byte("ABCK")).Msg("test for auto logger name")
+	lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
 
 	time.Sleep(time.Second * 5)
 }

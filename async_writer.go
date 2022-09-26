@@ -125,7 +125,7 @@ func (w *asyncWriter) write(event *LogEvent) {
 	defer event.Recycle()
 
 	var err error
-	if w.ref.Filter() != nil && w.ref.Filter().Do(event) {
+	if w.ref.Filter() != nil && w.ref.Filter().Do(event) == Deny {
 		return
 	}
 

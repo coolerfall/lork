@@ -15,29 +15,17 @@ require (
 
 Quick Start
 ==========
-* Add logger you want to bind to:
-```go
-lork.Bind(salzero.NewZeroLogger())
-```
-
-* Install the bridges for other logger :
-```go
-lork.Install(bridge.NewLogBridge())
-lork.Install(bridge.NewLogrusBridge())
-lork.Install(bridge.NewZapBrige())
-```
-
 * Configure the output writer:
 ```go
 lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
     o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
         opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
-"#level) #color([#logger{16}]){magenta} : #message #fields"
+"#level) #color([#logger{32}]){magenta} : #message #fields"
     })
 }))
 fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
     o.Encoder = lork.NewJsonEncoder()
-    o.Filter = lork.NewLevelFilter(lork.DebugLevel)
+    o.Filter = lork.NewThresholdFilter(lork.DebugLevel)
     o.Filename = "example/lork-test.log"
     o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
         func(o *lork.SizeAndTimeBasedRPOption) {
@@ -61,6 +49,9 @@ lork.Logger().Info().Int("int", 88).Any("lork", "val").Msge()
 
 * If you log with other logger, it will send to the bound logger:
 ```go
+lork.Install(lork.NewLogBridge())
+lork.Install(bridge.NewZapBrige())
+
 zap.L().With().Warn("this is zap")
 log.Printf("this is builtin logger")
 ```
@@ -144,8 +135,8 @@ Encode logs with json format.
 ## Filter
 Filters can filter unused logs from origin logs. lork provides some built in filters.
 
-### Level Filter
-This filter will filter all logs which is  lower than the level set.
+### Threshold Filter
+This filter will deny all logs which is lower than the level set.
 
 ### Keyword Filter
 A simple keyword filter which matches the specified keyword.

@@ -17,6 +17,7 @@ package lork
 import (
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -29,7 +30,18 @@ const (
 	PanicLevel
 )
 
-const RootLoggerName = "ROOT"
+const (
+	LevelFieldKey     = "level"
+	TimestampFieldKey = "time"
+	MessageFieldKey   = "message"
+	LoggerFieldKey    = "logger_name"
+	ErrorFieldKey     = "error"
+
+	TimestampFormat   = time.RFC3339Nano
+	TimeFormatRFC3339 = "2006-01-02T15:04:05.000Z07:00"
+
+	RootLoggerName = "ROOT"
+)
 
 var (
 	levelMap = map[string]Level{
@@ -45,7 +57,7 @@ var (
 
 type Level int8
 
-// ILogger represents a logging interface defination.
+// ILogger represents lork logging interface defination.
 type ILogger interface {
 	// Name returns the name of current lork logger implementation.
 	Name() string
@@ -113,7 +125,6 @@ func Logger(name ...string) ILogger {
 			Report("multiple lork logger implementation found")
 		} else if loggerLen == 0 {
 			Bind(NewClassicLogger())
-			Report("no lork logger found, default to builtin logger implementation")
 		}
 		logger := loggers[0]
 

@@ -19,17 +19,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = ginkgo.Describe("level filter", func() {
+var _ = ginkgo.Describe("threshold filter", func() {
 	var event = MakeEvent([]byte(`{"level":"INFO","int":88}`))
 	ginkgo.It("not filter", func() {
 		filter := NewThresholdFilter(InfoLevel)
 		result := filter.Do(event)
-		Expect(result).To(Equal(false))
+		Expect(result).To(Equal(Accept))
 	})
 	ginkgo.It("filter", func() {
 		filter := NewThresholdFilter(ErrorLevel)
 		result := filter.Do(event)
-		Expect(result).To(Equal(true))
+		Expect(result).To(Equal(Deny))
 	})
 })
 var _ = ginkgo.Describe("keyword filter", func() {
@@ -37,11 +37,11 @@ var _ = ginkgo.Describe("keyword filter", func() {
 	ginkgo.It("not filter", func() {
 		filter := NewKeywordFilter("logger")
 		result := filter.Do(event)
-		Expect(result).To(Equal(false))
+		Expect(result).To(Equal(Deny))
 	})
 	ginkgo.It("filter", func() {
 		filter := NewKeywordFilter("name=key", "int")
 		result := filter.Do(event)
-		Expect(result).To(Equal(true))
+		Expect(result).To(Equal(Accept))
 	})
 })
