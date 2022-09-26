@@ -1,7 +1,15 @@
+# 0.6.0
+* Add builtin lork logger.
+* Split project into multiple modules.
+* Change write raw bytes to log event.
+* Change `Interface` to `Any`.
+* Change the return value of `Filter``.
+* Fix bug.
+
 # 0.5.4
 * Fix alloc for atoi and `Msg`.
 * Remove hex log.
-* Fix archiver and time format.
+* Add archiver and fix time format.
 
 # 0.5.3
 * Fix new line bug.

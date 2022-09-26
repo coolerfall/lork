@@ -9,7 +9,7 @@ Install
 Add the following to your go.mod
 ```text
 require (
-	github.com/coolerfall/lork v0.5.4
+	github.com/coolerfall/lork v0.6.0
 )
 ```
 
