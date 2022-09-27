@@ -57,7 +57,7 @@ var (
 
 type Level int8
 
-// ILogger represents lork logging interface defination.
+// ILogger represents lork logging interface definition.
 type ILogger interface {
 	// Name returns the name of current lork logger implementation.
 	Name() string

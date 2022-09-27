@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	logrusLvlTolorkLvl = map[logrus.Level]lork.Level{
+	logrusLvlToLorkLvl = map[logrus.Level]lork.Level{
 		logrus.TraceLevel: lork.TraceLevel,
 		logrus.DebugLevel: lork.DebugLevel,
 		logrus.InfoLevel:  lork.InfoLevel,
@@ -69,7 +69,7 @@ func (b *logrusBridge) ParseLevel(lvl string) lork.Level {
 		level = logrus.TraceLevel
 	}
 
-	return logrusLvlTolorkLvl[level]
+	return logrusLvlToLorkLvl[level]
 }
 
 func (b *logrusBridge) Write(p []byte) (int, error) {
@@ -82,7 +82,7 @@ func (b *logrusBridge) Write(p []byte) (int, error) {
 			if err != nil {
 				return k, v, err
 			} else {
-				return k, []byte(logrusLvlTolorkLvl[lvl].String()), nil
+				return k, []byte(logrusLvlToLorkLvl[lvl].String()), nil
 			}
 		})
 	p = b.buf.Bytes()
