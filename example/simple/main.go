@@ -76,7 +76,7 @@ func main() {
 			})
 	})
 	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-		o.Ref = fw
+		o.RefWriter = fw
 	})
 	lork.Logger().AddWriter(aw)
 
