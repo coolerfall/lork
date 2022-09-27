@@ -12,43 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !windows && !plan9
+// +build !windows,!plan9
+
 package lork
 
 import (
 	"bytes"
 	"log/syslog"
-	"os"
 	"strconv"
 )
 
-var (
-	lorkLvlToSyslogPriority = map[Level]syslog.Priority{
-		TraceLevel: syslog.LOG_DEBUG,
-		DebugLevel: syslog.LOG_DEBUG,
-		InfoLevel:  syslog.LOG_INFO,
-		WarnLevel:  syslog.LOG_WARNING,
-		ErrorLevel: syslog.LOG_ERR,
-		FatalLevel: syslog.LOG_EMERG,
-		PanicLevel: syslog.LOG_CRIT,
-	}
-)
-
 type syslogWriter struct {
-	w    *syslog.Writer
+	sw   *syslog.Writer
 	opts *SyslogWriterOption
+
+	isStarted bool
 }
 
 type SyslogWriterOption struct {
-	Filter  Filter
+	Tag string
+	// See net.Dial
+	Address, Network string
+	Filter           Filter
+
 	encoder Encoder
 }
 
+// NewSyslogWriter create a logging writer via syslog.
 func NewSyslogWriter(options ...func(option *SyslogWriterOption)) Writer {
 	opts := &SyslogWriterOption{
-		encoder: NewPatternEncoder(func(opt *PatternEncoderOption) {
-			opt.Pattern = "#syslog: #message #fields"
-			opt.Converters = map[string]NewConverter{
-				"syslog": newSyslogConverter,
+		encoder: NewPatternEncoder(func(o *PatternEncoderOption) {
+			o.Pattern = "#level #message #fields"
+			o.Converters = map[string]NewConverter{
+				"level": newLevelIntConverter,
 			}
 		}),
 	}
@@ -62,8 +59,54 @@ func NewSyslogWriter(options ...func(option *SyslogWriterOption)) Writer {
 	}
 }
 
+func (w *syslogWriter) Start() {
+	if w.isStarted {
+		return
+	}
+
+	sw, err := syslog.Dial(w.opts.Address, w.opts.Network, syslog.LOG_DEBUG, w.opts.Tag)
+	if err != nil {
+		ReportfExit("failed to dial syslog: %v", err)
+	}
+
+	w.sw = sw
+	w.isStarted = true
+}
+
+func (w *syslogWriter) Stop() {
+	_ = w.sw.Close()
+}
+
 func (w *syslogWriter) Write(p []byte) (n int, err error) {
-	panic("implement me")
+	lvl, err := atoi(p[:1])
+	if err != nil {
+		return 0, err
+	}
+	msg := string(p[1:])
+
+	switch Level(lvl) {
+	case InfoLevel:
+		err = w.sw.Info(msg)
+	case WarnLevel:
+		err = w.sw.Warning(msg)
+	case ErrorLevel:
+		err = w.sw.Err(msg)
+	case FatalLevel:
+		err = w.sw.Crit(msg)
+	case PanicLevel:
+		err = w.sw.Emerg(msg)
+	case DebugLevel:
+	case TraceLevel:
+		fallthrough
+	default:
+		err = w.sw.Debug(msg)
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	return len(p), nil
 }
 
 func (w *syslogWriter) Encoder() Encoder {
@@ -74,33 +117,29 @@ func (w *syslogWriter) Filter() Filter {
 	return w.opts.Filter
 }
 
-type syslogConverter struct {
+type levelIntConverter struct {
 	next Converter
 }
 
-func newSyslogConverter() Converter {
-	return &syslogConverter{}
+func newLevelIntConverter() Converter {
+	return &levelIntConverter{}
 }
 
-func (c *syslogConverter) AttachNext(next Converter) {
+func (c *levelIntConverter) AttachNext(next Converter) {
 	c.next = next
 }
 
-func (c *syslogConverter) Next() Converter {
+func (c *levelIntConverter) Next() Converter {
 	return c.next
 }
 
-func (c *syslogConverter) AttachChild(_ Converter) {
+func (c *levelIntConverter) AttachChild(Converter) {
 }
 
-func (c *syslogConverter) AttachOptions(_ []string) {
+func (c *levelIntConverter) AttachOptions([]string) {
 }
 
-func (c *syslogConverter) Convert(origin interface{}, buf *bytes.Buffer) {
+func (c *levelIntConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	event := origin.(*LogEvent)
-	buf.WriteByte('<')
-	priority := lorkLvlToSyslogPriority[event.LevelInt()]
-	buf.WriteString(strconv.Itoa(int(priority)))
-	buf.WriteByte('>')
-	buf.WriteString(strconv.Itoa(os.Getpid()))
+	buf.WriteString(strconv.Itoa(int(event.LevelInt())))
 }
