@@ -58,12 +58,13 @@ func main() {
 
 	lork.Install(lork.NewLogBridge())
 
-	lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+	cw := lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{36}]){magenta} : #message #fields"
 		})
-	}))
+	})
+	lork.Logger().AddWriter(cw)
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewJsonEncoder()
 		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
