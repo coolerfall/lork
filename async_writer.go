@@ -29,7 +29,7 @@ type asyncWriter struct {
 
 // AsyncWriterOption represents available options for async writer.
 type AsyncWriterOption struct {
-	Ref       Writer
+	RefWriter Writer
 	QueueSize int
 }
 
@@ -43,12 +43,12 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
 		f(opt)
 	}
 
-	if opt.Ref == nil {
+	if opt.RefWriter == nil {
 		ReportfExit("async writer need a referenced writer")
 	}
 
 	return &asyncWriter{
-		ref:   opt.Ref,
+		ref:   opt.RefWriter,
 		queue: NewBlockingQueue(opt.QueueSize),
 	}
 }

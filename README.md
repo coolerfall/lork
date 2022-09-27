@@ -35,7 +35,7 @@ fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
     })
 })
 aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-    o.Ref = fw
+    o.RefWriter = fw
 })
 lork.Logger().AddWriter(aw)
 
@@ -78,7 +78,7 @@ It supports the following options:
 
 ### Asynchronous Writer
 This writer wraps `Console Writer` or `File Writer` to write log in background. It supports the following options: 
-* `Ref`, the referenced writer.
+* `RefWriter`, the referenced writer.
 * `QueueSize`, the size of the blocking queue.
 
 ### Socket Writer
