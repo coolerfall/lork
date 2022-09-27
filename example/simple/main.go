@@ -37,12 +37,12 @@ func main() {
 	case "logrus":
 		lork.Bind(logrusb.NewLogrusLogger())
 		lork.Install(bridge.NewZerologBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 
 	case "zerolog":
 		lork.Bind(zero.NewZeroLogger())
 		lork.Install(bridge.NewLogrusBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 
 	case "zap":
 		lork.Bind(zapb.NewZapLogger())
@@ -52,7 +52,7 @@ func main() {
 	default:
 		lork.Bind(lork.NewClassicLogger())
 		lork.Install(bridge.NewLogrusBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 		lork.Install(bridge.NewZerologBridge())
 	}
 

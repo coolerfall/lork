@@ -64,7 +64,7 @@ func BenchmarkJsonFileWriter(b *testing.B) {
 				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).
-				Time("timef", t).Times("times", times).
+				Time("time", t).Times("times", times).
 				Dur("dur", d).Durs("durs", ds).
 				Str("str", longStr).Strs("strs", strs).
 				Msg("The quick brown fox jumps over the lazy dog")
@@ -72,7 +72,7 @@ func BenchmarkJsonFileWriter(b *testing.B) {
 	})
 }
 
-func BenchmarkPatternFileWirter(b *testing.B) {
+func BenchmarkPatternFileWriter(b *testing.B) {
 	lork.Logger().ResetWriter()
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
@@ -97,7 +97,7 @@ func BenchmarkPatternFileWirter(b *testing.B) {
 				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).
-				Time("timef", t).Times("times", times).
+				Time("time", t).Times("times", times).
 				Dur("dur", d).Durs("durs", ds).
 				Str("str", longStr).Strs("strs", strs).
 				Msg("The quick brown fox jumps over the lazy dog")
@@ -133,7 +133,7 @@ func BenchmarkAsyncFileWriter(b *testing.B) {
 				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).
-				Time("timef", t).Times("times", times).
+				Time("time", t).Times("times", times).
 				Dur("dur", d).Durs("durs", ds).
 				Str("str", longStr).Strs("strs", strs).
 				Msg("The quick brown fox jumps over the lazy dog")
@@ -153,7 +153,7 @@ func BenchmarkNoWriter(b *testing.B) {
 				Int("int", 88888).Ints("ints", ints).
 				Bool("bool", true).Bools("bools", bools).
 				Float32("float32", 9999.1).Uint("uint", 999).
-				Time("timef", t).Times("times", times).
+				Time("time", t).Times("times", times).
 				Dur("dur", d).Durs("durs", ds).
 				Str("str", longStr).Strs("strs", strs).
 				Msg("The quick brown fox jumps over the lazy dog")
