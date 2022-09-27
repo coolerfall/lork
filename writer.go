@@ -101,6 +101,15 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
 	defer event.Recycle()
 
+	for _, w := range mw.asyncWriters {
+		// copy an event for each async writer
+		cp := event.Copy()
+		if n, err = w.WriteEvent(cp); err != nil {
+			// should never occur
+			return
+		}
+	}
+
 	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(event) == Deny {
 			return
@@ -114,17 +123,6 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
 			return 0, err
 		}
 		n, err = w.Write(encoded)
-	}
-
-	if len(mw.asyncWriters) == 0 {
-		return
-	}
-
-	cp := event.Copy()
-	for _, w := range mw.asyncWriters {
-		if n, err = w.WriteEvent(cp); err != nil {
-			return
-		}
 	}
 
 	return n, nil
