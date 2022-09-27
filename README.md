@@ -6,7 +6,7 @@ encoders and filters, it brings different logger with same apis and flexible con
 
 Install
 =======
-Add the following to your go.mod
+Add the following to your `go.mod`
 ```text
 require (
 	github.com/coolerfall/lork v0.6.0
@@ -93,7 +93,7 @@ The server should start `Socket Reader`to receive logs, and it supports the foll
 * `Port`, the port of this server will listen
 
 ## Encoder
-lork provides some builtin encoders which can be configured in wirters.
+lork provides some builtin encoders which can be configured in writers.
 
 ### Pattern Encoder
 Encode logs with custom pattern format layout, for example:
@@ -123,7 +123,7 @@ This pattern adds message in logs.
 ```text
 #message
 ```
-#### fileds
+#### fields
 This pattern adds key-value fields in logs.
 ```text
 #fields
@@ -133,7 +133,7 @@ This pattern adds key-value fields in logs.
 Encode logs with json format.
 
 ## Filter
-Filters can filter unused logs from origin logs. lork provides some built in filters.
+Filters can filter unused logs from origin logs. Lork provides some built in filters.
 
 ### Threshold Filter
 This filter will deny all logs which is lower than the level set.
@@ -143,13 +143,13 @@ A simple keyword filter which matches the specified keyword.
 
 Benchmarks
 ==========
-Benchmarks with complex log field, diferent encoder and writer.
+Benchmarks with complex log field, different encoder and writer.
 ```text
 cpu: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
-BenchmarkJsonFileWirter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
-BenchmarkPatternFileWirter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
-BenchmarkAsyncFileWirter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
-BenchmarkNoWirter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
+BenchmarkJsonFileWriter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
+BenchmarkPatternFileWriter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
+BenchmarkAsyncFileWriter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
+BenchmarkNoWriter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
 ```
 
 Credits

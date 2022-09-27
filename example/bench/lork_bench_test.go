@@ -26,7 +26,7 @@ func init() {
 }
 
 var (
-	longStr = "this is super long long long long long long long text from lork to hello wrold"
+	longStr = "this is super long long long long long long long text from lork to hello world"
 	strs    = []string{"hello world", "hello go"}
 	ints    = []int{5, 1, 2}
 	bools   = []bool{true, false, true}
@@ -41,7 +41,7 @@ func init() {
 	lork.Bind(lork.NewClassicLogger())
 }
 
-func BenchmarkJsonFileWirter(b *testing.B) {
+func BenchmarkJsonFileWriter(b *testing.B) {
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewJsonEncoder()
 		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
@@ -105,7 +105,7 @@ func BenchmarkPatternFileWirter(b *testing.B) {
 	})
 }
 
-func BenchmarkAsyncFileWirter(b *testing.B) {
+func BenchmarkAsyncFileWriter(b *testing.B) {
 	lork.Logger().ResetWriter()
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
@@ -141,7 +141,7 @@ func BenchmarkAsyncFileWirter(b *testing.B) {
 	})
 }
 
-func BenchmarkNoWirter(b *testing.B) {
+func BenchmarkNoWriter(b *testing.B) {
 	lork.Logger().ResetWriter()
 
 	b.ReportAllocs()
