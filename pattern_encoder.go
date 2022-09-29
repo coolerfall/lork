@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	DefaultPattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) : #message #fields"
+	DefaultPattern = "#color(#date{2006-01-02T15:04:05.000}){cyan} #color(#level) " +
+		"#color([#logger]){magenta} : #message #fields"
 )
 
 var (
@@ -311,13 +312,13 @@ func (lc *loggerConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return
 	}
 
-	logger := e.LoggerName()
-	if !ok || len(logger) == 0 {
+	loggerName := e.LoggerName()
+	if !ok || len(loggerName) == 0 {
 		buf.WriteByte('-')
 		return
 	}
 
-	buf.Write(lc.abbreviator(logger))
+	buf.Write(lc.abbreviator(loggerName))
 }
 
 func (lc *loggerConverter) abbreviator(name []byte) []byte {

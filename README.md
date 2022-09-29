@@ -17,7 +17,7 @@ Quick Start
 ==========
 * Configure the output writer:
 ```go
-lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+lork.Manual().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
     o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
         opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 "#level) #color([#logger{32}]){magenta} : #message #fields"
@@ -35,9 +35,10 @@ fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
     })
 })
 aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-    o.RefWriter = fw
+    o.Name = "ASYNC-FILE"
 })
-lork.Logger().AddWriter(aw)
+aw.AddWriter(fw)
+lork.Manual().AddWriter(aw)
 
 ```
 
@@ -48,9 +49,16 @@ lork.Logger().Info().Int("int", 88).Any("lork", "val").Msge()
 ```
 
 * If you log with other logger, it will send to the bound logger:
+
+```text
+require (
+	github.com/coolerfall/lork/bind/zap v0.6.2
+)
+```
+
 ```go
 lork.Install(lork.NewLogBridge())
-lork.Install(bridge.NewZapBrige())
+lork.Load(zap.NewZapProvider())
 
 zap.L().With().Warn("this is zap")
 log.Printf("this is builtin logger")
@@ -79,7 +87,6 @@ It supports the following options:
 
 ### Asynchronous Writer
 This writer wraps `Console Writer` or `File Writer` to write log in background. It supports the following options: 
-* `RefWriter`, the referenced writer.
 * `QueueSize`, the size of the blocking queue.
 
 ### Socket Writer

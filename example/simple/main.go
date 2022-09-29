@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"github.com/coolerfall/lork"
-	logrusb "github.com/coolerfall/lork/binder/logrus"
-	zapb "github.com/coolerfall/lork/binder/zap"
-	"github.com/coolerfall/lork/binder/zero"
+	logrusb "github.com/coolerfall/lork/bind/logrus"
+	zapb "github.com/coolerfall/lork/bind/zap"
+	"github.com/coolerfall/lork/bind/zero"
 	"github.com/coolerfall/lork/bridge"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
@@ -30,28 +30,28 @@ import (
 )
 
 func main() {
-	var binderName string
-	flag.StringVar(&binderName, "b", "builtin", "")
+	var providerName string
+	flag.StringVar(&providerName, "p", "builtin", "")
 	flag.Parse()
 
-	switch binderName {
+	switch providerName {
 	case "logrus":
-		lork.Bind(logrusb.NewLogrusLogger())
+		lork.Load(logrusb.NewLogrusProvider())
 		lork.Install(bridge.NewZerologBridge())
 		lork.Install(bridge.NewZapBridge())
 
 	case "zerolog":
-		lork.Bind(zero.NewZeroLogger())
+		lork.Load(zero.NewZeroProvider())
 		lork.Install(bridge.NewLogrusBridge())
 		lork.Install(bridge.NewZapBridge())
 
 	case "zap":
-		lork.Bind(zapb.NewZapLogger())
+		lork.Load(zapb.NewZapProvider())
 		lork.Install(bridge.NewLogrusBridge())
 		lork.Install(bridge.NewZerologBridge())
 
 	default:
-		lork.Bind(lork.NewClassicLogger())
+		lork.Load(lork.NewClassicProvider())
 		lork.Install(bridge.NewLogrusBridge())
 		lork.Install(bridge.NewZapBridge())
 		lork.Install(bridge.NewZerologBridge())
@@ -68,7 +68,7 @@ func main() {
 				"#level) #color([#logger{36}]){magenta} : #message #fields"
 		})
 	})
-	lork.Logger().AddWriter(cw)
+	lork.Manual().AddWriter(cw)
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Name = "FILE"
 		o.Encoder = lork.NewJsonEncoder()
@@ -83,17 +83,18 @@ func main() {
 	})
 	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
 		o.Name = "ASYNC-FILE"
-		o.RefWriter = fw
 	})
-	lork.Logger().AddWriter(aw)
+	aw.AddWriter(fw)
+
+	lork.Manual().AddWriter(aw)
 
 	for i := 0; i < 1000; i++ {
 		go func() {
-			lork.Logger().Info().Msgf("bind with: %s", lork.Logger().Name())
 			lork.Logger().Trace().Msg("lork\nThis is a message with new line \n\n")
-			lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).Any("lork", "val").Msge()
+			lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).
+				Any("lork", "val").Msge()
 			logrus.WithField("logrus", "yes").Errorln("this is from logrus")
-			zap.L().With().Warn("this is from zap")
+			zap.L().With().Warn("this is zap")
 			zlog.Info().Msg("this is from zerolog")
 			log.Printf("this is builtin logger\n\n")
 
@@ -105,9 +106,9 @@ func main() {
 				"name": "dog",
 				"age":  2,
 			}).Msg("this is interface")
-			lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
 		}()
 	}
+	lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
 
 	time.Sleep(time.Second * 3)
 }

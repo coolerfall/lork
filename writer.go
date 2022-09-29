@@ -16,6 +16,7 @@ package lork
 
 import (
 	"io"
+	"reflect"
 	"sync"
 )
 
@@ -44,6 +45,12 @@ type EventWriter interface {
 	Synchronized() bool
 }
 
+// EventRecorder represents a recorder to record LogEvent.
+type EventRecorder interface {
+	// WriteEvent write LogEvent.
+	WriteEvent(event *LogEvent) error
+}
+
 // BytesWriter represents a writer which will write bytes with Encoder and Filter.
 // Create Writer with NewBytesWriter if writer implemented BytesWriter.
 type BytesWriter interface {
@@ -56,6 +63,21 @@ type BytesWriter interface {
 
 	// Filter returns filter used in current writer.
 	Filter() Filter
+}
+
+// WriterAttachable is interface definition for attaching writers to objects.
+type WriterAttachable interface {
+	// AddWriter add one or more writer to this bucket.
+	AddWriter(writers ...Writer)
+
+	// GetWriter gets a writer with given name.
+	GetWriter(name string) Writer
+
+	// Attached check if the given writer is attached.
+	Attached(writer Writer) bool
+
+	// ResetWriter will remove and stop all writers added before.
+	ResetWriter()
 }
 
 // MultiWriter represents multiple writer which implements EventWriter.
@@ -83,8 +105,27 @@ func (mw *MultiWriter) AddWriter(writers ...Writer) {
 	}
 }
 
-// Reset will remove all writers.
-func (mw *MultiWriter) Reset() {
+func (mw *MultiWriter) GetWriter(name string) Writer {
+	for _, w := range mw.writers {
+		if w.Name() == name {
+			return w
+		}
+	}
+
+	return nil
+}
+
+func (mw *MultiWriter) Attached(writer Writer) bool {
+	for _, w := range mw.writers {
+		if reflect.DeepEqual(w, writer) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (mw *MultiWriter) ResetWriter() {
 	mw.locker.Lock()
 	defer mw.locker.Unlock()
 
@@ -94,6 +135,10 @@ func (mw *MultiWriter) Reset() {
 		}
 	}
 	mw.writers = mw.writers[:0]
+}
+
+func (mw *MultiWriter) Size() int {
+	return len(mw.writers)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
@@ -119,8 +164,7 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
 }
 
 type eventWriter struct {
-	ref    EventWriter
-	locker sync.Locker
+	ref EventWriter
 }
 
 // NewEventWriter creates a Writer with given EventWriter.

@@ -29,14 +29,14 @@ var (
 )
 
 type classicRecord struct {
-	event  *LogEvent
-	writer *MultiWriter
+	event    *LogEvent
+	recorder EventRecorder
 }
 
-func newClassicRecord(lvl Level, multiWriter *MultiWriter) Record {
+func newClassicRecord(lvl Level, recorder EventRecorder) Record {
 	r := classicRecordPool.Get().(*classicRecord)
 	r.event = NewLogEvent()
-	r.writer = multiWriter
+	r.recorder = recorder
 	r.event.appendLevel(lvl)
 
 	return r
@@ -223,7 +223,7 @@ func (r *classicRecord) Any(key string, val interface{}) Record {
 }
 
 func (r *classicRecord) Msge() {
-	if err := r.writer.WriteEvent(r.event); err != nil {
+	if err := r.recorder.WriteEvent(r.event); err != nil {
 		Reportf("fail to write event: %v", err)
 	}
 

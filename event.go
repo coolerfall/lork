@@ -60,7 +60,6 @@ var (
 // NewLogEvent gets a LogEvent from pool.
 func NewLogEvent() *LogEvent {
 	event := eventPool.Get().(*LogEvent)
-	event.appendTimestamp()
 
 	return event
 }
