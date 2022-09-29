@@ -97,7 +97,7 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 			continue
 		} else {
 			if msgType != websocket.BinaryMessage {
-				LoggerC().Debug().Msg("not binary message for log, skip")
+				LoggerC().Debug().Msg("not binary message, skipping")
 				continue
 			}
 

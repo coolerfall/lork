@@ -62,7 +62,7 @@ Configuration
 The following shows all the configurations of lork.
 
 # Writer
-lork provides several writers for logging, and it supports to add multiple writers.
+Lork provides several writers for logging, and it supports to add multiple writers.
 
 ### Console Writer
 This writer sends the logs to `Stdout` console. It supports the following options:
@@ -74,7 +74,8 @@ It supports the following options:
 * `Encoder`, encoder of logs
 * `Filter`, filter of logs
 * `Filename`, the filename of the log file to write
-* `RollingPolicy`, the policy to roll over log files. lork provides`TimeBasedPpolicy` and `SizeAndTimeBasedPolicy`
+* `RollingPolicy`, the policy to roll over log files. Lork provides`TimeBasedPpolicy` and 
+  `SizeAndTimeBasedPolicy`
 
 ### Asynchronous Writer
 This writer wraps `Console Writer` or `File Writer` to write log in background. It supports the following options: 
@@ -92,8 +93,15 @@ The server should start `Socket Reader`to receive logs, and it supports the foll
 * `Path`, the path of the url
 * `Port`, the port of this server will listen
 
+### Syslog Writer
+This writer is an implementation for syslog. It supports the following options:
+* `Tag`, the tag of syslog.
+* `Address`, address of syslog server
+* `Network`, network of syslog server, see `net.Dial`
+* `Filter`, filters of logs
+
 ## Encoder
-lork provides some builtin encoders which can be configured in writers.
+Lork provides some builtin encoders which can be configured in writers.
 
 ### Pattern Encoder
 Encode logs with custom pattern format layout, for example:

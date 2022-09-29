@@ -35,21 +35,21 @@ type AsyncWriterOption struct {
 
 // NewAsyncWriter creates a new instance of asynchronous writer.
 func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
-	opt := &AsyncWriterOption{
+	opts := &AsyncWriterOption{
 		QueueSize: defaultWriterQueueSize,
 	}
 
 	for _, f := range options {
-		f(opt)
+		f(opts)
 	}
 
-	if opt.RefWriter == nil {
+	if opts.RefWriter == nil {
 		ReportfExit("async writer need a referenced writer")
 	}
 
 	return &asyncWriter{
-		ref:   opt.RefWriter,
-		queue: NewBlockingQueue(opt.QueueSize),
+		ref:   opts.RefWriter,
+		queue: NewBlockingQueue(opts.QueueSize),
 	}
 }
 

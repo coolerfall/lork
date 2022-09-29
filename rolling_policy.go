@@ -85,24 +85,24 @@ type TimeBasedRPOption struct {
 // NewTimeBasedRollingPolicy creates an instance of time based rolling policy
 // for file writer.
 func NewTimeBasedRollingPolicy(options ...func(*TimeBasedRPOption)) RollingPolicy {
-	opt := &TimeBasedRPOption{
+	opts := &TimeBasedRPOption{
 		FilenamePattern: "lork-archive.#date{2006-01-02}.log",
 	}
 
 	for _, f := range options {
-		f(opt)
+		f(opts)
 	}
 
-	fp, err := newFilenamePattern(opt.FilenamePattern)
+	fp, err := newFilenamePattern(opts.FilenamePattern)
 	if err != nil {
 		ReportfExit("create rolling policy error: %v\n", err)
 		return nil
 	}
 
 	return &timeBasedRollingPolicy{
-		maxHistory:      opt.MaxHistory,
+		maxHistory:      opts.MaxHistory,
 		filenamePattern: fp,
-		archiver:        newArchiver(opt.FilenamePattern),
+		archiver:        newArchiver(opts.FilenamePattern),
 	}
 }
 
@@ -196,23 +196,23 @@ type SizeAndTimeBasedRPOption struct {
 // based rolling policy for file writer.
 func NewSizeAndTimeBasedRollingPolicy(options ...func(
 	*SizeAndTimeBasedRPOption)) RollingPolicy {
-	opt := &SizeAndTimeBasedRPOption{
+	opts := &SizeAndTimeBasedRPOption{
 		MaxFileSize:     "128MB",
 		FilenamePattern: "lork-archive.#date{2006-01-02}.#index.log",
 	}
 
 	for _, f := range options {
-		f(opt)
+		f(opts)
 	}
 
-	fileSize, err := parseFileSize(opt.MaxFileSize)
+	fileSize, err := parseFileSize(opts.MaxFileSize)
 	if err != nil {
 		ReportfExit("parse file size error: %v", err)
 	}
 
 	tbrp := NewTimeBasedRollingPolicy(func(o *TimeBasedRPOption) {
-		o.FilenamePattern = opt.FilenamePattern
-		o.MaxHistory = opt.MaxHistory
+		o.FilenamePattern = opts.FilenamePattern
+		o.MaxHistory = opts.MaxHistory
 	}).(*timeBasedRollingPolicy)
 	return &sizeAndTimeBasedRollingPolicy{
 		timeBasedRollingPolicy: tbrp,
