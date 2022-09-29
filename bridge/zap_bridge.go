@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	zapLvlTolorkLvl = map[zapcore.Level]lork.Level{
+	zapLvlToLorkLvl = map[zapcore.Level]lork.Level{
 		zapcore.DebugLevel: lork.DebugLevel,
 		zapcore.InfoLevel:  lork.InfoLevel,
 		zapcore.WarnLevel:  lork.WarnLevel,
@@ -35,8 +35,8 @@ var (
 type zapBridge struct {
 }
 
-// NewZapBrige creates a new lork bridge for zap.
-func NewZapBrige() *zapBridge {
+// NewZapBridge creates a new lork bridge for zap.
+func NewZapBridge() *zapBridge {
 	bridge := &zapBridge{}
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.LevelKey = lork.LevelFieldKey
@@ -62,7 +62,7 @@ func (b *zapBridge) ParseLevel(lvl string) lork.Level {
 		lork.Reportf("parse zap level error: %s", err)
 	}
 
-	return zapLvlTolorkLvl[level]
+	return zapLvlToLorkLvl[level]
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {

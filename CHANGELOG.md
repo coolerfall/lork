@@ -1,3 +1,7 @@
+# 0.6.1
+* Add syslog writer implementation.
+* Fix bug for async writer.
+
 # 0.6.0
 * Add builtin lork logger.
 * Split project into multiple modules.

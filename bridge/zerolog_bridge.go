@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	zeroLvlTolorkLvl = map[zerolog.Level]lork.Level{
+	zeroLvlToLorkLvl = map[zerolog.Level]lork.Level{
 		zerolog.NoLevel:    lork.TraceLevel,
 		zerolog.TraceLevel: lork.TraceLevel,
 		zerolog.DebugLevel: lork.DebugLevel,
@@ -60,7 +60,7 @@ func (b *zerologBridge) ParseLevel(lvl string) lork.Level {
 		lork.Reportf("parse zerolog level error: %s", err)
 	}
 
-	return zeroLvlTolorkLvl[level]
+	return zeroLvlToLorkLvl[level]
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {

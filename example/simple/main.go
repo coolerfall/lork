@@ -37,12 +37,12 @@ func main() {
 	case "logrus":
 		lork.Bind(logrusb.NewLogrusLogger())
 		lork.Install(bridge.NewZerologBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 
 	case "zerolog":
 		lork.Bind(zero.NewZeroLogger())
 		lork.Install(bridge.NewLogrusBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 
 	case "zap":
 		lork.Bind(zapb.NewZapLogger())
@@ -52,18 +52,19 @@ func main() {
 	default:
 		lork.Bind(lork.NewClassicLogger())
 		lork.Install(bridge.NewLogrusBridge())
-		lork.Install(bridge.NewZapBrige())
+		lork.Install(bridge.NewZapBridge())
 		lork.Install(bridge.NewZerologBridge())
 	}
 
 	lork.Install(lork.NewLogBridge())
 
-	lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+	cw := lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{36}]){magenta} : #message #fields"
 		})
-	}))
+	})
+	lork.Logger().AddWriter(cw)
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 		o.Encoder = lork.NewJsonEncoder()
 		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
@@ -76,7 +77,7 @@ func main() {
 			})
 	})
 	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-		o.Ref = fw
+		o.RefWriter = fw
 	})
 	lork.Logger().AddWriter(aw)
 

@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	logrusLvlTolorkLvl = map[logrus.Level]lork.Level{
+	logrusLvlToLorkLvl = map[logrus.Level]lork.Level{
 		logrus.TraceLevel: lork.TraceLevel,
 		logrus.DebugLevel: lork.DebugLevel,
 		logrus.InfoLevel:  lork.InfoLevel,
@@ -57,7 +57,7 @@ func (t *transformer) Write(p []byte) (n int, err error) {
 			if err != nil {
 				return k, v, err
 			} else {
-				return k, []byte(logrusLvlTolorkLvl[lvl].String()), nil
+				return k, []byte(logrusLvlToLorkLvl[lvl].String()), nil
 			}
 		})
 	p = t.buf.Bytes()

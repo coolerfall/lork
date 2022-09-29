@@ -6,10 +6,10 @@ encoders and filters, it brings different logger with same apis and flexible con
 
 Install
 =======
-Add the following to your go.mod
+Add the following to your `go.mod`
 ```text
 require (
-	github.com/coolerfall/lork v0.6.0
+	github.com/coolerfall/lork v0.6.1
 )
 ```
 
@@ -35,7 +35,7 @@ fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
     })
 })
 aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-    o.Ref = fw
+    o.RefWriter = fw
 })
 lork.Logger().AddWriter(aw)
 
@@ -62,7 +62,7 @@ Configuration
 The following shows all the configurations of lork.
 
 # Writer
-lork provides several writers for logging, and it supports to add multiple writers.
+Lork provides several writers for logging, and it supports to add multiple writers.
 
 ### Console Writer
 This writer sends the logs to `Stdout` console. It supports the following options:
@@ -74,11 +74,12 @@ It supports the following options:
 * `Encoder`, encoder of logs
 * `Filter`, filter of logs
 * `Filename`, the filename of the log file to write
-* `RollingPolicy`, the policy to roll over log files. lork provides`TimeBasedPpolicy` and `SizeAndTimeBasedPolicy`
+* `RollingPolicy`, the policy to roll over log files. Lork provides`TimeBasedPpolicy` and 
+  `SizeAndTimeBasedPolicy`
 
 ### Asynchronous Writer
 This writer wraps `Console Writer` or `File Writer` to write log in background. It supports the following options: 
-* `Ref`, the referenced writer.
+* `RefWriter`, the referenced writer.
 * `QueueSize`, the size of the blocking queue.
 
 ### Socket Writer
@@ -92,8 +93,15 @@ The server should start `Socket Reader`to receive logs, and it supports the foll
 * `Path`, the path of the url
 * `Port`, the port of this server will listen
 
+### Syslog Writer
+This writer is an implementation for syslog. It supports the following options:
+* `Tag`, the tag of syslog.
+* `Address`, address of syslog server
+* `Network`, network of syslog server, see `net.Dial`
+* `Filter`, filters of logs
+
 ## Encoder
-lork provides some builtin encoders which can be configured in wirters.
+Lork provides some builtin encoders which can be configured in writers.
 
 ### Pattern Encoder
 Encode logs with custom pattern format layout, for example:
@@ -123,7 +131,7 @@ This pattern adds message in logs.
 ```text
 #message
 ```
-#### fileds
+#### fields
 This pattern adds key-value fields in logs.
 ```text
 #fields
@@ -133,7 +141,7 @@ This pattern adds key-value fields in logs.
 Encode logs with json format.
 
 ## Filter
-Filters can filter unused logs from origin logs. lork provides some built in filters.
+Filters can filter unused logs from origin logs. Lork provides some built in filters.
 
 ### Threshold Filter
 This filter will deny all logs which is lower than the level set.
@@ -143,13 +151,13 @@ A simple keyword filter which matches the specified keyword.
 
 Benchmarks
 ==========
-Benchmarks with complex log field, diferent encoder and writer.
+Benchmarks with complex log field, different encoder and writer.
 ```text
 cpu: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
-BenchmarkJsonFileWirter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
-BenchmarkPatternFileWirter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
-BenchmarkAsyncFileWirter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
-BenchmarkNoWirter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
+BenchmarkJsonFileWriter-8      	  250128        5290 ns/op      0 B/op      0 allocs/op
+BenchmarkPatternFileWriter-8   	  313402        3777 ns/op      0 B/op      0 allocs/op
+BenchmarkAsyncFileWriter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
+BenchmarkNoWriter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
 ```
 
 Credits
