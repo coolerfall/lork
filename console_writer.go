@@ -31,17 +31,17 @@ type ConsoleWriterOption struct {
 
 // NewConsoleWriter creates a new instance of console writer.
 func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
-	opt := &ConsoleWriterOption{
+	opts := &ConsoleWriterOption{
 		Encoder: NewPatternEncoder(),
 	}
 
 	for _, f := range options {
-		f(opt)
+		f(opts)
 	}
 
 	return &consoleWriter{
-		encoder: opt.Encoder,
-		filter:  opt.Filter,
+		encoder: opts.Encoder,
+		filter:  opts.Filter,
 	}
 }
 

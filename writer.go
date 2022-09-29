@@ -61,8 +61,8 @@ func (mw *MultiWriter) AddWriter(writers ...Writer) {
 			lc.Start()
 		}
 
-		if _, ok := w.(*asyncWriter); ok {
-			mw.asyncWriters = append(mw.asyncWriters, w.(*asyncWriter))
+		if aw, ok := w.(*asyncWriter); ok {
+			mw.asyncWriters = append(mw.asyncWriters, aw)
 		} else {
 			mw.writers = append(mw.writers, w)
 		}
