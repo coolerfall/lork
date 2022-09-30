@@ -448,12 +448,77 @@ func (e *LogEvent) appendErrors(key string, value []error) {
 }
 
 func (e *LogEvent) appendAny(key string, val interface{}) {
-	data, err := json.Marshal(val)
-	if err != nil {
-		e.appendString(key, fmt.Sprintf("marshaling error: %v", err))
-		return
+	switch val.(type) {
+	case string:
+		e.appendString(key, val.(string))
+	case []string:
+		e.appendStrings(key, val.([]string))
+	case []byte:
+		e.appendBytes(key, val.([]byte))
+	case []error:
+		e.appendErrors(key, val.([]error))
+	case bool:
+		e.appendBool(key, val.(bool))
+	case []bool:
+		e.appendBools(key, val.([]bool))
+	case int:
+		e.appendInt(key, int64(val.(int)))
+	case int8:
+		e.appendInt(key, int64(val.(int8)))
+	case int16:
+		e.appendInt(key, int64(val.(int16)))
+	case int32:
+		e.appendInt(key, int64(val.(int32)))
+	case int64:
+		e.appendInt(key, val.(int64))
+	case []int:
+		e.appendInts(key, val.([]int))
+	case []int8:
+		e.appendInts8(key, val.([]int8))
+	case []int16:
+		e.appendInts16(key, val.([]int16))
+	case []int32:
+		e.appendInts32(key, val.([]int32))
+	case []int64:
+		e.appendInts64(key, val.([]int64))
+	case uint:
+		e.appendUint(key, uint64(val.(uint)))
+	case uint8:
+		e.appendUint(key, uint64(val.(uint8)))
+	case uint16:
+		e.appendUint(key, uint64(val.(uint16)))
+	case uint32:
+		e.appendUint(key, uint64(val.(uint32)))
+	case uint64:
+		e.appendUint(key, val.(uint64))
+	case []uint:
+		e.appendUints(key, val.([]uint))
+	case []uint16:
+		e.appendUints16(key, val.([]uint16))
+	case []uint32:
+		e.appendUints32(key, val.([]uint32))
+	case []uint64:
+		e.appendUints64(key, val.([]uint64))
+	case float32:
+		e.appendFloat32(key, val.(float32))
+	case float64:
+		e.appendFloat64(key, val.(float64))
+	case time.Time:
+		e.appendTime(key, val.(time.Time))
+	case []time.Time:
+		e.appendTimes(key, val.([]time.Time))
+	case time.Duration:
+		e.appendDuration(key, val.(time.Duration))
+	case []time.Duration:
+		e.appendDurations(key, val.([]time.Duration))
+	default:
+		data, err := json.Marshal(val)
+		if err != nil {
+			e.appendString(key, fmt.Sprintf("marshaling error: %v", err))
+			return
+		}
+		e.appendKeyValue(key, data, false)
 	}
-	e.appendKeyValue(key, data, false)
 }
 
 func (e *LogEvent) Recycle() {
