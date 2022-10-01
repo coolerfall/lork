@@ -89,7 +89,7 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		"color":   newColorConverter,
 		"level":   newLevelConverter,
 		"date":    newLogDateConverter,
-		"logger":  newLoggerConverter,
+		"logger":  newLoggerNameConverter,
 		"message": newMessageConverter,
 		"fields":  newFieldsConverter,
 	}
@@ -275,7 +275,7 @@ type loggerConverter struct {
 	opt  int
 }
 
-func newLoggerConverter() Converter {
+func newLoggerNameConverter() Converter {
 	return &loggerConverter{
 		opt: -1,
 	}
@@ -312,7 +312,7 @@ func (lc *loggerConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return
 	}
 
-	logger := e.Logger()
+	logger := e.LoggerName()
 	if !ok || len(logger) == 0 {
 		buf.WriteByte('-')
 		return
