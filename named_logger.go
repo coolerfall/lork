@@ -111,7 +111,7 @@ func (cl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {
 	}
 
 	// append logger name
-	return record.Str(LoggerFieldKey, cl.name)
+	return record.Str(LoggerNameFieldKey, cl.name)
 }
 
 func (cl *namedLogger) checkLevel(lvl Level) bool {

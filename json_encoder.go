@@ -53,7 +53,7 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 	je.buf.WriteString("{")
 	je.writeKeyAndValue(TimestampFieldKey, timestamp, true)
 	je.writeKeyAndValue(LevelFieldKey, e.Level(), true)
-	je.writeKeyAndValue(LoggerFieldKey, e.Logger(), true)
+	je.writeKeyAndValue(LoggerNameFieldKey, e.LoggerName(), true)
 	je.writeKeyAndValue(MessageFieldKey, e.Message(), true)
 
 	_ = e.Fields(func(k, v []byte, isString bool) error {

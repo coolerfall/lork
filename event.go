@@ -29,7 +29,7 @@ import (
 type LogEvent struct {
 	rfc3339Nano *bytes.Buffer
 	level       *bytes.Buffer
-	logger      *bytes.Buffer
+	loggerName  *bytes.Buffer
 	caller      *bytes.Buffer
 	message     *bytes.Buffer
 	fields      *bytes.Buffer
@@ -46,7 +46,7 @@ var (
 			return &LogEvent{
 				rfc3339Nano: new(bytes.Buffer),
 				level:       new(bytes.Buffer),
-				logger:      new(bytes.Buffer),
+				loggerName:  new(bytes.Buffer),
 				caller:      new(bytes.Buffer),
 				message:     new(bytes.Buffer),
 				fields:      new(bytes.Buffer),
@@ -67,7 +67,7 @@ func (e *LogEvent) Copy() *LogEvent {
 	cp := eventPool.Get().(*LogEvent)
 	cp.rfc3339Nano.Write(e.rfc3339Nano.Bytes())
 	cp.level.Write(e.level.Bytes())
-	cp.logger.Write(e.logger.Bytes())
+	cp.loggerName.Write(e.loggerName.Bytes())
 	cp.caller.Write(e.caller.Bytes())
 	cp.message.Write(e.message.Bytes())
 	cp.fields.Write(e.fields.Bytes())
@@ -91,9 +91,9 @@ func (e *LogEvent) Level() []byte {
 	return e.level.Bytes()
 }
 
-// Logger return logger name bytes.
-func (e *LogEvent) Logger() []byte {
-	return e.logger.Bytes()
+// LoggerName return logger name bytes.
+func (e *LogEvent) LoggerName() []byte {
+	return e.loggerName.Bytes()
 }
 
 // Message returns message bytes.
@@ -143,7 +143,7 @@ func MakeEvent(p []byte) *LogEvent {
 			event.makeTimestamp(v)
 		case LevelFieldKey:
 			event.appendLevelBytes(v)
-		case LoggerFieldKey:
+		case LoggerNameFieldKey:
 			event.appendLogger(v)
 		case MessageFieldKey:
 			event.appendMessageBytes(v)
@@ -174,7 +174,7 @@ func (e *LogEvent) appendLevelBytes(v []byte) {
 }
 
 func (e *LogEvent) appendLogger(v []byte) {
-	e.logger.Write(v)
+	e.loggerName.Write(v)
 }
 
 func (e *LogEvent) makeFields(k, v []byte, isString bool) {
@@ -251,8 +251,8 @@ func (e *LogEvent) appendArray(key string, len int, f func(data []byte, index in
 }
 
 func (e *LogEvent) appendString(key, value string) {
-	if key == LoggerFieldKey {
-		e.logger.WriteString(value)
+	if key == LoggerNameFieldKey {
+		e.loggerName.WriteString(value)
 		return
 	}
 	e.appender.WriteString(value)
@@ -524,7 +524,7 @@ func (e *LogEvent) appendAny(key string, val interface{}) {
 func (e *LogEvent) Recycle() {
 	e.rfc3339Nano.Reset()
 	e.level.Reset()
-	e.logger.Reset()
+	e.loggerName.Reset()
 	e.caller.Reset()
 	e.message.Reset()
 	e.fields.Reset()
