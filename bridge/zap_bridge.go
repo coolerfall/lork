@@ -66,12 +66,9 @@ func (b *zapBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	err := lork.BridgeWrite(b, p)
-	if err != nil {
-		lork.Reportf("zap bridge write error", err)
-	}
+	lork.Logger().WriteEvent(lork.MakeEvent(p))
 
-	return len(p), err
+	return len(p), nil
 }
 
 func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {

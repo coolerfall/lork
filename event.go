@@ -134,6 +134,7 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error
 	return nil
 }
 
+// MakeEvent makes LogEvent from json string.
 func MakeEvent(p []byte) *LogEvent {
 	event := eventPool.Get().(*LogEvent)
 	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,

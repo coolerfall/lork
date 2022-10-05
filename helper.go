@@ -26,54 +26,6 @@ import (
 	"github.com/buger/jsonparser"
 )
 
-// BridgeWrite writes data from bridge to lork logger.
-func BridgeWrite(bridge Bridge, p []byte) error {
-	lvl, _ := jsonparser.GetString(p, LevelFieldKey)
-	msg, _ := jsonparser.GetString(p, MessageFieldKey)
-
-	record := makeRecord(bridge.ParseLevel(lvl))
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		realKey := string(key)
-		switch realKey {
-		case LevelFieldKey:
-		case TimestampFieldKey:
-			// do nothing
-
-		case MessageFieldKey:
-			record.Msg(msg)
-
-		default:
-			record.Bytes(realKey, value)
-		}
-
-		return nil
-	})
-
-	return nil
-}
-
-func makeRecord(lvl Level) Record {
-	switch lvl {
-	case DebugLevel:
-		return Logger().Debug()
-	case InfoLevel:
-		return Logger().Info()
-	case WarnLevel:
-		return Logger().Warn()
-	case ErrorLevel:
-		return Logger().Error()
-	case FatalLevel:
-		return Logger().Fatal()
-	case PanicLevel:
-		return Logger().Panic()
-	case TraceLevel:
-		fallthrough
-	default:
-		return Logger().Trace()
-	}
-}
-
 // Report reports message in stdout
 func Report(msg string) {
 	Reportf(msg)
