@@ -88,10 +88,7 @@ func (b *logrusBridge) Write(p []byte) (int, error) {
 	p = b.buf.Bytes()
 	b.buf.Reset()
 
-	err := lork.BridgeWrite(b, p)
-	if err != nil {
-		lork.Reportf("logrus bridge write error", err)
-	}
+	lork.Logger().WriteEvent(lork.MakeEvent(p))
 
-	return len(p), err
+	return len(p), nil
 }

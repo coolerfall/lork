@@ -64,10 +64,7 @@ func (b *zerologBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {
-	err := lork.BridgeWrite(b, p)
-	if err != nil {
-		lork.Reportf("zerolog bridge write error", err)
-	}
+	lork.Logger().WriteEvent(lork.MakeEvent(p))
 
-	return len(p), err
+	return len(p), nil
 }
