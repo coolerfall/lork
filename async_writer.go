@@ -73,19 +73,19 @@ func (w *asyncWriter) Stop() {
 	w.isRunning = false
 }
 
-func (w *asyncWriter) WriteEvent(event *LogEvent) (n int, err error) {
+func (w *asyncWriter) WriteEvent(event *LogEvent) error {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
 	if w.queue.RemainCapacity() <= 16 {
 		// discard
 		event.Recycle()
-		return 0, nil
+		return nil
 	}
 
 	w.queue.Put(event)
 
-	return 0, nil
+	return nil
 }
 
 func (w *asyncWriter) Write(p []byte) (n int, err error) {

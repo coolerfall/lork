@@ -72,8 +72,7 @@ func (l *classicLogger) Level(lvl Level) Record {
 }
 
 func (l *classicLogger) WriteEvent(e *LogEvent) {
-	_, err := l.multiWriter.WriteEvent(e)
-	if err != nil {
+	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}
 }
