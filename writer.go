@@ -35,7 +35,7 @@ type Writer interface {
 // EventWriter represents writer which will write raw LogEvent.
 type EventWriter interface {
 	// WriteEvent writes LogEvent.
-	WriteEvent(event *LogEvent) (n int, err error)
+	WriteEvent(event *LogEvent) error
 }
 
 // MultiWriter represents multiple writer which implements lork.Writer.
@@ -98,13 +98,13 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
+func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
 	defer event.Recycle()
 
 	for _, w := range mw.asyncWriters {
 		// copy an event for each async writer
 		cp := event.Copy()
-		if n, err = w.WriteEvent(cp); err != nil {
+		if err = w.WriteEvent(cp); err != nil {
 			// should never occur
 			return
 		}
@@ -116,22 +116,22 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
 		}
 
 		if w.Encoder() == nil {
-			return 0, errors.New("no encoder found in writer")
+			return errors.New("no encoder found in writer")
 		}
 		encoded, err := w.Encoder().Encode(event)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		n, err = w.Write(encoded)
+		_, err = w.Write(encoded)
 	}
 
-	return n, nil
+	return nil
 }
 
 func (mw *MultiWriter) writeAsync(p []byte) (n int, err error) {
 	for _, w := range mw.asyncWriters {
-		if n, err = w.WriteEvent(MakeEvent(p)); err != nil {
-			return
+		if err = w.WriteEvent(MakeEvent(p)); err != nil {
+			return 0, err
 		}
 	}
 
