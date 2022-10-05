@@ -1,3 +1,6 @@
+# 0.6.2
+* Fix bug for filter when checking result.
+
 # 0.6.1
 * Add syslog writer implementation.
 * Fix bug for async writer.
