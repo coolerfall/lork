@@ -112,7 +112,7 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (n int, err error) {
 
 	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(event) == Deny {
-			return
+			continue
 		}
 
 		if w.Encoder() == nil {
@@ -145,9 +145,10 @@ func (mw *MultiWriter) writeNormal(p []byte) (n int, err error) {
 
 	event := MakeEvent(p)
 	defer event.Recycle()
+
 	for _, w := range mw.writers {
 		if w.Filter() != nil && w.Filter().Do(event) == Deny {
-			return
+			continue
 		}
 
 		encoded := p
