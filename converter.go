@@ -107,6 +107,7 @@ func (c *dateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	bufData := buf.Bytes()
 	bufData, err = convertFormat(bufData, ts, time.RFC3339, c.opts[0])
 	if err != nil {
+		Reportf("convert time format error: %v", err)
 		return
 	}
 	buf.Reset()

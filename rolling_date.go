@@ -84,7 +84,7 @@ func (rd *rollingDate) _endOfNextNPeriod(
 			now.Year(), now.Month(), now.Day()+periods, 0, 0, 0, 0, now.Location())
 	case topOfMonth:
 		return time.Date(
-			now.Year(), now.Month()+time.Month(periods), 0, 0, 0, 0, 0, now.Location())
+			now.Year(), now.Month()+time.Month(periods), 1, 0, 0, 0, 0, now.Location())
 	case topOfSecond:
 		fallthrough
 	default:

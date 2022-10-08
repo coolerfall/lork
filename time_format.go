@@ -664,7 +664,7 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 		min            int
 		sec            int
 		nsec           int
-		zoneOffset     = -1
+		zoneOffset     = 0
 		err            error
 		rangeErrString = ""
 	)
@@ -741,6 +741,11 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 			}
 
 		case stdISO8601ColonTZ:
+			if std == stdISO8601ColonTZ && len(value) >= 1 && value[0] == 'Z' {
+				value = value[1:]
+				break
+			}
+
 			if len(value) < 6 {
 				err = errBad
 				break
