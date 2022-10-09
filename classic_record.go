@@ -223,7 +223,6 @@ func (r *classicRecord) Any(key string, val interface{}) Record {
 }
 
 func (r *classicRecord) Msge() {
-	r.event.appendTimestamp()
 	if err := r.multiWriter.WriteEvent(r.event); err != nil {
 		Reportf("fail to write event: %v", err)
 	}
@@ -232,7 +231,6 @@ func (r *classicRecord) Msge() {
 }
 
 func (r *classicRecord) Msg(msg string) {
-	r.event.appendTimestamp()
 	r.event.appendMessage(msg)
 	if err := r.multiWriter.WriteEvent(r.event); err != nil {
 		Reportf("fail to write event: %v", err)
@@ -241,7 +239,6 @@ func (r *classicRecord) Msg(msg string) {
 }
 
 func (r *classicRecord) Msgf(format string, v ...interface{}) {
-	r.event.appendTimestamp()
 	r.event.appendMessage(fmt.Sprintf(format, v...))
 	if err := r.multiWriter.WriteEvent(r.event); err != nil {
 		Reportf("fail to write event: %v", err)

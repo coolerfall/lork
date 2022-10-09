@@ -15,8 +15,6 @@
 package bridge
 
 import (
-	"bytes"
-	"sync"
 	"time"
 
 	"github.com/coolerfall/lork"
@@ -35,15 +33,11 @@ var (
 )
 
 type logrusBridge struct {
-	buf    *bytes.Buffer
-	locker sync.Mutex
 }
 
 // NewLogrusBridge creates a new lork bridge for logrus.
 func NewLogrusBridge() lork.Bridge {
-	bridge := &logrusBridge{
-		buf: new(bytes.Buffer),
-	}
+	bridge := &logrusBridge{}
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: time.RFC3339,
 		FieldMap: logrus.FieldMap{
@@ -73,22 +67,7 @@ func (b *logrusBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *logrusBridge) Write(p []byte) (int, error) {
-	b.locker.Lock()
-	defer b.locker.Unlock()
-
-	_ = lork.ReplaceJson(p, b.buf, lork.LevelFieldKey,
-		func(k, v []byte) (nk []byte, nv []byte, err error) {
-			lvl, err := logrus.ParseLevel(string(v))
-			if err != nil {
-				return k, v, err
-			} else {
-				return k, []byte(logrusLvlToLorkLvl[lvl].String()), nil
-			}
-		})
-	p = b.buf.Bytes()
-	b.buf.Reset()
-
-	lork.Logger().WriteEvent(lork.MakeEvent(p))
+	lork.BridgeWrite(b, p)
 
 	return len(p), nil
 }

@@ -60,7 +60,10 @@ var (
 
 // NewLogEvent gets a LogEvent from pool.
 func NewLogEvent() *LogEvent {
-	return eventPool.Get().(*LogEvent)
+	event := eventPool.Get().(*LogEvent)
+	event.appendTimestamp()
+
+	return event
 }
 
 func (e *LogEvent) Copy() *LogEvent {
@@ -171,6 +174,7 @@ func (e *LogEvent) appendLevel(lvl Level) {
 }
 
 func (e *LogEvent) appendLevelBytes(v []byte) {
+	e.level.Reset()
 	e.level.Write(v)
 }
 
