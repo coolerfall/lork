@@ -66,7 +66,7 @@ func (b *zapBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	lork.Logger().WriteEvent(lork.MakeEvent(p))
+	lork.BridgeWrite(b, p)
 
 	return len(p), nil
 }

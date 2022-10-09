@@ -193,3 +193,28 @@ func PackageName(skip int) string {
 	}
 	return fn[:index]
 }
+
+// BridgeWrite writes data from bridge to lork logger.
+func BridgeWrite(bridge Bridge, p []byte) {
+	event := NewLogEvent()
+	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		switch string(key) {
+		case LevelFieldKey:
+			event.appendLevel(bridge.ParseLevel(string(value)))
+
+		case MessageFieldKey:
+			event.appendMessageBytes(value)
+
+		case TimestampFieldKey:
+			// Do nothing
+
+		default:
+			event.makeFields(key, value, dataType == jsonparser.String)
+		}
+
+		return nil
+	})
+
+	Logger().WriteEvent(event)
+}

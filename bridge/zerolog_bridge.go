@@ -64,7 +64,7 @@ func (b *zerologBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *zerologBridge) Write(p []byte) (int, error) {
-	lork.Logger().WriteEvent(lork.MakeEvent(p))
+	lork.BridgeWrite(b, p)
 
 	return len(p), nil
 }
