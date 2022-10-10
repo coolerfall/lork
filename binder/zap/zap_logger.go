@@ -115,7 +115,7 @@ func (l *zapLogger) Level(lvl lork.Level) lork.Record {
 	return newZapRecord(lorkLvlToZapLvl[lvl])
 }
 
-func (l *zapLogger) WriteEvent(e *lork.LogEvent) {
+func (l *zapLogger) Event(e *lork.LogEvent) {
 	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}

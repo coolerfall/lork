@@ -18,6 +18,7 @@ require (
 	github.com/coolerfall/lork/binder/zap v0.6.0
 	github.com/coolerfall/lork/binder/zero v0.6.0
 	github.com/coolerfall/lork/bridge v0.6.0
+	github.com/rs/zerolog v1.26.1
 	github.com/sirupsen/logrus v1.8.1
 	go.uber.org/zap v1.21.0
 )

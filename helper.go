@@ -202,13 +202,10 @@ func BridgeWrite(bridge Bridge, p []byte) {
 		switch string(key) {
 		case LevelFieldKey:
 			event.appendLevel(bridge.ParseLevel(string(value)))
-
 		case MessageFieldKey:
 			event.appendMessageBytes(value)
-
 		case TimestampFieldKey:
 			// Do nothing
-
 		default:
 			event.makeFields(key, value, dataType == jsonparser.String)
 		}
@@ -216,5 +213,8 @@ func BridgeWrite(bridge Bridge, p []byte) {
 		return nil
 	})
 
-	Logger().WriteEvent(event)
+	// add bridge name as logger name
+	event.appendLogger([]byte(bridge.Name()))
+
+	Logger(bridge.Name()).Event(event)
 }

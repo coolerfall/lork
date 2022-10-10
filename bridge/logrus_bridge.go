@@ -15,8 +15,6 @@
 package bridge
 
 import (
-	"time"
-
 	"github.com/coolerfall/lork"
 	"github.com/sirupsen/logrus"
 )
@@ -39,7 +37,7 @@ type logrusBridge struct {
 func NewLogrusBridge() lork.Bridge {
 	bridge := &logrusBridge{}
 	logrus.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339,
+		TimestampFormat: lork.TimestampFormat,
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyLevel: lork.LevelFieldKey,
 			logrus.FieldKeyTime:  lork.TimestampFieldKey,

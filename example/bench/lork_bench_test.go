@@ -15,6 +15,7 @@
 package bench
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -35,25 +36,31 @@ var (
 	times   = []time.Time{time.Now(), time.Now()}
 	d       = time.Second * 13
 	ds      = []time.Duration{time.Second * 14, time.Minute * 2}
+
+	rollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+		func(o *lork.SizeAndTimeBasedRPOption) {
+			o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
+			o.MaxFileSize = "50MB"
+		})
 )
 
 func init() {
 	lork.Bind(lork.NewClassicLogger())
 }
 
-func BenchmarkJsonFileWriter(b *testing.B) {
-	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
-		o.Encoder = lork.NewJsonEncoder()
-		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
-		o.Filename = "/tmp/lork/lork-test.log"
-		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
-			func(o *lork.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
-			})
-	})
+var onceJson sync.Once
 
-	lork.Logger().AddWriter(fw)
+func BenchmarkJsonFileWriter(b *testing.B) {
+	onceJson.Do(func() {
+		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+			o.Encoder = lork.NewJsonEncoder()
+			o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
+			o.Filename = "/tmp/lork/lork-test.log"
+			o.RollingPolicy = rollingPolicy
+		})
+
+		lork.Logger().AddWriter(fw)
+	})
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -71,22 +78,22 @@ func BenchmarkJsonFileWriter(b *testing.B) {
 		}
 	})
 }
+
+var oncePattern sync.Once
 
 func BenchmarkPatternFileWriter(b *testing.B) {
-	lork.Logger().ResetWriter()
-	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
-		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
-			opt.Pattern = "#date{2006-01-02} #level #message #fields"
-		})
-		o.Filename = "/tmp/lork/lork-test.log"
-		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
-			func(o *lork.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
+	oncePattern.Do(func() {
+		lork.Logger().ResetWriter()
+		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+			o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
+				opt.Pattern = "#date{2006-01-02} #level #message #fields"
 			})
-	})
+			o.Filename = "/tmp/lork/lork-test.log"
+			o.RollingPolicy = rollingPolicy
+		})
 
-	lork.Logger().AddWriter(fw)
+		lork.Logger().AddWriter(fw)
+	})
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -105,24 +112,22 @@ func BenchmarkPatternFileWriter(b *testing.B) {
 	})
 }
 
-func BenchmarkAsyncFileWriter(b *testing.B) {
-	lork.Logger().ResetWriter()
-	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
-		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
-			opt.Pattern = "#date{2006-01-02} #level #message #fields"
-		})
-		o.Filename = "/tmp/lork/lork-test.log"
-		o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
-			func(o *lork.SizeAndTimeBasedRPOption) {
-				o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
-				o.MaxFileSize = "10MB"
-			})
-	})
+var onceAsync sync.Once
 
-	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-		o.RefWriter = fw
+func BenchmarkAsyncFileWriter(b *testing.B) {
+	onceAsync.Do(func() {
+		lork.Logger().ResetWriter()
+		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+			o.Encoder = lork.NewJsonEncoder()
+			o.Filename = "/tmp/lork/lork-test.log"
+			o.RollingPolicy = rollingPolicy
+		})
+
+		aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
+			o.RefWriter = fw
+		})
+		lork.Logger().AddWriter(aw)
 	})
-	lork.Logger().AddWriter(aw)
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {

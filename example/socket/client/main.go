@@ -3,7 +3,6 @@
 package main
 
 import (
-	"net/url"
 	"time"
 
 	"github.com/coolerfall/lork"
@@ -14,7 +13,7 @@ func main() {
 	lork.Bind(lork.NewClassicLogger())
 
 	sw := lork.NewSocketWriter(func(o *lork.SocketWriterOption) {
-		o.RemoteUrl, _ = url.Parse("ws://localhost:6060/ws/log")
+		o.RemoteUrl = "ws://localhost:6060/ws/log"
 	})
 	lork.Logger().AddWriter(lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {

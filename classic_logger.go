@@ -18,6 +18,7 @@ type classicLogger struct {
 	multiWriter *MultiWriter
 }
 
+// NewClassicLogger creates ILogger with builtin implementation.
 func NewClassicLogger() ILogger {
 	return &classicLogger{
 		multiWriter: NewMultiWriter(),
@@ -71,7 +72,7 @@ func (l *classicLogger) Level(lvl Level) Record {
 	return newClassicRecord(lvl, l.multiWriter)
 }
 
-func (l *classicLogger) WriteEvent(e *LogEvent) {
+func (l *classicLogger) Event(e *LogEvent) {
 	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}

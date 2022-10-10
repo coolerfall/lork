@@ -105,7 +105,7 @@ func (l *logrusLogger) Level(lvl lork.Level) lork.Record {
 	return newLogrusRecord(lorkLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) WriteEvent(e *lork.LogEvent) {
+func (l *logrusLogger) Event(e *lork.LogEvent) {
 	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}

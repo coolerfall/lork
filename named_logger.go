@@ -97,8 +97,8 @@ func (cl *namedLogger) Level(lvl Level) Record {
 	}
 }
 
-func (cl *namedLogger) WriteEvent(e *LogEvent) {
-	cl.parent.WriteEvent(e)
+func (cl *namedLogger) Event(e *LogEvent) {
+	cl.parent.Event(e)
 }
 
 func (cl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {

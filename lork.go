@@ -57,10 +57,15 @@ var (
 
 type Level int8
 
+// Nameable a simple interface to define an object to return name.
+type Nameable interface {
+	// Name returns the name of this object. The name uniquely identifies the object.
+	Name() string
+}
+
 // ILogger represents lork logging interface definition.
 type ILogger interface {
-	// Name returns the name of current lork logger implementation.
-	Name() string
+	Nameable
 
 	// AddWriter add one or more writer to this logger.
 	AddWriter(w ...Writer)
@@ -95,14 +100,13 @@ type ILogger interface {
 	// Level logs with specified level.
 	Level(lvl Level) Record
 
-	// WriteEvent writes raw logging event.
-	WriteEvent(e *LogEvent)
+	// Event writes raw logging event.
+	Event(e *LogEvent)
 }
 
 // Bridge represents bridge between other logging framework and lork logger.
 type Bridge interface {
-	// Name returns the name of this bridge.
-	Name() string
+	Nameable
 
 	// ParseLevel parses the given level string into lork level.
 	ParseLevel(lvl string) Level

@@ -66,6 +66,36 @@ func NewLogEvent() *LogEvent {
 	return event
 }
 
+// MakeEvent makes LogEvent from json string. The LevelFieldKey, TimestampFieldKey and
+// MessageFieldKey field key must keep the same with lork.
+func MakeEvent(p []byte) *LogEvent {
+	event := eventPool.Get().(*LogEvent)
+	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		switch string(k) {
+		case TimestampFieldKey:
+			event.makeTimestamp(v)
+		case LevelFieldKey:
+			event.appendLevelBytes(v)
+		case LoggerNameFieldKey:
+			event.appendLogger(v)
+		case MessageFieldKey:
+			event.appendMessageBytes(v)
+
+		default:
+			event.makeFields(k, v, dataType == jsonparser.String)
+		}
+
+		return nil
+	})
+
+	if len(event.Time()) == 0 {
+		event.appendTimestamp()
+	}
+
+	return event
+}
+
 func (e *LogEvent) Copy() *LogEvent {
 	cp := eventPool.Get().(*LogEvent)
 	cp.rfc3339Nano.Write(e.rfc3339Nano.Bytes())
@@ -137,32 +167,8 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error
 	return nil
 }
 
-// MakeEvent makes LogEvent from json string.
-func MakeEvent(p []byte) *LogEvent {
-	event := eventPool.Get().(*LogEvent)
-	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		switch string(k) {
-		case TimestampFieldKey:
-			event.makeTimestamp(v)
-		case LevelFieldKey:
-			event.appendLevelBytes(v)
-		case LoggerNameFieldKey:
-			event.appendLogger(v)
-		case MessageFieldKey:
-			event.appendMessageBytes(v)
-
-		default:
-			event.makeFields(k, v, dataType == jsonparser.String)
-		}
-
-		return nil
-	})
-
-	return event
-}
-
 func (e *LogEvent) makeTimestamp(v []byte) {
+	e.rfc3339Nano.Reset()
 	e.rfc3339Nano.Write(v)
 }
 
@@ -179,6 +185,7 @@ func (e *LogEvent) appendLevelBytes(v []byte) {
 }
 
 func (e *LogEvent) appendLogger(v []byte) {
+	e.loggerName.Reset()
 	e.loggerName.Write(v)
 }
 
