@@ -24,6 +24,7 @@ import (
 	zapb "github.com/coolerfall/lork/binder/zap"
 	"github.com/coolerfall/lork/binder/zero"
 	"github.com/coolerfall/lork/bridge"
+	zlog "github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/zap"
 )
@@ -56,9 +57,12 @@ func main() {
 		lork.Install(bridge.NewZerologBridge())
 	}
 
-	lork.Install(lork.NewLogBridge())
+	lork.Install(lork.NewLogBridge(func(o *lork.LogBridgeOption) {
+		o.Level = lork.DebugLevel
+	}))
 
 	cw := lork.NewConsoleWriter(func(o *lork.ConsoleWriterOption) {
+		o.Name = "CONSOLE"
 		o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 			opt.Pattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(" +
 				"#level) #color([#logger{36}]){magenta} : #message #fields"
@@ -66,6 +70,7 @@ func main() {
 	})
 	lork.Logger().AddWriter(cw)
 	fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+		o.Name = "FILE"
 		o.Encoder = lork.NewJsonEncoder()
 		o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
 		o.Filename = "/tmp/lork/lork-test.log"
@@ -77,16 +82,17 @@ func main() {
 			})
 	})
 	aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
+		o.Name = "ASYNC-FILE"
 		o.RefWriter = fw
 	})
 	lork.Logger().AddWriter(aw)
 
 	lork.Logger().Info().Msgf("bind with: %s", lork.Logger().Name())
 	lork.Logger().Trace().Msg("lork\nThis is a message with new line \n\n")
-	lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).
-		Any("lork", "val").Msge()
+	lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).Any("lork", "val").Msge()
 	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
-	zap.L().With().Warn("this is zap")
+	zap.L().With().Warn("this is from zap")
+	zlog.Info().Msg("this is from zerolog")
 	log.Printf("this is builtin logger\n\n")
 
 	logger := lork.Logger("github.com/lork")
@@ -99,5 +105,5 @@ func main() {
 	}).Msg("this is interface")
 	lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3)
 }

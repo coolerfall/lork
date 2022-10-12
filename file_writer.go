@@ -33,6 +33,7 @@ type fileWriter struct {
 
 // FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
+	Name          string
 	Encoder       Encoder
 	Filter        Filter
 	RollingPolicy RollingPolicy
@@ -58,7 +59,7 @@ func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	}
 	opts.RollingPolicy.Attach(fw)
 
-	return fw
+	return NewBytesWriter(fw)
 }
 
 func (fw *fileWriter) Start() {
@@ -100,6 +101,10 @@ func (fw *fileWriter) Write(p []byte) (n int, err error) {
 	fw.size += int64(n)
 
 	return n, err
+}
+
+func (fw *fileWriter) Name() string {
+	return fw.opts.Name
 }
 
 func (fw *fileWriter) Encoder() Encoder {

@@ -19,12 +19,14 @@ import (
 )
 
 type consoleWriter struct {
+	name    string
 	encoder Encoder
 	filter  Filter
 }
 
 // ConsoleWriterOption represents available options for console writer.
 type ConsoleWriterOption struct {
+	Name    string
 	Encoder Encoder
 	Filter  Filter
 }
@@ -39,14 +41,21 @@ func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
 		f(opts)
 	}
 
-	return &consoleWriter{
+	cw := &consoleWriter{
+		name:    opts.Name,
 		encoder: opts.Encoder,
 		filter:  opts.Filter,
 	}
+
+	return NewBytesWriter(cw)
 }
 
 func (w *consoleWriter) Write(p []byte) (n int, err error) {
 	return os.Stdout.Write(p)
+}
+
+func (w *consoleWriter) Name() string {
+	return w.name
 }
 
 func (w *consoleWriter) Encoder() Encoder {

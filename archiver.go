@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -65,7 +64,9 @@ func (a *gzipArchiver) Archive(filename, archiveFilename string) error {
 		_, _ = io.Copy(w, origin)
 		_ = w.Close()
 		_ = origin.Close()
-		_ = os.Remove(filepath.Join(filepath.Dir(archiveFilename), origin.Name()))
+		if err = os.Remove(origin.Name()); err != nil {
+			Reportf("archiver remove file error: %v", err)
+		}
 	}()
 
 	return nil
@@ -94,7 +95,9 @@ func (a *zipArchiver) Archive(filename, archiveFilename string) error {
 		_, _ = io.Copy(w, origin)
 		_ = zw.Close()
 		_ = origin.Close()
-		_ = os.Remove(filepath.Join(filepath.Dir(archiveFilename), origin.Name()))
+		if err = os.Remove(origin.Name()); err != nil {
+			Reportf("archiver remove file error: %v", err)
+		}
 	}()
 
 	return nil

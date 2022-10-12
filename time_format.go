@@ -479,6 +479,10 @@ func isLeap(year int) bool {
 // and convert to new layout. This will append the textual representation to b and
 // returns the extended buffer.
 func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
+	if len(origin) == 0 {
+		return b, errBad
+	}
+
 	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
 	if err != nil {
 		return b, err

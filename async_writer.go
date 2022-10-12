@@ -21,6 +21,7 @@ import (
 const defaultWriterQueueSize = 512
 
 type asyncWriter struct {
+	name      string
 	ref       Writer
 	locker    sync.Mutex
 	queue     *blockingQueue
@@ -29,6 +30,7 @@ type asyncWriter struct {
 
 // AsyncWriterOption represents available options for async writer.
 type AsyncWriterOption struct {
+	Name      string
 	RefWriter Writer
 	QueueSize int
 }
@@ -48,6 +50,7 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
 	}
 
 	return &asyncWriter{
+		name:  opts.Name,
 		ref:   opts.RefWriter,
 		queue: NewBlockingQueue(opts.QueueSize),
 	}
@@ -73,41 +76,23 @@ func (w *asyncWriter) Stop() {
 	w.isRunning = false
 }
 
-func (w *asyncWriter) WriteEvent(event *LogEvent) error {
+func (w *asyncWriter) DoWrite(event *LogEvent) error {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
 	if w.queue.RemainCapacity() <= 16 {
 		// discard
-		event.Recycle()
 		return nil
 	}
 
-	w.queue.Put(event)
+	// copy a log event for further usage
+	w.queue.Put(event.Copy())
 
 	return nil
 }
 
-func (w *asyncWriter) Write(p []byte) (n int, err error) {
-	w.locker.Lock()
-	defer w.locker.Unlock()
-
-	if w.queue.RemainCapacity() <= 16 {
-		// discard
-		return 0, nil
-	}
-
-	w.queue.Put(MakeEvent(p))
-
-	return len(p), nil
-}
-
-func (w *asyncWriter) Encoder() Encoder {
-	return nil
-}
-
-func (w *asyncWriter) Filter() Filter {
-	return nil
+func (w *asyncWriter) Name() string {
+	return w.name
 }
 
 func (w *asyncWriter) startWorker() {
@@ -124,25 +109,9 @@ func (w *asyncWriter) startWorker() {
 func (w *asyncWriter) write(event *LogEvent) {
 	defer event.Recycle()
 
-	var err error
-	if w.ref.Filter() != nil && w.ref.Filter().Do(event) == Deny {
-		return
-	}
-
-	var encoded []byte
-	if w.ref.Encoder() == nil {
-		Reportf("no encoder found for reference writer")
-		return
-	}
-
-	encoded, err = w.ref.Encoder().Encode(event)
-	if err != nil {
-		Reportf("async writer encode error: %v", err)
-		return
-	}
-
-	_, err = w.ref.Write(encoded)
-	if err != nil {
+	if err := w.ref.DoWrite(event); err != nil {
 		Reportf("async writer write error: %v", err)
 	}
+
+	return
 }

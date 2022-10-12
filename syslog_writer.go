@@ -18,48 +18,45 @@
 package lork
 
 import (
-	"bytes"
 	"log/syslog"
-	"strconv"
+	"sync"
 )
 
 type syslogWriter struct {
 	sw   *syslog.Writer
 	opts *SyslogWriterOption
 
+	locker    sync.Mutex
 	isStarted bool
 }
 
 type SyslogWriterOption struct {
-	Tag string
+	Name string
+	Tag  string
 	// See net.Dial
 	Address, Network string
 	Filter           Filter
-
-	encoder Encoder
 }
 
 // NewSyslogWriter create a logging writer via syslog.
 func NewSyslogWriter(options ...func(option *SyslogWriterOption)) Writer {
-	opts := &SyslogWriterOption{
-		encoder: NewPatternEncoder(func(o *PatternEncoderOption) {
-			o.Pattern = "#level #message #fields"
-			o.Converters = map[string]NewConverter{
-				"level": newLevelIntConverter,
-			}
-		}),
-	}
+	opts := &SyslogWriterOption{}
 
 	for _, f := range options {
 		f(opts)
 	}
 
-	return &syslogWriter{
+	sw := &syslogWriter{
 		opts: opts,
 	}
+
+	return NewEventWriter(sw)
 }
 
 func (w *syslogWriter) Start() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	if w.isStarted {
 		return
 	}
@@ -74,17 +71,16 @@ func (w *syslogWriter) Start() {
 }
 
 func (w *syslogWriter) Stop() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	_ = w.sw.Close()
+	w.isStarted = false
 }
 
-func (w *syslogWriter) Write(p []byte) (n int, err error) {
-	lvl, err := atoi(p[:1])
-	if err != nil {
-		return 0, err
-	}
-	msg := string(p[1:])
-
-	switch Level(lvl) {
+func (w *syslogWriter) Write(event *LogEvent) (err error) {
+	msg := string(event.Message())
+	switch event.LevelInt() {
 	case InfoLevel:
 		err = w.sw.Info(msg)
 	case WarnLevel:
@@ -102,44 +98,13 @@ func (w *syslogWriter) Write(p []byte) (n int, err error) {
 		err = w.sw.Debug(msg)
 	}
 
-	if err != nil {
-		return 0, err
-	}
-
-	return len(p), nil
+	return err
 }
 
-func (w *syslogWriter) Encoder() Encoder {
-	return w.opts.encoder
+func (w *syslogWriter) Name() string {
+	return w.opts.Name
 }
 
 func (w *syslogWriter) Filter() Filter {
 	return w.opts.Filter
-}
-
-type levelIntConverter struct {
-	next Converter
-}
-
-func newLevelIntConverter() Converter {
-	return &levelIntConverter{}
-}
-
-func (c *levelIntConverter) AttachNext(next Converter) {
-	c.next = next
-}
-
-func (c *levelIntConverter) Next() Converter {
-	return c.next
-}
-
-func (c *levelIntConverter) AttachChild(Converter) {
-}
-
-func (c *levelIntConverter) AttachOptions([]string) {
-}
-
-func (c *levelIntConverter) Convert(origin interface{}, buf *bytes.Buffer) {
-	event := origin.(*LogEvent)
-	buf.WriteString(strconv.Itoa(int(event.LevelInt())))
 }
