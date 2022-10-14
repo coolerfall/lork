@@ -26,6 +26,7 @@ type syslogWriter struct {
 	sw   *syslog.Writer
 	opts *SyslogWriterOption
 
+	encoder   Encoder
 	locker    sync.Mutex
 	isStarted bool
 }
@@ -48,6 +49,9 @@ func NewSyslogWriter(options ...func(option *SyslogWriterOption)) Writer {
 
 	sw := &syslogWriter{
 		opts: opts,
+		encoder: NewPatternEncoder(func(o *PatternEncoderOption) {
+			o.Pattern = "#message #fields"
+		}),
 	}
 
 	return NewEventWriter(sw)
@@ -79,7 +83,12 @@ func (w *syslogWriter) Stop() {
 }
 
 func (w *syslogWriter) Write(event *LogEvent) (err error) {
-	msg := string(event.Message())
+	data, err := w.encoder.Encode(event)
+	if err != nil {
+		return err
+	}
+	msg := string(data)
+
 	switch event.LevelInt() {
 	case InfoLevel:
 		err = w.sw.Info(msg)
@@ -107,4 +116,8 @@ func (w *syslogWriter) Name() string {
 
 func (w *syslogWriter) Filter() Filter {
 	return w.opts.Filter
+}
+
+func (w *syslogWriter) Synchronized() bool {
+	return false
 }

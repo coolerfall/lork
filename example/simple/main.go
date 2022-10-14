@@ -87,23 +87,27 @@ func main() {
 	})
 	lork.Logger().AddWriter(aw)
 
-	lork.Logger().Info().Msgf("bind with: %s", lork.Logger().Name())
-	lork.Logger().Trace().Msg("lork\nThis is a message with new line \n\n")
-	lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).Any("lork", "val").Msge()
-	logrus.WithField("logrus", "yes").Errorln("this is from logrus")
-	zap.L().With().Warn("this is from zap")
-	zlog.Info().Msg("this is from zerolog")
-	log.Printf("this is builtin logger\n\n")
+	for i := 0; i < 1000; i++ {
+		go func() {
+			lork.Logger().Info().Msgf("bind with: %s", lork.Logger().Name())
+			lork.Logger().Trace().Msg("lork\nThis is a message with new line \n\n")
+			lork.Logger("github.com/coolerfall/lork/foo").Info().Int("int", 88).Any("lork", "val").Msge()
+			logrus.WithField("logrus", "yes").Errorln("this is from logrus")
+			zap.L().With().Warn("this is from zap")
+			zlog.Info().Msg("this is from zerolog")
+			log.Printf("this is builtin logger\n\n")
 
-	logger := lork.Logger("github.com/lork")
-	logger.Debug().Msg("lork sub logger")
-	logger.SetLevel(lork.InfoLevel)
-	logger.Trace().Msg("this will not print")
-	logger.Info().Any("any", map[string]interface{}{
-		"name": "dog",
-		"age":  2,
-	}).Msg("this is interface")
-	lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
+			logger := lork.Logger("github.com/lork")
+			logger.Debug().Msg("lork sub logger")
+			logger.SetLevel(lork.InfoLevel)
+			logger.Trace().Msg("this will not print")
+			logger.Info().Any("any", map[string]interface{}{
+				"name": "dog",
+				"age":  2,
+			}).Msg("this is interface")
+			lork.LoggerC().Info().Bytes("bytes", []byte("ABCK")).Msg("test for auto logger name")
+		}()
+	}
 
 	time.Sleep(time.Second * 3)
 }

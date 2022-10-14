@@ -54,7 +54,6 @@ func BenchmarkJsonFileWriter(b *testing.B) {
 	onceJson.Do(func() {
 		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 			o.Encoder = lork.NewJsonEncoder()
-			o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
 			o.Filename = "/tmp/lork/lork-test.log"
 			o.RollingPolicy = rollingPolicy
 		})

@@ -154,10 +154,10 @@ Benchmarks
 Benchmarks with complex log field, different encoder and writer.
 ```text
 cpu: Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
-BenchmarkJsonFileWriter-8      	  249757        4712 ns/op      0 B/op      0 allocs/op
-BenchmarkPatternFileWriter-8   	  311752        3718 ns/op      0 B/op      0 allocs/op
-BenchmarkAsyncFileWriter-8     	 1107603        1060 ns/op      0 B/op      0 allocs/op
-BenchmarkNoWriter-8            	 1441761        843.5 ns/op     0 B/op      0 allocs/op
+BenchmarkJsonFileWriter-8      	  290490        3615 ns/op      0 B/op      0 allocs/op
+BenchmarkPatternFileWriter-8   	  243361        4670 ns/op      0 B/op      0 allocs/op
+BenchmarkAsyncFileWriter-8     	 1220036        998.8 ns/op     0 B/op      0 allocs/op
+BenchmarkNoWriter-8            	 1591646        746.5 ns/op     0 B/op      0 allocs/op
 ```
 
 Credits

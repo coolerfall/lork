@@ -232,17 +232,10 @@ func (r *classicRecord) Msge() {
 
 func (r *classicRecord) Msg(msg string) {
 	r.event.appendMessage(msg)
-	if err := r.writer.WriteEvent(r.event); err != nil {
-		Reportf("fail to write event: %v", err)
-	}
-	classicRecordPool.Put(r)
+	r.Msge()
 }
 
 func (r *classicRecord) Msgf(format string, v ...interface{}) {
 	r.event.appendMessage(fmt.Sprintf(format, v...))
-	if err := r.writer.WriteEvent(r.event); err != nil {
-		Reportf("fail to write event: %v", err)
-	}
-
-	classicRecordPool.Put(r)
+	r.Msge()
 }

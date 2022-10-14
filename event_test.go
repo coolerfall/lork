@@ -28,6 +28,7 @@ var _ = ginkgo.Describe("event", func() {
 		Expect(string(event.Message())).To(Equal("hello"))
 		Expect(string(event.LoggerName())).To(Equal("github.com/coolerfall/lork"))
 		Expect(string(event.Level())).To(Equal("INFO"))
+		Expect(event.Timestamp()).To(Equal(int64(1665213205320000000)))
 	})
 	ginkgo.It("copy event", func() {
 		event := MakeEvent(jsonData)

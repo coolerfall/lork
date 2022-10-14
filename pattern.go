@@ -44,8 +44,8 @@ type patternParser struct {
 	tail *node
 }
 
-// NewPatternParser creates a new instance of pattern parser.
-func NewPatternParser(pattern string) *patternParser {
+// newPatternParser creates a new instance of pattern parser.
+func newPatternParser(pattern string) *patternParser {
 	return &patternParser{
 		pattern: pattern,
 	}
@@ -83,7 +83,7 @@ func (p *patternParser) Parse() (*node, error) {
 		case ")":
 			bracketCount--
 			if bracketCount == 0 {
-				child, err := NewPatternParser(buf.String()).Parse()
+				child, err := newPatternParser(buf.String()).Parse()
 				if err != nil {
 					return nil, err
 				}
@@ -182,8 +182,8 @@ type patternCompiler struct {
 	tail Converter
 }
 
-// NewPatternCompiler creates a new instance of pattern compiler.
-func NewPatternCompiler(node *node, converterMap map[string]NewConverter) *patternCompiler {
+// newPatternCompiler creates a new instance of pattern compiler.
+func newPatternCompiler(node *node, converterMap map[string]NewConverter) *patternCompiler {
 	return &patternCompiler{
 		node:         node,
 		converterMap: converterMap,
@@ -212,7 +212,7 @@ func (p *patternCompiler) Compile() (Converter, error) {
 			if ok {
 				compositeConverter := newConverter()
 				compositeConverter.AttachOptions(n.options)
-				childCompiler := NewPatternCompiler(n.child, p.converterMap)
+				childCompiler := newPatternCompiler(n.child, p.converterMap)
 				childConverter, err := childCompiler.Compile()
 				if err != nil {
 					return nil, err

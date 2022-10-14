@@ -21,7 +21,7 @@ import (
 
 var _ = ginkgo.Describe("pattern", func() {
 	ginkgo.It("parse pattern", func() {
-		parser := NewPatternParser(
+		parser := newPatternParser(
 			`archive-#color(#date{2016-01-02 15:04:05.000}){cyan}.#index.log`)
 		node, err := parser.Parse()
 		Expect(err).To(BeNil())
