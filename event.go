@@ -27,7 +27,7 @@ import (
 )
 
 type LogEvent struct {
-	rfc3339Nano *bytes.Buffer
+	unixNano    int64
 	level       *bytes.Buffer
 	loggerName  *bytes.Buffer
 	caller      *bytes.Buffer
@@ -44,7 +44,6 @@ var (
 			tmp := new(bytes.Buffer)
 			tmp.Grow(128)
 			return &LogEvent{
-				rfc3339Nano: new(bytes.Buffer),
 				level:       new(bytes.Buffer),
 				loggerName:  new(bytes.Buffer),
 				caller:      new(bytes.Buffer),
@@ -74,7 +73,7 @@ func MakeEvent(p []byte) *LogEvent {
 		dataType jsonparser.ValueType, _ int) error {
 		switch string(k) {
 		case TimestampFieldKey:
-			event.makeTimestamp(v)
+			event.appendRFC3999Nano(v)
 		case LevelFieldKey:
 			event.appendLevelBytes(v)
 		case LoggerNameFieldKey:
@@ -89,16 +88,12 @@ func MakeEvent(p []byte) *LogEvent {
 		return nil
 	})
 
-	if len(event.Time()) == 0 {
-		event.appendTimestamp()
-	}
-
 	return event
 }
 
 func (e *LogEvent) Copy() *LogEvent {
 	cp := eventPool.Get().(*LogEvent)
-	cp.rfc3339Nano.Write(e.rfc3339Nano.Bytes())
+	cp.unixNano = e.unixNano
 	cp.level.Write(e.level.Bytes())
 	cp.loggerName.Write(e.loggerName.Bytes())
 	cp.caller.Write(e.caller.Bytes())
@@ -109,9 +104,9 @@ func (e *LogEvent) Copy() *LogEvent {
 	return cp
 }
 
-// Time returns rfc3339nano bytes.
-func (e *LogEvent) Time() []byte {
-	return e.rfc3339Nano.Bytes()
+// Timestamp returns timestamp in nano second.
+func (e *LogEvent) Timestamp() int64 {
+	return e.unixNano
 }
 
 // LevelInt returns level int value.
@@ -167,11 +162,6 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error
 	return nil
 }
 
-func (e *LogEvent) makeTimestamp(v []byte) {
-	e.rfc3339Nano.Reset()
-	e.rfc3339Nano.Write(v)
-}
-
 func (e *LogEvent) appendLevel(lvl Level) {
 	e.tmp.WriteString(lvl.String())
 	data := e.tmp.Bytes()
@@ -204,12 +194,15 @@ func (e *LogEvent) makeFields(k, v []byte, isString bool) {
 }
 
 func (e *LogEvent) appendTimestamp() {
-	data := e.tmp.Bytes()
-	data, err := appendFormat(data, time.Now(), TimestampFormat)
+	e.unixNano = time.Now().UnixNano()
+}
+
+func (e *LogEvent) appendRFC3999Nano(rfc3339Nano []byte) {
+	nano, err := toUTCUnixNano(rfc3339Nano, TimestampFormat)
 	if err != nil {
 		return
 	}
-	e.makeTimestamp(data)
+	e.unixNano = nano
 }
 
 func (e *LogEvent) appendMessageBytes(msg []byte) {
@@ -534,7 +527,7 @@ func (e *LogEvent) appendAny(key string, val interface{}) {
 }
 
 func (e *LogEvent) Recycle() {
-	e.rfc3339Nano.Reset()
+	e.unixNano = 0
 	e.level.Reset()
 	e.loggerName.Reset()
 	e.caller.Reset()
