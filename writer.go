@@ -109,6 +109,7 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
 	defer event.Recycle()
 
+	event.appendTimestamp()
 	for _, w := range mw.writers {
 		if err = w.DoWrite(event); err != nil {
 			Reportf("write event with writer [%v] error: %v", w.Name(), err)

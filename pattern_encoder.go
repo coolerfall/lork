@@ -263,9 +263,8 @@ func (c *logDateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	if !ok {
 		return
 	}
-	tsValue := e.rfc3339Nano.Bytes()
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opt)
+	bufData, _ = appendFormatUnix(bufData, e.Timestamp(), c.opt)
 	buf.Reset()
 	buf.Write(bufData)
 }
