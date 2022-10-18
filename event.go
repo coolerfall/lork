@@ -104,8 +104,11 @@ func (e *LogEvent) Copy() *LogEvent {
 	return cp
 }
 
-// Timestamp returns timestamp in nano second.
+// Timestamp returns unix timestamp in nano second.
 func (e *LogEvent) Timestamp() int64 {
+	if e.unixNano == 0 {
+		e.appendTimestamp()
+	}
 	return e.unixNano
 }
 

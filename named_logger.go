@@ -14,12 +14,17 @@
 
 package lork
 
+import (
+	"sync"
+)
+
 // namedLogger represents a logger with name which can be used as category.
 type namedLogger struct {
 	name   string
 	root   ILogger
 	parent ILogger
 	lvl    Level
+	locker sync.Mutex
 }
 
 // newNamedLogger creates a new instance of named logger.
@@ -45,6 +50,9 @@ func (cl *namedLogger) ResetWriter() {
 }
 
 func (cl *namedLogger) SetLevel(lvl Level) {
+	cl.locker.Lock()
+	defer cl.locker.Unlock()
+
 	cl.lvl = lvl
 }
 

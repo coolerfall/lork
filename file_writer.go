@@ -26,7 +26,7 @@ const defaultLogFilename = "lork.log"
 type fileWriter struct {
 	opts *FileWriterOption
 
-	locker sync.Mutex
+	locker sync.Locker
 	file   *os.File
 	size   int64
 }
@@ -52,7 +52,8 @@ func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	}
 
 	fw := &fileWriter{
-		opts: opts,
+		opts:   opts,
+		locker: new(sync.Mutex),
 	}
 	if opts.RollingPolicy == nil {
 		opts.RollingPolicy = NewNoopRollingPolicy()

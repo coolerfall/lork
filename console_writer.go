@@ -16,12 +16,15 @@ package lork
 
 import (
 	"os"
+	"sync"
 )
 
 type consoleWriter struct {
 	name    string
 	encoder Encoder
 	filter  Filter
+
+	locker sync.Locker
 }
 
 // ConsoleWriterOption represents available options for console writer.
@@ -45,12 +48,16 @@ func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
 		name:    opts.Name,
 		encoder: opts.Encoder,
 		filter:  opts.Filter,
+		locker:  new(sync.Mutex),
 	}
 
 	return NewBytesWriter(cw)
 }
 
 func (w *consoleWriter) Write(p []byte) (n int, err error) {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	return os.Stdout.Write(p)
 }
 

@@ -79,7 +79,7 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		pattern = opts.Pattern
 	}
 
-	patternParser := NewPatternParser(pattern)
+	patternParser := newPatternParser(pattern)
 	node, err := patternParser.Parse()
 	if err != nil {
 		ReportfExit("parse pattern error, %v", err)
@@ -96,7 +96,7 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 	for k, c := range opts.Converters {
 		converters[k] = c
 	}
-	converter, err := NewPatternCompiler(node, converters).Compile()
+	converter, err := newPatternCompiler(node, converters).Compile()
 	if err != nil {
 		ReportfExit("compile pattern error, %v", err)
 	}

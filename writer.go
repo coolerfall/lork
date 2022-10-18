@@ -39,6 +39,9 @@ type EventWriter interface {
 
 	// Filter returns filter used in current writer.
 	Filter() Filter
+
+	// Synchronized should this writer write data synchronously or not.
+	Synchronized() bool
 }
 
 // BytesWriter represents a writer which will write bytes with Encoder and Filter.
@@ -94,9 +97,6 @@ func (mw *MultiWriter) Reset() {
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
-	mw.locker.Lock()
-	defer mw.locker.Unlock()
-
 	if len(mw.writers) == 0 {
 		return 0, nil
 	}
@@ -109,7 +109,6 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
 	defer event.Recycle()
 
-	event.appendTimestamp()
 	for _, w := range mw.writers {
 		if err = w.DoWrite(event); err != nil {
 			Reportf("write event with writer [%v] error: %v", w.Name(), err)
@@ -120,7 +119,8 @@ func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
 }
 
 type eventWriter struct {
-	ref EventWriter
+	ref    EventWriter
+	locker sync.Locker
 }
 
 // NewEventWriter creates a Writer with given EventWriter.
@@ -158,11 +158,12 @@ type bytesWriter struct {
 	ref BytesWriter
 }
 
-// NewBytesWriter creates a Writer with given BytesWriter.
+// NewBytesWriter creates a Writer with given BytesWriter. BytesWriter will
+// write data synchronously cause the order of goroutine is messy.
 func NewBytesWriter(w BytesWriter) Writer {
-	return &bytesWriter{
+	return NewSyncWriter(&bytesWriter{
 		ref: w,
-	}
+	})
 }
 
 func (w *bytesWriter) Start() {
@@ -197,4 +198,45 @@ func (w *bytesWriter) DoWrite(event *LogEvent) error {
 	_, err = w.ref.Write(encoded)
 
 	return err
+}
+
+type syncWriter struct {
+	ref    Writer
+	locker sync.Locker
+}
+
+// NewSyncWriter creates a new synchronized writer which will lock when writing LogEvent.
+func NewSyncWriter(w Writer) Writer {
+	sw := &syncWriter{
+		ref:    w,
+		locker: new(sync.Mutex),
+	}
+
+	return sw
+}
+
+func (w *syncWriter) Name() string {
+	return w.ref.Name()
+}
+
+func (w *syncWriter) DoWrite(event *LogEvent) error {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	// append current timestamp before writing in goroutine
+	event.appendTimestamp()
+
+	return w.ref.DoWrite(event)
+}
+
+func (w *syncWriter) Start() {
+	if lw, ok := w.ref.(Lifecycle); ok {
+		lw.Start()
+	}
+}
+
+func (w *syncWriter) Stop() {
+	if lw, ok := w.ref.(Lifecycle); ok {
+		lw.Stop()
+	}
 }
