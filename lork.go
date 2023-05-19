@@ -16,7 +16,6 @@ package lork
 
 import (
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -55,6 +54,7 @@ var (
 	}
 )
 
+// Level type definition for logging level.
 type Level int8
 
 // Nameable a simple interface to define an object to return name.
@@ -66,12 +66,6 @@ type Nameable interface {
 // ILogger represents lork logging interface definition.
 type ILogger interface {
 	Nameable
-
-	// AddWriter add one or more writer to this logger.
-	AddWriter(w ...Writer)
-
-	// ResetWriter will remove all writers added before.
-	ResetWriter()
 
 	// SetLevel sets global level for logger.
 	SetLevel(lvl Level)
@@ -104,6 +98,24 @@ type ILogger interface {
 	Event(e *LogEvent)
 }
 
+// ILoggerFactory represents a factory to get loggers.
+type ILoggerFactory interface {
+	// Logger gets a ILogger with given name
+	Logger(name string) ILogger
+}
+
+// Provider provides ILoggerFactory to get logger.
+type Provider interface {
+	// Name the name of this provider.
+	Name() string
+
+	// Prepare prepares the provider.
+	Prepare()
+
+	// LoggerFactory gets ILoggerFactory from this provider.
+	LoggerFactory() ILoggerFactory
+}
+
 // Bridge represents bridge between other logging framework and lork logger.
 type Bridge interface {
 	Nameable
@@ -112,97 +124,20 @@ type Bridge interface {
 	ParseLevel(lvl string) Level
 }
 
-var (
-	loggers = make([]ILogger, 0)
-	bridges = make([]Bridge, 0)
-
-	onceLogger   sync.Once
-	loggerLocker sync.Mutex
-	loggerCache  map[string]ILogger
-)
-
-// Logger get a global lork logger to use. The name will only get the first one.
+// Logger gets a global lork logger to use. The name will only get the first one.
 func Logger(name ...string) ILogger {
-	onceLogger.Do(func() {
-		loggerLen := len(loggers)
-		if loggerLen > 1 {
-			Report("multiple lork logger implementation found")
-		} else if loggerLen == 0 {
-			Bind(NewClassicLogger())
-		}
-		logger := loggers[0]
-
-		for _, b := range bridges {
-			if logger.Name() == b.Name() {
-				ReportfExit("cycle logger checked, %s -> lork -> %s",
-					b.Name(), logger.Name())
-			}
-		}
-
-		loggerCache = make(map[string]ILogger)
-		loggerCache[RootLoggerName] = logger
-	})
-
-	return findLogger(name...)
+	realName := ""
+	if len(name) > 0 {
+		realName = name[0]
+	}
+	return getLoggerFactory().Logger(realName)
 }
 
 // LoggerC get a global lork logger with a caller package name.
 // Note: this will call runtime.Caller function.
 func LoggerC() ILogger {
 	pkgName := PackageName(1)
-	return Logger(pkgName)
-}
-
-func findLogger(name ...string) ILogger {
-	loggerLocker.Lock()
-	defer loggerLocker.Unlock()
-
-	rootLogger := loggerCache[RootLoggerName]
-	var realName string
-	if len(name) > 0 {
-		realName = name[0]
-	} else {
-		return rootLogger
-	}
-
-	child, ok := loggerCache[realName]
-	if ok {
-		return child
-	}
-
-	var i = 0
-	var logger = rootLogger
-	var childName string
-	for {
-		index := indexOfSlash(realName, i)
-		if index == -1 {
-			childName = realName
-		} else {
-			childName = realName[:index]
-		}
-		i = index + 1
-		child, ok = loggerCache[childName]
-		if !ok {
-			child = newNamedLogger(childName, rootLogger, logger)
-			loggerCache[childName] = child
-		}
-		logger = child
-
-		if index == -1 {
-			return child
-		}
-	}
-}
-
-// Bind binds an implementation of lork logger as output logger.
-func Bind(logger ILogger) {
-	loggers = append(loggers, logger)
-}
-
-// Install installs a logging framework bridge into lork. All the log of the bridge
-// will be delegated to lork if the logging framework bridge was installed.
-func Install(bridge Bridge) {
-	bridges = append(bridges, bridge)
+	return getLoggerFactory().Logger(pkgName)
 }
 
 func (l Level) String() string {

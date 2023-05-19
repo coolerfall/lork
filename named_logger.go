@@ -20,125 +20,159 @@ import (
 
 // namedLogger represents a logger with name which can be used as category.
 type namedLogger struct {
-	name   string
-	root   ILogger
-	parent ILogger
-	lvl    Level
+	name  string
+	level Level
+
+	realLogger ILogger
+	parent     ILogger
+	children   []*namedLogger
+
 	locker sync.Mutex
+	multiWriter *MultiWriter
 }
 
 // newNamedLogger creates a new instance of named logger.
-func newNamedLogger(name string, root ILogger, parent ILogger) ILogger {
-	return &namedLogger{
-		name:   name,
-		root:   root,
-		parent: parent,
-		lvl:    TraceLevel,
+func newNamedLogger(name string, parent ILogger, writer *MultiWriter) *namedLogger {
+	nl := &namedLogger{
+		name:        name,
+		parent:      parent,
+		level:       TraceLevel,
+		multiWriter: writer,
+	}
+	nl.realLogger = nl.findRealLogger()
+
+	return nl
+}
+
+func (nl *namedLogger) Name() string {
+	return nl.name
+}
+
+func (nl *namedLogger) SetLevel(lvl Level) {
+	nl.locker.Lock()
+	defer nl.locker.Unlock()
+
+	if nl.level == lvl {
+		// nothing to do
+		return
+	}
+
+	nl.level = lvl
+
+	for _, child := range nl.children {
+		child.SetLevel(lvl)
 	}
 }
 
-func (cl *namedLogger) Name() string {
-	return cl.name
+func (nl *namedLogger) Trace() Record {
+	return nl.makeRecord(TraceLevel, nl.realLogger.Trace)
 }
 
-func (cl *namedLogger) AddWriter(w ...Writer) {
-	cl.parent.AddWriter(w...)
+func (nl *namedLogger) Debug() Record {
+	return nl.makeRecord(DebugLevel, nl.realLogger.Debug)
 }
 
-func (cl *namedLogger) ResetWriter() {
-	cl.parent.ResetWriter()
+func (nl *namedLogger) Info() Record {
+	return nl.makeRecord(InfoLevel, nl.realLogger.Info)
 }
 
-func (cl *namedLogger) SetLevel(lvl Level) {
-	cl.locker.Lock()
-	defer cl.locker.Unlock()
-
-	cl.lvl = lvl
+func (nl *namedLogger) Warn() Record {
+	return nl.makeRecord(WarnLevel, nl.realLogger.Warn)
 }
 
-func (cl *namedLogger) Trace() Record {
-	return cl.makeRecord(TraceLevel, cl.root.Trace)
+func (nl *namedLogger) Error() Record {
+	return nl.makeRecord(ErrorLevel, nl.realLogger.Error)
 }
 
-func (cl *namedLogger) Debug() Record {
-	return cl.makeRecord(DebugLevel, cl.root.Debug)
+func (nl *namedLogger) Fatal() Record {
+	return nl.makeRecord(FatalLevel, nl.realLogger.Fatal)
 }
 
-func (cl *namedLogger) Info() Record {
-	return cl.makeRecord(InfoLevel, cl.root.Info)
+func (nl *namedLogger) Panic() Record {
+	return nl.makeRecord(PanicLevel, nl.realLogger.Panic)
 }
 
-func (cl *namedLogger) Warn() Record {
-	return cl.makeRecord(WarnLevel, cl.root.Warn)
-}
-
-func (cl *namedLogger) Error() Record {
-	return cl.makeRecord(ErrorLevel, cl.root.Error)
-}
-
-func (cl *namedLogger) Fatal() Record {
-	return cl.makeRecord(FatalLevel, cl.root.Fatal)
-}
-
-func (cl *namedLogger) Panic() Record {
-	return cl.makeRecord(PanicLevel, cl.root.Panic)
-}
-
-func (cl *namedLogger) Level(lvl Level) Record {
+func (nl *namedLogger) Level(lvl Level) Record {
 	switch lvl {
 	case DebugLevel:
-		return cl.makeRecord(lvl, cl.root.Debug)
+		return nl.makeRecord(lvl, nl.realLogger.Debug)
 	case InfoLevel:
-		return cl.makeRecord(lvl, cl.root.Info)
+		return nl.makeRecord(lvl, nl.realLogger.Info)
 	case WarnLevel:
-		return cl.makeRecord(lvl, cl.root.Warn)
+		return nl.makeRecord(lvl, nl.realLogger.Warn)
 	case ErrorLevel:
-		return cl.makeRecord(lvl, cl.root.Error)
+		return nl.makeRecord(lvl, nl.realLogger.Error)
 	case FatalLevel:
-		return cl.makeRecord(lvl, cl.root.Fatal)
+		return nl.makeRecord(lvl, nl.realLogger.Fatal)
 	case PanicLevel:
-		return cl.makeRecord(lvl, cl.root.Panic)
+		return nl.makeRecord(lvl, nl.realLogger.Panic)
 	case TraceLevel:
 		fallthrough
 	default:
-		return cl.makeRecord(lvl, cl.root.Trace)
+		return nl.makeRecord(lvl, nl.realLogger.Trace)
 	}
 }
 
-func (cl *namedLogger) Event(e *LogEvent) {
-	cl.parent.Event(e)
+func (nl *namedLogger) Event(e *LogEvent) {
+	nl.parent.Event(e)
 }
 
-func (cl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {
+func (nl *namedLogger) AddWriter(writers ...Writer) {
+	nl.multiWriter.AddWriter(writers...)
+}
+
+func (nl *namedLogger) GetWriter(name string) Writer {
+	return nl.multiWriter.GetWriter(name)
+}
+
+func (nl *namedLogger) Attached(writer Writer) bool {
+	return nl.multiWriter.Attached(writer)
+}
+
+func (nl *namedLogger) ResetWriter() {
+	nl.multiWriter.ResetWriter()
+}
+
+func (nl *namedLogger) CreateChild(name string) *namedLogger {
+	child := newNamedLogger(name, nl, nl.multiWriter)
+	nl.children = append(nl.children, child)
+	child.level = nl.level
+
+	return child
+}
+
+func (nl *namedLogger) FindChild(name string) *namedLogger {
+	for _, child := range nl.children {
+		if child.Name() == name {
+			return child
+		}
+	}
+
+	return nil
+}
+
+func (nl *namedLogger) findRealLogger() ILogger {
+	p, ok := nl.parent.(*namedLogger)
+	if ok {
+		return p.findRealLogger()
+	}
+
+	return nl.parent
+}
+
+func (nl *namedLogger) isRootLogger() bool {
+	return nl.name == RootLoggerName
+}
+
+func (nl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {
 	var record Record
 
-	if cl.checkLevel(lvl) {
-		record = newRecord()
-	} else {
+	if nl.level > lvl {
 		record = newNoopRecord()
+	} else {
+		record = newRecord()
 	}
 
 	// append logger name
-	return record.Str(LoggerNameFieldKey, cl.name)
-}
-
-func (cl *namedLogger) checkLevel(lvl Level) bool {
-	if cl.lvl > lvl {
-		return false
-	}
-
-	for l := cl; l != nil; {
-		p, ok := l.parent.(*namedLogger)
-		if !ok {
-			break
-		}
-
-		if cl.lvl > l.lvl {
-			return false
-		}
-
-		l = p
-	}
-
-	return true
+	return record.Str(LoggerNameFieldKey, nl.name)
 }

@@ -36,12 +36,13 @@ var (
 
 // zapLogger is an implementation of ILogger.
 type zapLogger struct {
+	name        string
 	atomicLevel zap.AtomicLevel
 	multiWriter *lork.MultiWriter
 }
 
 // NewZapLogger creates a new instance of zapLogger used to be bound to lork.
-func NewZapLogger() lork.ILogger {
+func NewZapLogger(name string, writer *lork.MultiWriter) lork.ILogger {
 	atomicLevel := zap.NewAtomicLevel()
 	atomicLevel.SetLevel(zapcore.DebugLevel)
 
@@ -52,7 +53,6 @@ func NewZapLogger() lork.ILogger {
 	encoderConfig.EncodeTime = rf3339Encoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 
-	writer := lork.NewMultiWriter()
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
 		zapcore.AddSync(writer),
@@ -62,13 +62,14 @@ func NewZapLogger() lork.ILogger {
 	zap.ReplaceGlobals(logger)
 
 	return &zapLogger{
+		name:        name,
 		atomicLevel: atomicLevel,
 		multiWriter: writer,
 	}
 }
 
 func (l *zapLogger) Name() string {
-	return "go.uber.org/zap"
+	return l.name
 }
 
 func (l *zapLogger) AddWriter(w ...lork.Writer) {
@@ -76,7 +77,7 @@ func (l *zapLogger) AddWriter(w ...lork.Writer) {
 }
 
 func (l *zapLogger) ResetWriter() {
-	l.multiWriter.Reset()
+	l.multiWriter.ResetWriter()
 }
 
 func (l *zapLogger) SetLevel(lvl lork.Level) {

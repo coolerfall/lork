@@ -45,7 +45,7 @@ var (
 )
 
 func init() {
-	lork.Bind(lork.NewClassicLogger())
+	lork.Load(lork.NewClassicProvider())
 }
 
 var onceJson sync.Once
@@ -55,10 +55,14 @@ func BenchmarkJsonFileWriter(b *testing.B) {
 		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 			o.Encoder = lork.NewJsonEncoder()
 			o.Filename = "/tmp/lork/lork-test.log"
-			o.RollingPolicy = rollingPolicy
+			o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+				func(o *lork.SizeAndTimeBasedRPOption) {
+					o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
+					o.MaxFileSize = "10MB"
+				})
 		})
 
-		lork.Logger().AddWriter(fw)
+		lork.Manual().AddWriter(fw)
 	})
 
 	b.ReportAllocs()
@@ -82,16 +86,20 @@ var oncePattern sync.Once
 
 func BenchmarkPatternFileWriter(b *testing.B) {
 	oncePattern.Do(func() {
-		lork.Logger().ResetWriter()
+		lork.Reset()
 		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 			o.Encoder = lork.NewPatternEncoder(func(opt *lork.PatternEncoderOption) {
 				opt.Pattern = "#date{2006-01-02} #level #message #fields"
 			})
 			o.Filename = "/tmp/lork/lork-test.log"
-			o.RollingPolicy = rollingPolicy
+			o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+				func(o *lork.SizeAndTimeBasedRPOption) {
+					o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
+					o.MaxFileSize = "10MB"
+				})
 		})
 
-		lork.Logger().AddWriter(fw)
+		lork.Manual().AddWriter(fw)
 	})
 
 	b.ReportAllocs()
@@ -115,7 +123,7 @@ var onceAsync sync.Once
 
 func BenchmarkAsyncFileWriter(b *testing.B) {
 	onceAsync.Do(func() {
-		lork.Logger().ResetWriter()
+		lork.Reset()
 		fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
 			o.Encoder = lork.NewJsonEncoder()
 			o.Filename = "/tmp/lork/lork-test.log"
@@ -123,9 +131,10 @@ func BenchmarkAsyncFileWriter(b *testing.B) {
 		})
 
 		aw := lork.NewAsyncWriter(func(o *lork.AsyncWriterOption) {
-			o.RefWriter = fw
+			o.Name = "ASYNC"
 		})
-		lork.Logger().AddWriter(aw)
+		aw.AddWriter(fw)
+		lork.Manual().AddWriter(aw)
 	})
 
 	b.ReportAllocs()
@@ -145,8 +154,13 @@ func BenchmarkAsyncFileWriter(b *testing.B) {
 	})
 }
 
+var onceNone sync.Once
+
 func BenchmarkNoWriter(b *testing.B) {
-	lork.Logger().ResetWriter()
+	onceNone.Do(func() {
+		lork.Reset()
+		lork.Manual().AddWriter(&DiscardWriter{})
+	})
 
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
@@ -163,4 +177,15 @@ func BenchmarkNoWriter(b *testing.B) {
 				Msg("The quick brown fox jumps over the lazy dog")
 		}
 	})
+}
+
+type DiscardWriter struct {
+}
+
+func (w *DiscardWriter) DoWrite(*lork.LogEvent) error {
+	return nil
+}
+
+func (w *DiscardWriter) Name() string {
+	return ""
 }

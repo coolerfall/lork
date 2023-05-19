@@ -18,65 +18,54 @@ import (
 	"sync"
 )
 
-const defaultWriterQueueSize = 512
-
-type asyncWriter struct {
-	name      string
-	ref       Writer
-	locker    sync.Mutex
-	queue     *blockingQueue
-	isRunning bool
+type AsyncWriter struct {
+	name        string
+	locker      sync.Mutex
+	queue       *BlockingQueue
+	isRunning   bool
+	multiWriter *MultiWriter
 }
 
 // AsyncWriterOption represents available options for async writer.
 type AsyncWriterOption struct {
 	Name      string
-	RefWriter Writer
 	QueueSize int
 }
 
 // NewAsyncWriter creates a new instance of asynchronous writer.
-func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
+func NewAsyncWriter(options ...func(*AsyncWriterOption)) *AsyncWriter {
 	opts := &AsyncWriterOption{
-		QueueSize: defaultWriterQueueSize,
+		QueueSize: DefaultQueueSize,
 	}
 
 	for _, f := range options {
 		f(opts)
 	}
 
-	if opts.RefWriter == nil {
-		ReportfExit("async writer need a referenced writer")
-	}
-
-	return &asyncWriter{
-		name:  opts.Name,
-		ref:   opts.RefWriter,
-		queue: NewBlockingQueue(opts.QueueSize),
+	return &AsyncWriter{
+		name:        opts.Name,
+		queue:       NewBlockingQueue(opts.QueueSize),
+		multiWriter: NewMultiWriter(),
 	}
 }
 
-func (w *asyncWriter) Start() {
+func (w *AsyncWriter) Start() {
 	if w.isRunning {
 		return
-	}
-	if lc, ok := w.ref.(Lifecycle); ok {
-		lc.Start()
 	}
 	w.isRunning = true
 	go w.startWorker()
 }
 
-func (w *asyncWriter) Stop() {
+func (w *AsyncWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
-	if lc, ok := w.ref.(Lifecycle); ok {
-		lc.Stop()
-	}
+	w.multiWriter.ResetWriter()
+
 	w.isRunning = false
 }
 
-func (w *asyncWriter) DoWrite(event *LogEvent) error {
+func (w *AsyncWriter) DoWrite(event *LogEvent) error {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
@@ -91,27 +80,35 @@ func (w *asyncWriter) DoWrite(event *LogEvent) error {
 	return nil
 }
 
-func (w *asyncWriter) Name() string {
+func (w *AsyncWriter) Name() string {
 	return w.name
 }
 
-func (w *asyncWriter) startWorker() {
+func (w *AsyncWriter) AddWriter(writers ...Writer) {
+	w.multiWriter.AddWriter(writers...)
+}
+
+func (w *AsyncWriter) GetWriter(name string) Writer {
+	return w.multiWriter.GetWriter(name)
+}
+
+func (w *AsyncWriter) Attached(writer Writer) bool {
+	return w.multiWriter.Attached(writer)
+}
+
+func (w *AsyncWriter) ResetWriter() {
+	w.multiWriter.ResetWriter()
+}
+
+func (w *AsyncWriter) startWorker() {
 	for {
 		if !w.isRunning {
 			break
 		}
 
 		p := (w.queue.Take()).(*LogEvent)
-		w.write(p)
+		if err := w.multiWriter.WriteEvent(p); err != nil {
+			Reportf("async writer write error: %v", err)
+		}
 	}
-}
-
-func (w *asyncWriter) write(event *LogEvent) {
-	defer event.Recycle()
-
-	if err := w.ref.DoWrite(event); err != nil {
-		Reportf("async writer write error: %v", err)
-	}
-
-	return
 }

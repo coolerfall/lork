@@ -20,10 +20,7 @@ import (
 )
 
 type consoleWriter struct {
-	name    string
-	encoder Encoder
-	filter  Filter
-
+	opts   *ConsoleWriterOption
 	locker sync.Locker
 }
 
@@ -45,10 +42,8 @@ func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
 	}
 
 	cw := &consoleWriter{
-		name:    opts.Name,
-		encoder: opts.Encoder,
-		filter:  opts.Filter,
-		locker:  new(sync.Mutex),
+		opts:   opts,
+		locker: new(sync.Mutex),
 	}
 
 	return NewBytesWriter(cw)
@@ -62,13 +57,13 @@ func (w *consoleWriter) Write(p []byte) (n int, err error) {
 }
 
 func (w *consoleWriter) Name() string {
-	return w.name
+	return w.opts.Name
 }
 
 func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
+	return w.opts.Encoder
 }
 
 func (w *consoleWriter) Filter() Filter {
-	return w.filter
+	return w.opts.Filter
 }
