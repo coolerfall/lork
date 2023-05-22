@@ -182,7 +182,7 @@ If you enjoy this project and want to support it, you can buy a coffee.
 License
 =======
 
-    Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+    Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
