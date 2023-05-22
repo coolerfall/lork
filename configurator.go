@@ -28,20 +28,20 @@ type Configurator interface {
 	Configure(ctx *LoggerContext) ExecutionStatus
 }
 
-type manualConfigurator struct {
+type ManualConfigurator struct {
 	isConfigured bool
 	writers      []Writer
 	context      *LoggerContext
 }
 
-var manual = &manualConfigurator{}
+var manual = &ManualConfigurator{}
 
-// Manual gets manualConfigurator to use.
-func Manual() *manualConfigurator {
+// Manual gets ManualConfigurator to use.
+func Manual() *ManualConfigurator {
 	return manual
 }
 
-func (c *manualConfigurator) Configure(ctx *LoggerContext) ExecutionStatus {
+func (c *ManualConfigurator) Configure(ctx *LoggerContext) ExecutionStatus {
 	if len(c.writers) == 0 {
 		return StatusNext
 	}
@@ -52,11 +52,11 @@ func (c *manualConfigurator) Configure(ctx *LoggerContext) ExecutionStatus {
 	return StatusNoNext
 }
 
-func (c *manualConfigurator) AddWriter(writers ...Writer) {
+func (c *ManualConfigurator) AddWriter(writers ...Writer) {
 	c.writers = append(c.writers, writers...)
 }
 
-func (c *manualConfigurator) GetWriter(name string) Writer {
+func (c *ManualConfigurator) GetWriter(name string) Writer {
 	for _, w := range c.writers {
 		if w.Name() == name {
 			return w
@@ -66,7 +66,7 @@ func (c *manualConfigurator) GetWriter(name string) Writer {
 	return nil
 }
 
-func (c *manualConfigurator) Attached(writer Writer) bool {
+func (c *ManualConfigurator) Attached(writer Writer) bool {
 	for _, w := range c.writers {
 		if w == writer {
 			return true
@@ -76,7 +76,7 @@ func (c *manualConfigurator) Attached(writer Writer) bool {
 	return false
 }
 
-func (c *manualConfigurator) ResetWriter() {
+func (c *ManualConfigurator) ResetWriter() {
 	c.writers = c.writers[:0]
 	if c.context != nil {
 		c.context.RealLogger(RootLoggerName).ResetWriter()
