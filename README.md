@@ -32,8 +32,8 @@ BenchmarkNoWriter-8            	 1591646        746.5 ns/op     0 B/op      0 al
 Credits
 ======
 
-* [slf4j][1]: Simple Logging Facade for Java
-* [logback][2]: The reliable, generic, fast and flexible logging framework for Java.
+* [slf4j][2]: Simple Logging Facade for Java
+* [logback][3]: The reliable, generic, fast and flexible logging framework for Java.
 
 Donate
 =======
@@ -59,6 +59,6 @@ License
     See the License for the specific language governing permissions and
     limitations under the License.
 
-[1]: https://github.com/qos-ch/slf4j
-
-[2]: https://github.com/qos-ch/logback
+[1]: https://lork.coolerfall.com
+[2]: https://github.com/qos-ch/slf4j
+[3]: https://github.com/qos-ch/logback
