@@ -1,6 +1,6 @@
 module github.com/coolerfall/lork
 
-go 1.16
+go 1.18
 
 require (
 	github.com/buger/jsonparser v1.1.1
