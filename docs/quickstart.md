@@ -26,22 +26,22 @@ logger.Info().Any("any", map[string]interface{}{
 
 This will log with default console writer with pattern format.
 
-* If you log with other logger, it will send to the bound logger:
-
-```text
-require (
-	github.com/coolerfall/lork/bind/zap latest
-)
-```
+* Add writter with rolling policy to output your logs:
 
 ```go
-lork.Install(lork.NewLogBridge())
-lork.Load(zap.NewZapProvider())
-
-zap.L().With().Warn("this is zap")
-log.Printf("this is builtin logger")
+fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Name = "FILE"
+    o.Encoder = lork.NewJsonEncoder()
+    o.Filter = lork.NewThresholdFilter(lork.InfoLevel)
+    o.Filename = "/tmp/lork/lork-test.log"
+    o.RollingPolicy = lork.NewSizeAndTimeBasedRollingPolicy(
+        func(o *lork.SizeAndTimeBasedRPOption) {
+            o.FilenamePattern = "/tmp/lork/lork-archive.#date{2006-01-02}.#index.log"
+            o.MaxFileSize = "10MB"
+            o.MaxHistory = 10
+        })
+})
+lork.Manual().AddWriter(fw)
 ```
-
-Note: only **global** logger will send log to bound logger if using logger like zap, zerolog, logrus or other loggers.
 
 For more details, see [configuration](/configuration)
