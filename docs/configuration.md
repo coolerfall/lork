@@ -31,7 +31,6 @@ It supports the following options:
   `SizeAndTimeBasedPolicy`
 
 ```go
-lork.Manual().AddWriter(cw)
 fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
     o.Name = "FILE"
     o.Encoder = lork.NewJsonEncoder()
