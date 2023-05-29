@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,15 +16,17 @@ package lork
 
 import (
 	"os"
+	"sync"
 )
 
 type consoleWriter struct {
-	encoder Encoder
-	filter  Filter
+	opts   *ConsoleWriterOption
+	locker sync.Locker
 }
 
 // ConsoleWriterOption represents available options for console writer.
 type ConsoleWriterOption struct {
+	Name    string
 	Encoder Encoder
 	Filter  Filter
 }
@@ -39,20 +41,29 @@ func NewConsoleWriter(options ...func(*ConsoleWriterOption)) Writer {
 		f(opts)
 	}
 
-	return &consoleWriter{
-		encoder: opts.Encoder,
-		filter:  opts.Filter,
+	cw := &consoleWriter{
+		opts:   opts,
+		locker: new(sync.Mutex),
 	}
+
+	return NewBytesWriter(cw)
 }
 
 func (w *consoleWriter) Write(p []byte) (n int, err error) {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	return os.Stdout.Write(p)
 }
 
+func (w *consoleWriter) Name() string {
+	return w.opts.Name
+}
+
 func (w *consoleWriter) Encoder() Encoder {
-	return w.encoder
+	return w.opts.Encoder
 }
 
 func (w *consoleWriter) Filter() Filter {
-	return w.filter
+	return w.opts.Filter
 }

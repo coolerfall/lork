@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,23 +28,23 @@ const (
 )
 
 type SocketWriterOption struct {
-	RemoteUrl         *url.URL
+	Name              string
+	RemoteUrl         string
 	QueueSize         int
 	ReconnectionDelay time.Duration
 	Filter            Filter
 }
 
 type socketWriter struct {
+	opts    *SocketWriterOption
 	encoder Encoder
-	filter  Filter
 
 	locker    sync.Mutex
 	conn      *websocket.Conn
-	queue     *blockingQueue
+	queue     *BlockingQueue
 	isStarted bool
 
-	remoteUrl   *url.URL
-	reconnDelay time.Duration
+	remoteUrl *url.URL
 }
 
 // NewSocketWriter create a logging writer via socket.
@@ -58,33 +58,39 @@ func NewSocketWriter(options ...func(*SocketWriterOption)) Writer {
 		f(opts)
 	}
 
-	if opts.RemoteUrl == nil {
-		ReportfExit("socket writer need a remote url")
+	sw := &socketWriter{
+		opts:    opts,
+		encoder: NewJsonEncoder(),
 	}
 
-	if opts.QueueSize <= 0 {
-		opts.QueueSize = defaultSocketQueueSize
+	return NewBytesWriter(sw)
+}
+
+func (w *socketWriter) Start() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	if w.opts.QueueSize <= 0 {
+		w.opts.QueueSize = defaultSocketQueueSize
 	}
-	if opts.ReconnectionDelay <= 0 {
-		opts.ReconnectionDelay = defaultReconnectionDelay
+	if w.opts.ReconnectionDelay <= 0 {
+		w.opts.ReconnectionDelay = defaultReconnectionDelay
 	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(opts.RemoteUrl.String(), nil)
+	remoteUrl, err := url.Parse(w.opts.RemoteUrl)
+	if err != nil {
+		ReportfExit("socket writer needs a available remote url: %v", err)
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial(remoteUrl.String(), nil)
 	if err != nil {
 		ReportfExit("connect socket server error, check your remote url: %v", err)
 	}
 
-	return &socketWriter{
-		encoder:     NewJsonEncoder(),
-		filter:      opts.Filter,
-		conn:        conn,
-		queue:       NewBlockingQueue(opts.QueueSize),
-		reconnDelay: opts.ReconnectionDelay,
-		remoteUrl:   opts.RemoteUrl,
-	}
-}
+	w.remoteUrl = remoteUrl
+	w.conn = conn
+	w.queue = NewBlockingQueue(w.opts.QueueSize)
 
-func (w *socketWriter) Start() {
 	if w.isStarted {
 		return
 	}
@@ -93,6 +99,9 @@ func (w *socketWriter) Start() {
 }
 
 func (w *socketWriter) Stop() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	err := w.conn.Close()
 	if err != nil {
 		Reportf("stop socket writer error: %v", err)
@@ -113,12 +122,16 @@ func (w *socketWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+func (w *socketWriter) Name() string {
+	return w.opts.Name
+}
+
 func (w *socketWriter) Encoder() Encoder {
 	return w.encoder
 }
 
 func (w *socketWriter) Filter() Filter {
-	return w.filter
+	return w.opts.Filter
 }
 
 func (w *socketWriter) startWorker() {
@@ -138,7 +151,7 @@ func (w *socketWriter) startWorker() {
 		Reportf("socket writer write error: %v", err)
 
 		// delay before reconnect
-		time.Sleep(w.reconnDelay)
+		time.Sleep(w.opts.ReconnectionDelay)
 		conn, _, err := websocket.DefaultDialer.Dial(w.remoteUrl.String(), nil)
 		if err != nil {
 			Reportf("socket writer reconnect error: %v", err)

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -107,6 +107,7 @@ func (c *dateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	bufData := buf.Bytes()
 	bufData, err = convertFormat(bufData, ts, time.RFC3339, c.opts[0])
 	if err != nil {
+		Reportf("convert time format error: %v", err)
 		return
 	}
 	buf.Reset()

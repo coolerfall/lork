@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,28 @@ import (
 )
 
 type logBridge struct {
+	opts *LogBridgeOption
+}
+
+type LogBridgeOption struct {
+	Name  string
+	Level Level
 }
 
 // NewLogBridge creates a new lork bridge for standard log.
-func NewLogBridge() *logBridge {
-	bridge := &logBridge{}
+func NewLogBridge(options ...func(*LogBridgeOption)) *logBridge {
+	opts := &LogBridgeOption{
+		Name:  "log",
+		Level: TraceLevel,
+	}
+	for _, f := range options {
+		f(opts)
+	}
+
+	bridge := &logBridge{
+		opts: opts,
+	}
+
 	log.SetOutput(bridge)
 	// clear all flags, just output message
 	log.SetFlags(0)
@@ -35,11 +52,12 @@ func (b *logBridge) Name() string {
 	return "log"
 }
 
-func (b *logBridge) ParseLevel(_ string) Level {
+func (b *logBridge) ParseLevel(string) Level {
 	return TraceLevel
 }
 
 func (b *logBridge) Write(p []byte) (n int, err error) {
-	Logger().Trace().Msg(string(p))
+	Logger(b.opts.Name).Level(b.opts.Level).Msg(string(p))
+
 	return len(p), nil
 }

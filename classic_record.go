@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,14 +29,14 @@ var (
 )
 
 type classicRecord struct {
-	event       *LogEvent
-	multiWriter *MultiWriter
+	event    *LogEvent
+	recorder EventRecorder
 }
 
-func newClassicRecord(lvl Level, multiWriter *MultiWriter) Record {
+func newClassicRecord(lvl Level, recorder EventRecorder) Record {
 	r := classicRecordPool.Get().(*classicRecord)
 	r.event = NewLogEvent()
-	r.multiWriter = multiWriter
+	r.recorder = recorder
 	r.event.appendLevel(lvl)
 
 	return r
@@ -218,78 +218,12 @@ func (r *classicRecord) Durs(key string, val []time.Duration) Record {
 }
 
 func (r *classicRecord) Any(key string, val interface{}) Record {
-	switch val.(type) {
-	case string:
-		r.Str(key, val.(string))
-	case []string:
-		r.Strs(key, val.([]string))
-	case []byte:
-		r.Bytes(key, val.([]byte))
-	case []error:
-		r.Errs(key, val.([]error))
-	case bool:
-		r.Bool(key, val.(bool))
-	case []bool:
-		r.Bools(key, val.([]bool))
-	case int:
-		r.Int(key, val.(int))
-	case int8:
-		r.Int8(key, val.(int8))
-	case int16:
-		r.Int16(key, val.(int16))
-	case int32:
-		r.Int32(key, val.(int32))
-	case int64:
-		r.Int64(key, val.(int64))
-	case []int:
-		r.Ints(key, val.([]int))
-	case []int8:
-		r.Ints8(key, val.([]int8))
-	case []int16:
-		r.Ints16(key, val.([]int16))
-	case []int32:
-		r.Ints32(key, val.([]int32))
-	case []int64:
-		r.Ints64(key, val.([]int64))
-	case uint:
-		r.Uint(key, val.(uint))
-	case uint8:
-		r.Uint8(key, val.(uint8))
-	case uint16:
-		r.Uint16(key, val.(uint16))
-	case uint32:
-		r.Uint32(key, val.(uint32))
-	case uint64:
-		r.Uint64(key, val.(uint64))
-	case []uint:
-		r.Uints(key, val.([]uint))
-	case []uint16:
-		r.Uints16(key, val.([]uint16))
-	case []uint32:
-		r.Uints32(key, val.([]uint32))
-	case []uint64:
-		r.Uints64(key, val.([]uint64))
-	case float32:
-		r.Float32(key, val.(float32))
-	case float64:
-		r.Float64(key, val.(float64))
-	case time.Time:
-		r.Time(key, val.(time.Time))
-	case []time.Time:
-		r.Times(key, val.([]time.Time))
-	case time.Duration:
-		r.Dur(key, val.(time.Duration))
-	case []time.Duration:
-		r.Durs(key, val.([]time.Duration))
-	default:
-		r.event.appendAny(key, val)
-	}
+	r.event.appendAny(key, val)
 	return r
 }
 
 func (r *classicRecord) Msge() {
-	r.event.appendTimestamp()
-	if _, err := r.multiWriter.WriteEvent(r.event); err != nil {
+	if err := r.recorder.WriteEvent(r.event); err != nil {
 		Reportf("fail to write event: %v", err)
 	}
 
@@ -297,20 +231,11 @@ func (r *classicRecord) Msge() {
 }
 
 func (r *classicRecord) Msg(msg string) {
-	r.event.appendTimestamp()
 	r.event.appendMessage(msg)
-	if _, err := r.multiWriter.WriteEvent(r.event); err != nil {
-		Reportf("fail to write event: %v", err)
-	}
-	classicRecordPool.Put(r)
+	r.Msge()
 }
 
 func (r *classicRecord) Msgf(format string, v ...interface{}) {
-	r.event.appendTimestamp()
 	r.event.appendMessage(fmt.Sprintf(format, v...))
-	if _, err := r.multiWriter.WriteEvent(r.event); err != nil {
-		Reportf("fail to write event: %v", err)
-	}
-
-	classicRecordPool.Put(r)
+	r.Msge()
 }

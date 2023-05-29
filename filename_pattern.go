@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ type filenamePattern struct {
 }
 
 func newFilenamePattern(pattern string) (*filenamePattern, error) {
-	patternParser := NewPatternParser(pattern)
+	patternParser := newPatternParser(pattern)
 	node, err := patternParser.Parse()
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 		"index": newIndexConverter,
 		"date":  newDateConverter,
 	}
-	converter, err := NewPatternCompiler(node, converters).Compile()
+	converter, err := newPatternCompiler(node, converters).Compile()
 	if err != nil {
 		return nil, err
 	}

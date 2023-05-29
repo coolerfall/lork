@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@ import (
 	"sync"
 )
 
-type blockingQueue struct {
+const DefaultQueueSize = 512
+
+type BlockingQueue struct {
 	locker   *sync.Mutex
-	notEmpty *sync.Cond
 	notFull  *sync.Cond
+	notEmpty *sync.Cond
 	items    []interface{}
 
 	count     int
@@ -30,10 +32,13 @@ type blockingQueue struct {
 }
 
 // NewBlockingQueue creates a new blocking queue.
-func NewBlockingQueue(capacity int) *blockingQueue {
+func NewBlockingQueue(capacity int) *BlockingQueue {
 	lock := new(sync.Mutex)
+	if capacity == 0 {
+		capacity = DefaultQueueSize
+	}
 
-	return &blockingQueue{
+	return &BlockingQueue{
 		locker:   lock,
 		notEmpty: sync.NewCond(lock),
 		notFull:  sync.NewCond(lock),
@@ -42,15 +47,23 @@ func NewBlockingQueue(capacity int) *blockingQueue {
 }
 
 // RemainCapacity gets remain capacity in queue.
-func (q *blockingQueue) RemainCapacity() int {
+func (q *BlockingQueue) RemainCapacity() int {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
 	return len(q.items) - q.count
 }
 
+// Len gets the count in current queue.
+func (q *BlockingQueue) Len() int {
+	q.locker.Lock()
+	defer q.locker.Unlock()
+
+	return q.count
+}
+
 // Put puts an item into queue.
-func (q *blockingQueue) Put(item interface{}) {
+func (q *BlockingQueue) Put(item interface{}) {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
@@ -69,7 +82,7 @@ func (q *blockingQueue) Put(item interface{}) {
 }
 
 // Take takes an item from queue.
-func (q *blockingQueue) Take() interface{} {
+func (q *BlockingQueue) Take() interface{} {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
@@ -87,4 +100,15 @@ func (q *blockingQueue) Take() interface{} {
 	q.notFull.Signal()
 
 	return next
+}
+
+// Clear clears the data in queue and reset all index.
+func (q *BlockingQueue) Clear() {
+	q.locker.Lock()
+	defer q.locker.Unlock()
+
+	q.items = q.items[:0]
+	q.count = 0
+	q.putIndex = 0
+	q.takeIndex = 0
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,8 +24,7 @@ var logEvent = MakeEvent([]byte(
 ))
 var _ = ginkgo.Describe("json encoder", func() {
 	var data []byte
-	rt, _ := convertFormat(data,
-		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, TimeFormatRFC3339)
+	rt, _ := appendFormatUnix(data, logEvent.Timestamp(), TimeFormatRFC3339)
 	ginkgo.It("encode", func() {
 		result := []byte(`{"time":"` + string(rt) + `","level":"INFO","logger_name":"","message":"","key":"value"}` + "\n")
 		je := NewJsonEncoder()
@@ -37,8 +36,7 @@ var _ = ginkgo.Describe("json encoder", func() {
 
 var _ = ginkgo.Describe("pattern encoder", func() {
 	var data []byte
-	rt, _ := convertFormat(data,
-		[]byte("2019-12-27T10:40:14.465199844+08:00"), TimestampFormat, "2006-01-02 15:04:05")
+	rt, _ := appendFormatUnix(data, logEvent.Timestamp(), "2006-01-02 15:04:05")
 	ginkgo.It("encode", func() {
 		result := []byte(string(rt) + ` INFO - key=value` + "\n")
 		pe := NewPatternEncoder(func(o *PatternEncoderOption) {

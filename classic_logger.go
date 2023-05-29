@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,65 +15,64 @@
 package lork
 
 type classicLogger struct {
+	name        string
 	multiWriter *MultiWriter
 }
 
-func NewClassicLogger() ILogger {
+// NewClassicLogger create a classic ILogger. This logger is a builtin implementation.
+func NewClassicLogger(name string, writer *MultiWriter) ILogger {
 	return &classicLogger{
-		multiWriter: NewMultiWriter(),
+		name:        name,
+		multiWriter: writer,
 	}
 }
 
 func (l *classicLogger) Name() string {
-	return "github.com/coolerfall/lork"
+	return l.name
 }
 
-func (l *classicLogger) AddWriter(w ...Writer) {
-	l.multiWriter.AddWriter(w...)
-}
-
-func (l *classicLogger) ResetWriter() {
-	l.multiWriter.Reset()
-}
-
-func (l *classicLogger) SetLevel(_ Level) {
+func (l *classicLogger) SetLevel(Level) {
 }
 
 func (l *classicLogger) Trace() Record {
-	return newClassicRecord(TraceLevel, l.multiWriter)
+	return l.makeRecord(TraceLevel)
 }
 
 func (l *classicLogger) Debug() Record {
-	return newClassicRecord(DebugLevel, l.multiWriter)
+	return l.makeRecord(DebugLevel)
 }
 
 func (l *classicLogger) Info() Record {
-	return newClassicRecord(InfoLevel, l.multiWriter)
+	return l.makeRecord(InfoLevel)
 }
 
 func (l *classicLogger) Warn() Record {
-	return newClassicRecord(WarnLevel, l.multiWriter)
+	return l.makeRecord(WarnLevel)
 }
 
 func (l *classicLogger) Error() Record {
-	return newClassicRecord(ErrorLevel, l.multiWriter)
+	return l.makeRecord(ErrorLevel)
 }
 
 func (l *classicLogger) Fatal() Record {
-	return newClassicRecord(FatalLevel, l.multiWriter)
+	return l.makeRecord(FatalLevel)
 }
 
 func (l *classicLogger) Panic() Record {
-	return newClassicRecord(PanicLevel, l.multiWriter)
+	return l.makeRecord(PanicLevel)
 }
 
 func (l *classicLogger) Level(lvl Level) Record {
-	return newClassicRecord(lvl, l.multiWriter)
+	return l.makeRecord(lvl)
 }
 
-func (l *classicLogger) WriteEvent(e *LogEvent) {
-	_, err := l.multiWriter.WriteEvent(e)
+func (l *classicLogger) Event(e *LogEvent) {
+	err := l.multiWriter.WriteEvent(e)
 	if err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}
+}
+
+func (l *classicLogger) makeRecord(lvl Level) Record {
+	return newClassicRecord(lvl, l.multiWriter)
 }

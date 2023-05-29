@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,9 +27,9 @@ import (
 )
 
 type LogEvent struct {
-	rfc3339Nano *bytes.Buffer
+	unixNano    int64
 	level       *bytes.Buffer
-	logger      *bytes.Buffer
+	loggerName  *bytes.Buffer
 	caller      *bytes.Buffer
 	message     *bytes.Buffer
 	fields      *bytes.Buffer
@@ -44,9 +44,8 @@ var (
 			tmp := new(bytes.Buffer)
 			tmp.Grow(128)
 			return &LogEvent{
-				rfc3339Nano: new(bytes.Buffer),
 				level:       new(bytes.Buffer),
-				logger:      new(bytes.Buffer),
+				loggerName:  new(bytes.Buffer),
 				caller:      new(bytes.Buffer),
 				message:     new(bytes.Buffer),
 				fields:      new(bytes.Buffer),
@@ -60,14 +59,42 @@ var (
 
 // NewLogEvent gets a LogEvent from pool.
 func NewLogEvent() *LogEvent {
-	return eventPool.Get().(*LogEvent)
+	event := eventPool.Get().(*LogEvent)
+
+	return event
+}
+
+// MakeEvent makes LogEvent from json string. The LevelFieldKey, TimestampFieldKey and
+// MessageFieldKey field key must keep the same with lork.
+func MakeEvent(p []byte) *LogEvent {
+	event := eventPool.Get().(*LogEvent)
+	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
+		dataType jsonparser.ValueType, _ int) error {
+		switch string(k) {
+		case TimestampFieldKey:
+			event.appendRFC3999Nano(v)
+		case LevelFieldKey:
+			event.appendLevelBytes(v)
+		case LoggerNameFieldKey:
+			event.appendLogger(v)
+		case MessageFieldKey:
+			event.appendMessageBytes(v)
+
+		default:
+			event.makeFields(k, v, dataType == jsonparser.String)
+		}
+
+		return nil
+	})
+
+	return event
 }
 
 func (e *LogEvent) Copy() *LogEvent {
 	cp := eventPool.Get().(*LogEvent)
-	cp.rfc3339Nano.Write(e.rfc3339Nano.Bytes())
+	cp.unixNano = e.unixNano
 	cp.level.Write(e.level.Bytes())
-	cp.logger.Write(e.logger.Bytes())
+	cp.loggerName.Write(e.loggerName.Bytes())
 	cp.caller.Write(e.caller.Bytes())
 	cp.message.Write(e.message.Bytes())
 	cp.fields.Write(e.fields.Bytes())
@@ -76,9 +103,12 @@ func (e *LogEvent) Copy() *LogEvent {
 	return cp
 }
 
-// Time returns rfc3339nano bytes.
-func (e *LogEvent) Time() []byte {
-	return e.rfc3339Nano.Bytes()
+// Timestamp returns unix timestamp in nano second.
+func (e *LogEvent) Timestamp() int64 {
+	if e.unixNano == 0 {
+		e.appendTimestamp()
+	}
+	return e.unixNano
 }
 
 // LevelInt returns level int value.
@@ -91,9 +121,9 @@ func (e *LogEvent) Level() []byte {
 	return e.level.Bytes()
 }
 
-// Logger return logger name bytes.
-func (e *LogEvent) Logger() []byte {
-	return e.logger.Bytes()
+// LoggerName return logger name bytes.
+func (e *LogEvent) LoggerName() []byte {
+	return e.loggerName.Bytes()
 }
 
 // Message returns message bytes.
@@ -134,34 +164,6 @@ func (e *LogEvent) Fields(callback func(k, v []byte, isString bool) error) error
 	return nil
 }
 
-func MakeEvent(p []byte) *LogEvent {
-	event := eventPool.Get().(*LogEvent)
-	_ = jsonparser.ObjectEach(p, func(k []byte, v []byte,
-		dataType jsonparser.ValueType, _ int) error {
-		switch string(k) {
-		case TimestampFieldKey:
-			event.makeTimestamp(v)
-		case LevelFieldKey:
-			event.appendLevelBytes(v)
-		case LoggerFieldKey:
-			event.appendLogger(v)
-		case MessageFieldKey:
-			event.appendMessageBytes(v)
-
-		default:
-			event.makeFields(k, v, dataType == jsonparser.String)
-		}
-
-		return nil
-	})
-
-	return event
-}
-
-func (e *LogEvent) makeTimestamp(v []byte) {
-	e.rfc3339Nano.Write(v)
-}
-
 func (e *LogEvent) appendLevel(lvl Level) {
 	e.tmp.WriteString(lvl.String())
 	data := e.tmp.Bytes()
@@ -170,11 +172,13 @@ func (e *LogEvent) appendLevel(lvl Level) {
 }
 
 func (e *LogEvent) appendLevelBytes(v []byte) {
+	e.level.Reset()
 	e.level.Write(v)
 }
 
 func (e *LogEvent) appendLogger(v []byte) {
-	e.logger.Write(v)
+	e.loggerName.Reset()
+	e.loggerName.Write(v)
 }
 
 func (e *LogEvent) makeFields(k, v []byte, isString bool) {
@@ -192,12 +196,15 @@ func (e *LogEvent) makeFields(k, v []byte, isString bool) {
 }
 
 func (e *LogEvent) appendTimestamp() {
-	data := e.tmp.Bytes()
-	data, err := appendFormat(data, time.Now(), TimestampFormat)
+	e.unixNano = time.Now().UnixNano()
+}
+
+func (e *LogEvent) appendRFC3999Nano(rfc3339Nano []byte) {
+	nano, err := toUTCUnixNano(rfc3339Nano, TimestampFormat)
 	if err != nil {
 		return
 	}
-	e.makeTimestamp(data)
+	e.unixNano = nano
 }
 
 func (e *LogEvent) appendMessageBytes(msg []byte) {
@@ -251,8 +258,8 @@ func (e *LogEvent) appendArray(key string, len int, f func(data []byte, index in
 }
 
 func (e *LogEvent) appendString(key, value string) {
-	if key == LoggerFieldKey {
-		e.logger.WriteString(value)
+	if key == LoggerNameFieldKey {
+		e.loggerName.WriteString(value)
 		return
 	}
 	e.appender.WriteString(value)
@@ -448,18 +455,83 @@ func (e *LogEvent) appendErrors(key string, value []error) {
 }
 
 func (e *LogEvent) appendAny(key string, val interface{}) {
-	data, err := json.Marshal(val)
-	if err != nil {
-		e.appendString(key, fmt.Sprintf("marshaling error: %v", err))
-		return
+	switch val.(type) {
+	case string:
+		e.appendString(key, val.(string))
+	case []string:
+		e.appendStrings(key, val.([]string))
+	case []byte:
+		e.appendBytes(key, val.([]byte))
+	case []error:
+		e.appendErrors(key, val.([]error))
+	case bool:
+		e.appendBool(key, val.(bool))
+	case []bool:
+		e.appendBools(key, val.([]bool))
+	case int:
+		e.appendInt(key, int64(val.(int)))
+	case int8:
+		e.appendInt(key, int64(val.(int8)))
+	case int16:
+		e.appendInt(key, int64(val.(int16)))
+	case int32:
+		e.appendInt(key, int64(val.(int32)))
+	case int64:
+		e.appendInt(key, val.(int64))
+	case []int:
+		e.appendInts(key, val.([]int))
+	case []int8:
+		e.appendInts8(key, val.([]int8))
+	case []int16:
+		e.appendInts16(key, val.([]int16))
+	case []int32:
+		e.appendInts32(key, val.([]int32))
+	case []int64:
+		e.appendInts64(key, val.([]int64))
+	case uint:
+		e.appendUint(key, uint64(val.(uint)))
+	case uint8:
+		e.appendUint(key, uint64(val.(uint8)))
+	case uint16:
+		e.appendUint(key, uint64(val.(uint16)))
+	case uint32:
+		e.appendUint(key, uint64(val.(uint32)))
+	case uint64:
+		e.appendUint(key, val.(uint64))
+	case []uint:
+		e.appendUints(key, val.([]uint))
+	case []uint16:
+		e.appendUints16(key, val.([]uint16))
+	case []uint32:
+		e.appendUints32(key, val.([]uint32))
+	case []uint64:
+		e.appendUints64(key, val.([]uint64))
+	case float32:
+		e.appendFloat32(key, val.(float32))
+	case float64:
+		e.appendFloat64(key, val.(float64))
+	case time.Time:
+		e.appendTime(key, val.(time.Time))
+	case []time.Time:
+		e.appendTimes(key, val.([]time.Time))
+	case time.Duration:
+		e.appendDuration(key, val.(time.Duration))
+	case []time.Duration:
+		e.appendDurations(key, val.([]time.Duration))
+	default:
+		data, err := json.Marshal(val)
+		if err != nil {
+			e.appendString(key, fmt.Sprintf("marshaling error: %v", err))
+			return
+		}
+		e.appendKeyValue(key, data, false)
 	}
-	e.appendKeyValue(key, data, false)
 }
 
 func (e *LogEvent) Recycle() {
-	e.rfc3339Nano.Reset()
+	e.unixNano = 0
 	e.level.Reset()
-	e.logger.Reset()
+	e.loggerName.Reset()
 	e.caller.Reset()
 	e.message.Reset()
 	e.fields.Reset()

@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,11 +33,12 @@ var (
 
 // logrusLogger is an implementation of ILogger.
 type logrusLogger struct {
+	name        string
 	multiWriter *lork.MultiWriter
 }
 
-// NewLogrusLogger creates a new instance of logrusLogger used to be bound to lork
-func NewLogrusLogger() lork.ILogger {
+// NewLogrusLogger creates a new instance of logrusLogger used to be bound to lork.
+func NewLogrusLogger(name string, writer *lork.MultiWriter) lork.ILogger {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: lork.TimestampFormat,
 		FieldMap: logrus.FieldMap{
@@ -48,17 +49,17 @@ func NewLogrusLogger() lork.ILogger {
 	})
 	logrus.SetLevel(logrus.TraceLevel)
 
-	writer := lork.NewMultiWriter()
 	transformer := newTransformer(writer)
 	logrus.SetOutput(transformer)
 
 	return &logrusLogger{
+		name:        name,
 		multiWriter: writer,
 	}
 }
 
 func (l *logrusLogger) Name() string {
-	return "github.com/sirupsen/logrus"
+	return l.name
 }
 
 func (l *logrusLogger) AddWriter(w ...lork.Writer) {
@@ -66,7 +67,7 @@ func (l *logrusLogger) AddWriter(w ...lork.Writer) {
 }
 
 func (l *logrusLogger) ResetWriter() {
-	l.multiWriter.Reset()
+	l.multiWriter.ResetWriter()
 }
 
 func (l *logrusLogger) SetLevel(lvl lork.Level) {
@@ -105,9 +106,8 @@ func (l *logrusLogger) Level(lvl lork.Level) lork.Record {
 	return newLogrusRecord(lorkLvlToLogrusLvl[lvl])
 }
 
-func (l *logrusLogger) WriteEvent(e *lork.LogEvent) {
-	_, err := l.multiWriter.WriteEvent(e)
-	if err != nil {
+func (l *logrusLogger) Event(e *lork.LogEvent) {
+	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}
 }

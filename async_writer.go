@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,131 +18,97 @@ import (
 	"sync"
 )
 
-const defaultWriterQueueSize = 512
-
-type asyncWriter struct {
-	ref       Writer
-	locker    sync.Mutex
-	queue     *blockingQueue
-	isRunning bool
+type AsyncWriter struct {
+	name        string
+	locker      sync.Mutex
+	queue       *BlockingQueue
+	isRunning   bool
+	multiWriter *MultiWriter
 }
 
 // AsyncWriterOption represents available options for async writer.
 type AsyncWriterOption struct {
-	RefWriter Writer
+	Name      string
 	QueueSize int
 }
 
 // NewAsyncWriter creates a new instance of asynchronous writer.
-func NewAsyncWriter(options ...func(*AsyncWriterOption)) Writer {
+func NewAsyncWriter(options ...func(*AsyncWriterOption)) *AsyncWriter {
 	opts := &AsyncWriterOption{
-		QueueSize: defaultWriterQueueSize,
+		QueueSize: DefaultQueueSize,
 	}
 
 	for _, f := range options {
 		f(opts)
 	}
 
-	if opts.RefWriter == nil {
-		ReportfExit("async writer need a referenced writer")
-	}
-
-	return &asyncWriter{
-		ref:   opts.RefWriter,
-		queue: NewBlockingQueue(opts.QueueSize),
+	return &AsyncWriter{
+		name:        opts.Name,
+		queue:       NewBlockingQueue(opts.QueueSize),
+		multiWriter: NewMultiWriter(),
 	}
 }
 
-func (w *asyncWriter) Start() {
+func (w *AsyncWriter) Start() {
 	if w.isRunning {
 		return
-	}
-	if lc, ok := w.ref.(Lifecycle); ok {
-		lc.Start()
 	}
 	w.isRunning = true
 	go w.startWorker()
 }
 
-func (w *asyncWriter) Stop() {
+func (w *AsyncWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
-	if lc, ok := w.ref.(Lifecycle); ok {
-		lc.Stop()
-	}
+	w.multiWriter.ResetWriter()
+
 	w.isRunning = false
 }
 
-func (w *asyncWriter) WriteEvent(event *LogEvent) (n int, err error) {
+func (w *AsyncWriter) DoWrite(event *LogEvent) error {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
 	if w.queue.RemainCapacity() <= 16 {
 		// discard
-		event.Recycle()
-		return 0, nil
+		return nil
 	}
 
-	w.queue.Put(event)
+	// copy a log event for further usage
+	w.queue.Put(event.Copy())
 
-	return 0, nil
-}
-
-func (w *asyncWriter) Write(p []byte) (n int, err error) {
-	w.locker.Lock()
-	defer w.locker.Unlock()
-
-	if w.queue.RemainCapacity() <= 16 {
-		// discard
-		return 0, nil
-	}
-
-	w.queue.Put(MakeEvent(p))
-
-	return len(p), nil
-}
-
-func (w *asyncWriter) Encoder() Encoder {
 	return nil
 }
 
-func (w *asyncWriter) Filter() Filter {
-	return nil
+func (w *AsyncWriter) Name() string {
+	return w.name
 }
 
-func (w *asyncWriter) startWorker() {
+func (w *AsyncWriter) AddWriter(writers ...Writer) {
+	w.multiWriter.AddWriter(writers...)
+}
+
+func (w *AsyncWriter) GetWriter(name string) Writer {
+	return w.multiWriter.GetWriter(name)
+}
+
+func (w *AsyncWriter) Attached(writer Writer) bool {
+	return w.multiWriter.Attached(writer)
+}
+
+func (w *AsyncWriter) ResetWriter() {
+	w.multiWriter.ResetWriter()
+}
+
+func (w *AsyncWriter) startWorker() {
 	for {
 		if !w.isRunning {
 			break
 		}
 
 		p := (w.queue.Take()).(*LogEvent)
-		w.write(p)
-	}
-}
-
-func (w *asyncWriter) write(event *LogEvent) {
-	defer event.Recycle()
-
-	var err error
-	if w.ref.Filter() != nil && w.ref.Filter().Do(event) == Deny {
-		return
-	}
-
-	var encoded []byte
-	if w.ref.Encoder() == nil {
-		Reportf("no encoder found for reference writer")
-		return
-	}
-
-	encoded, err = w.ref.Encoder().Encode(event)
-	if err != nil {
-		Reportf("async writer encode error: %v", err)
-		return
-	}
-
-	_, err = w.ref.Write(encoded)
-	if err != nil {
-		Reportf("async writer write error: %v", err)
+		if err := w.multiWriter.WriteEvent(p); err != nil {
+			Reportf("async writer write error: %v", err)
+		}
 	}
 }

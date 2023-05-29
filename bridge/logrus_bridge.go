@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +15,6 @@
 package bridge
 
 import (
-	"bytes"
-	"sync"
-	"time"
-
 	"github.com/coolerfall/lork"
 	"github.com/sirupsen/logrus"
 )
@@ -35,17 +31,13 @@ var (
 )
 
 type logrusBridge struct {
-	buf    *bytes.Buffer
-	locker sync.Mutex
 }
 
 // NewLogrusBridge creates a new lork bridge for logrus.
 func NewLogrusBridge() lork.Bridge {
-	bridge := &logrusBridge{
-		buf: new(bytes.Buffer),
-	}
+	bridge := &logrusBridge{}
 	logrus.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: time.RFC3339,
+		TimestampFormat: lork.TimestampFormat,
 		FieldMap: logrus.FieldMap{
 			logrus.FieldKeyLevel: lork.LevelFieldKey,
 			logrus.FieldKeyTime:  lork.TimestampFieldKey,
@@ -73,25 +65,7 @@ func (b *logrusBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *logrusBridge) Write(p []byte) (int, error) {
-	b.locker.Lock()
-	defer b.locker.Unlock()
+	lork.BridgeWrite(b, p)
 
-	_ = lork.ReplaceJson(p, b.buf, lork.LevelFieldKey,
-		func(k, v []byte) (nk []byte, nv []byte, err error) {
-			lvl, err := logrus.ParseLevel(string(v))
-			if err != nil {
-				return k, v, err
-			} else {
-				return k, []byte(logrusLvlToLorkLvl[lvl].String()), nil
-			}
-		})
-	p = b.buf.Bytes()
-	b.buf.Reset()
-
-	err := lork.BridgeWrite(b, p)
-	if err != nil {
-		lork.Reportf("logrus bridge write error", err)
-	}
-
-	return len(p), err
+	return len(p), nil
 }

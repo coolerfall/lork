@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 
 	var err error
 	bufData := je.tsBuf.Bytes()
-	bufData, err = convertFormat(bufData, e.Time(), TimestampFormat, TimeFormatRFC3339)
+	bufData, err = appendFormatUnix(bufData, e.Timestamp(), TimeFormatRFC3339)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 	je.buf.WriteString("{")
 	je.writeKeyAndValue(TimestampFieldKey, timestamp, true)
 	je.writeKeyAndValue(LevelFieldKey, e.Level(), true)
-	je.writeKeyAndValue(LoggerFieldKey, e.Logger(), true)
+	je.writeKeyAndValue(LoggerNameFieldKey, e.LoggerName(), true)
 	je.writeKeyAndValue(MessageFieldKey, e.Message(), true)
 
 	_ = e.Fields(func(k, v []byte, isString bool) error {

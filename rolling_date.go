@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ func (rd *rollingDate) _endOfNextNPeriod(
 			now.Year(), now.Month(), now.Day()+periods, 0, 0, 0, 0, now.Location())
 	case topOfMonth:
 		return time.Date(
-			now.Year(), now.Month()+time.Month(periods), 0, 0, 0, 0, 0, now.Location())
+			now.Year(), now.Month()+time.Month(periods), 1, 0, 0, 0, 0, now.Location())
 	case topOfSecond:
 		fallthrough
 	default:

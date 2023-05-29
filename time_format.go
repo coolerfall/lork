@@ -479,6 +479,10 @@ func isLeap(year int) bool {
 // and convert to new layout. This will append the textual representation to b and
 // returns the extended buffer.
 func convertFormat(b, origin []byte, originLayout, newLayout string) ([]byte, error) {
+	if len(origin) == 0 {
+		return b, errBad
+	}
+
 	utcUnixNano, err := toUTCUnixNano(origin, originLayout)
 	if err != nil {
 		return b, err
@@ -664,7 +668,7 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 		min            int
 		sec            int
 		nsec           int
-		zoneOffset     = -1
+		zoneOffset     = 0
 		err            error
 		rangeErrString = ""
 	)
@@ -741,6 +745,11 @@ func toUTCUnixNano(value []byte, layout string) (int64, error) {
 			}
 
 		case stdISO8601ColonTZ:
+			if std == stdISO8601ColonTZ && len(value) >= 1 && value[0] == 'Z' {
+				value = value[1:]
+				break
+			}
+
 			if len(value) < 6 {
 				err = errBad
 				break

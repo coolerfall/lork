@@ -1,0 +1,7 @@
+module github.com/coolerfall/lork/bind/logrus
+
+go 1.16
+
+require (
+	github.com/sirupsen/logrus v1.8.1
+)

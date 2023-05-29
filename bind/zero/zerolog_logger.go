@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,12 +34,13 @@ var (
 
 // zeroLogger is an implementation of ILogger.
 type zeroLogger struct {
+	name        string
 	logger      zerolog.Logger
 	multiWriter *lork.MultiWriter
 }
 
 // NewZeroLogger creates a new instance of zeroLogger used to be bound to lork.
-func NewZeroLogger() lork.ILogger {
+func NewZeroLogger(name string, writer *lork.MultiWriter) lork.ILogger {
 	zerolog.SetGlobalLevel(zerolog.TraceLevel)
 	zerolog.TimeFieldFormat = lork.TimestampFormat
 	zerolog.LevelFieldName = lork.LevelFieldKey
@@ -47,18 +48,18 @@ func NewZeroLogger() lork.ILogger {
 	zerolog.MessageFieldName = lork.MessageFieldKey
 	zerolog.LevelFieldMarshalFunc = capitalLevel
 
-	multiWriter := lork.NewMultiWriter()
-	logger := zerolog.New(multiWriter).With().Timestamp().Logger()
+	logger := zerolog.New(writer).With().Timestamp().Logger()
 	log.Logger = logger
 
 	return &zeroLogger{
+		name:        name,
 		logger:      logger,
-		multiWriter: multiWriter,
+		multiWriter: writer,
 	}
 }
 
 func (l *zeroLogger) Name() string {
-	return "github.com/rs/zerolog"
+	return l.name
 }
 
 func (l *zeroLogger) AddWriter(w ...lork.Writer) {
@@ -66,7 +67,7 @@ func (l *zeroLogger) AddWriter(w ...lork.Writer) {
 }
 
 func (l *zeroLogger) ResetWriter() {
-	l.multiWriter.Reset()
+	l.multiWriter.ResetWriter()
 }
 
 func (l *zeroLogger) SetLevel(lvl lork.Level) {
@@ -105,9 +106,8 @@ func (l *zeroLogger) Level(lvl lork.Level) lork.Record {
 	return newZeroRecord(l.logger.WithLevel(lorkLvlToZeroLvl[lvl]))
 }
 
-func (l *zeroLogger) WriteEvent(e *lork.LogEvent) {
-	_, err := l.multiWriter.WriteEvent(e)
-	if err != nil {
+func (l *zeroLogger) Event(e *lork.LogEvent) {
+	if err := l.multiWriter.WriteEvent(e); err != nil {
 		l.Error().Err(err).Msg("write raw event error")
 	}
 }

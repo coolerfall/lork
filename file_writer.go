@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,13 +26,14 @@ const defaultLogFilename = "lork.log"
 type fileWriter struct {
 	opts *FileWriterOption
 
-	locker sync.Mutex
+	locker sync.Locker
 	file   *os.File
 	size   int64
 }
 
 // FileWriterOption represents available options for file writer.
 type FileWriterOption struct {
+	Name          string
 	Encoder       Encoder
 	Filter        Filter
 	RollingPolicy RollingPolicy
@@ -51,14 +52,15 @@ func NewFileWriter(options ...func(*FileWriterOption)) Writer {
 	}
 
 	fw := &fileWriter{
-		opts: opts,
+		opts:   opts,
+		locker: new(sync.Mutex),
 	}
 	if opts.RollingPolicy == nil {
 		opts.RollingPolicy = NewNoopRollingPolicy()
 	}
 	opts.RollingPolicy.Attach(fw)
 
-	return fw
+	return NewBytesWriter(fw)
 }
 
 func (fw *fileWriter) Start() {
@@ -100,6 +102,10 @@ func (fw *fileWriter) Write(p []byte) (n int, err error) {
 	fw.size += int64(n)
 
 	return n, err
+}
+
+func (fw *fileWriter) Name() string {
+	return fw.opts.Name
 }
 
 func (fw *fileWriter) Encoder() Encoder {

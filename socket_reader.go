@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ func (sr *SocketReader) readLog(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			LoggerC().WriteEvent(MakeEvent(data))
+			LoggerC().Event(MakeEvent(data))
 		}
 	}
 }

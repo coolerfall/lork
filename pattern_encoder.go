@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	DefaultPattern = "#color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) : #message #fields"
+	DefaultPattern = "#color(#date{2006-01-02T15:04:05.000}){cyan} #color(#level) " +
+		"#color([#logger]){magenta} : #message #fields"
 )
 
 var (
@@ -79,7 +80,7 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		pattern = opts.Pattern
 	}
 
-	patternParser := NewPatternParser(pattern)
+	patternParser := newPatternParser(pattern)
 	node, err := patternParser.Parse()
 	if err != nil {
 		ReportfExit("parse pattern error, %v", err)
@@ -89,14 +90,14 @@ func NewPatternEncoder(options ...func(*PatternEncoderOption)) Encoder {
 		"color":   newColorConverter,
 		"level":   newLevelConverter,
 		"date":    newLogDateConverter,
-		"logger":  newLoggerConverter,
+		"logger":  newLoggerNameConverter,
 		"message": newMessageConverter,
 		"fields":  newFieldsConverter,
 	}
 	for k, c := range opts.Converters {
 		converters[k] = c
 	}
-	converter, err := NewPatternCompiler(node, converters).Compile()
+	converter, err := newPatternCompiler(node, converters).Compile()
 	if err != nil {
 		ReportfExit("compile pattern error, %v", err)
 	}
@@ -263,9 +264,8 @@ func (c *logDateConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 	if !ok {
 		return
 	}
-	tsValue := e.rfc3339Nano.Bytes()
 	bufData := buf.Bytes()
-	bufData, _ = convertFormat(bufData, tsValue, TimestampFormat, c.opt)
+	bufData, _ = appendFormatUnix(bufData, e.Timestamp(), c.opt)
 	buf.Reset()
 	buf.Write(bufData)
 }
@@ -275,7 +275,7 @@ type loggerConverter struct {
 	opt  int
 }
 
-func newLoggerConverter() Converter {
+func newLoggerNameConverter() Converter {
 	return &loggerConverter{
 		opt: -1,
 	}
@@ -312,13 +312,13 @@ func (lc *loggerConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return
 	}
 
-	logger := e.Logger()
-	if !ok || len(logger) == 0 {
+	loggerName := e.LoggerName()
+	if !ok || len(loggerName) == 0 {
 		buf.WriteByte('-')
 		return
 	}
 
-	buf.Write(lc.abbreviator(logger))
+	buf.Write(lc.abbreviator(loggerName))
 }
 
 func (lc *loggerConverter) abbreviator(name []byte) []byte {

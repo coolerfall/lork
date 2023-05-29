@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2022 Vincent Cheung (coolingfall@gmail.com).
+// Copyright (c) 2019-2023 Vincent Cheung (coolingfall@gmail.com).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,12 +66,9 @@ func (b *zapBridge) ParseLevel(lvl string) lork.Level {
 }
 
 func (b *zapBridge) Write(p []byte) (int, error) {
-	err := lork.BridgeWrite(b, p)
-	if err != nil {
-		lork.Reportf("zap bridge write error", err)
-	}
+	lork.BridgeWrite(b, p)
 
-	return len(p), err
+	return len(p), nil
 }
 
 func rf3339Encoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
