@@ -2,7 +2,7 @@
 
 * Add the following to your `go.mod`
 
-```go.mod
+```go-mod
 require (
 	github.com/coolerfall/lork latest
 )
@@ -26,7 +26,7 @@ logger.Info().Any("any", map[string]interface{}{
 
 This will log with default console writer with pattern format.
 
-* Add writter with rolling policy to output your logs:
+* Add writer with rolling policy to output your logs:
 
 ```go
 fw := lork.NewFileWriter(func(o *lork.FileWriterOption) {
