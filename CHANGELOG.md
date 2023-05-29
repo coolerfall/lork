@@ -1,3 +1,10 @@
+# 0.7.0
+* Add configurator to add manual config with new api.
+* Add logger provider.
+* Add classic provider to log more efficiently.
+* Fix bug for writer in goroutine.
+* Add bytes writer and event writer.
+
 # 0.6.2
 * Fix bug for filter when checking result.
 
