@@ -55,7 +55,8 @@ func newRollingDate(datePattern string) *rollingDate {
 }
 
 func (rd *rollingDate) calcPeriodType() periodicType {
-	now := time.Now()
+	// Use a fixed baseline so a smaller period cannot cross a larger boundary.
+	now := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 	for _, t := range periods {
 		tl := now.Format(rd.datePattern)
 		next := rd.endOfThisPeriod(t, now)
