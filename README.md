@@ -15,6 +15,8 @@ apis and flexible configurations.
 Usage
 =====
 
+Requires Go 1.23 or newer.
+
 Look at this [tutorial][1]
 
 Benchmarks
