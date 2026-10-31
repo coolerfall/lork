@@ -233,16 +233,7 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
-	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
-		rp.index = 0
-		return true
-	}
-
-	if fileSize >= rp.triggerSize {
-		return true
-	}
-
-	return false
+	return time.Now().After(rp.nextCheck) || fileSize >= rp.triggerSize
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
@@ -258,11 +249,18 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 		return
 	}
 
-	rp.timeInCurrentPeriod = time.Now()
-	rp.index++
+	// Advance the period only after the old file has been archived.
+	now := time.Now()
+	if now.After(rp.nextCheck) {
+		rp.nextCheck = rp.rollingDate.next(now)
+		rp.index = 0
+	} else {
+		rp.index++
+	}
+	rp.timeInCurrentPeriod = now
 
 	if rp.archiveRemover != nil {
-		rp.archiveRemover.CleanAsync(time.Now())
+		rp.archiveRemover.CleanAsync(now)
 	}
 
 	return
