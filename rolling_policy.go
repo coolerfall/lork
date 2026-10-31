@@ -279,14 +279,14 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 		}
 	}
 
-	reg := rp.filenamePattern.toFilenameRegex()
+	reg := rp.filenamePattern.toArchiveFilenameRegexForFixed(rp.timeInCurrentPeriod)
 	reg = afterLastSlash(reg)
-	filenameRegex, err := regexp.Compile(reg)
+	filenameRegex, err := regexp.Compile("^" + reg + "$")
 	if err != nil {
 		return err
 	}
 
-	var latestIndex = 0
+	latestIndex := -1
 	for _, f := range files {
 		if f.IsDir() {
 			continue

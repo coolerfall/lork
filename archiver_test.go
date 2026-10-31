@@ -17,7 +17,7 @@ package lork
 import (
 	"io"
 	"os"
-	"strings"
+	"path/filepath"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,16 +25,21 @@ import (
 
 var _ = ginkgo.Describe("archiver", func() {
 	ginkgo.It("rename and open file", func() {
-		fn := "/tmp/test.log"
+		dir := ginkgo.GinkgoT().TempDir()
+		fn := filepath.Join(dir, "active.log")
+		archiveFilename := filepath.Join(dir, "archive.log.gz")
 		of, _ := os.Create(fn)
 		_, _ = of.WriteString("ABC")
-		origin, target, err := renameOpenFile(fn, "/tmp/test.log.gz")
+		Expect(of.Close()).To(Succeed())
+		origin, target, err := renameOpenFile(fn, archiveFilename)
 		Expect(err).To(BeNil())
+		defer origin.Close()
+		defer target.Close()
 		c, err := io.ReadAll(origin)
 		Expect(err).To(BeNil())
 		Expect(string(c)).To(Equal("ABC"))
-		Expect(strings.HasPrefix(origin.Name(), "/tmp/test.log.gz")).To(BeTrue())
-		Expect(target.Name()).To(Equal("/tmp/test.log.gz"))
+		Expect(origin.Name()).To(Equal(filepath.Join(dir, "archive.log")))
+		Expect(target.Name()).To(Equal(archiveFilename))
 		err = os.Remove(origin.Name())
 		Expect(err).To(BeNil())
 	})
