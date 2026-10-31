@@ -17,6 +17,8 @@ package lork
 import (
 	"bytes"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -108,6 +110,30 @@ func (fp *filenamePattern) toFilenameRegexForFixed(t time.Time) string {
 	reg := buf.String()
 	buf.Reset()
 
+	return reg
+}
+
+func (fp *filenamePattern) toArchiveFilenameRegexForFixed(t time.Time) string {
+	var buf, value bytes.Buffer
+	for c := fp.converter; c != nil; c = c.Next() {
+		value.Reset()
+		switch c.(type) {
+		case *literalConverter:
+			c.Convert(nil, &value)
+		case *dateConverter:
+			c.Convert([]byte(t.Format(time.RFC3339)), &value)
+		case *indexConverter:
+			buf.WriteString("(\\d+)")
+			continue
+		}
+		buf.WriteString(regexp.QuoteMeta(value.String()))
+	}
+
+	reg := buf.String()
+	if suffix := archiveCompressionSuffix(fp.convert(t, 0)); suffix != "" {
+		escapedSuffix := regexp.QuoteMeta(suffix)
+		reg = strings.TrimSuffix(reg, escapedSuffix) + "(?:" + escapedSuffix + ")?"
+	}
 	return reg
 }
 

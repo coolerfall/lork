@@ -93,7 +93,7 @@ func (r *timeBasedArchiveRemover) calcElapsedPeriods(now time.Time) int {
 	if r.lastClean == 0 {
 		periodsElapsed = r.rd.periodCrossed(nowUnix, nowUnix+32*secondsInOneDay)
 	} else {
-		periodsElapsed = r.rd.periodCrossed(nowUnix, r.lastClean)
+		periodsElapsed = r.rd.periodCrossed(r.lastClean, nowUnix)
 	}
 
 	return periodsElapsed
@@ -133,6 +133,9 @@ func (r *timeBasedArchiveRemover) listFilesInPeriod(t time.Time) []string {
 
 	filename := r.fp.convert(t, -1)
 	matchingFiles = append(matchingFiles, filename)
+	if originalFilename := uncompressedArchiveFilename(filename); originalFilename != filename {
+		matchingFiles = append(matchingFiles, originalFilename)
+	}
 
 	return matchingFiles
 }
@@ -157,9 +160,9 @@ func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
 
 	filename := r.fp.convert(t, 0)
 	dir := filepath.Dir(filename)
-	reg := r.fp.toFilenameRegexForFixed(t)
+	reg := r.fp.toArchiveFilenameRegexForFixed(t)
 	reg = afterLastSlash(reg)
-	filenameRegex, err := regexp.Compile(reg)
+	filenameRegex, err := regexp.Compile("^" + reg + "$")
 	if err != nil {
 		return matchingFiles
 	}
@@ -169,11 +172,11 @@ func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
 	}
 
 	for _, file := range files {
-		if !filenameRegex.MatchString(file.Name()) {
+		if file.IsDir() || !filenameRegex.MatchString(file.Name()) {
 			continue
 		}
 
-		fn, err := filepath.Abs(file.Name())
+		fn, err := filepath.Abs(filepath.Join(dir, file.Name()))
 		if err != nil {
 			continue
 		}
