@@ -107,8 +107,9 @@ func (q *BlockingQueue) Clear() {
 	q.locker.Lock()
 	defer q.locker.Unlock()
 
-	q.items = q.items[:0]
+	clear(q.items)
 	q.count = 0
 	q.putIndex = 0
 	q.takeIndex = 0
+	q.notFull.Broadcast()
 }
