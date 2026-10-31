@@ -91,10 +91,6 @@ func (fw *fileWriter) Write(p []byte) (n int, err error) {
 	if fw.opts.RollingPolicy.ShouldTrigger(fw.size + int64(writeLen)) {
 		if err = fw.rotate(); err != nil {
 			return
-		} else {
-			if err = fw.openNew(); err != nil {
-				return
-			}
 		}
 	}
 
