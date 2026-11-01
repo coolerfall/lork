@@ -21,7 +21,10 @@ import (
 type AsyncWriter struct {
 	name        string
 	locker      sync.Mutex
-	queue       *BlockingQueue
+	queue       chan *LogEvent
+	stop        chan struct{}
+	done        chan struct{}
+	producers   sync.WaitGroup
 	isRunning   bool
 	multiWriter *MultiWriter
 }
@@ -41,18 +44,32 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) *AsyncWriter {
 	for _, f := range options {
 		f(opts)
 	}
+	if opts.QueueSize == 0 {
+		opts.QueueSize = DefaultQueueSize
+	}
 
 	return &AsyncWriter{
 		name:        opts.Name,
-		queue:       NewBlockingQueue(opts.QueueSize),
+		queue:       make(chan *LogEvent, opts.QueueSize),
+		stop:        make(chan struct{}),
 		multiWriter: NewMultiWriter(),
 	}
 }
 
 func (w *AsyncWriter) Start() {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
 	if w.isRunning {
 		return
 	}
+	select {
+	case <-w.stop:
+		w.queue = make(chan *LogEvent, cap(w.queue))
+		w.stop = make(chan struct{})
+	default:
+	}
+	w.done = make(chan struct{})
 	w.isRunning = true
 	go w.startWorker()
 }
@@ -60,22 +77,53 @@ func (w *AsyncWriter) Start() {
 func (w *AsyncWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
-	w.multiWriter.ResetWriter()
 
-	w.isRunning = false
+	select {
+	case <-w.stop:
+		return
+	default:
+		close(w.stop)
+	}
+	// Stop accepting events before waiting for in-flight enqueues.
+	w.producers.Wait()
+	close(w.queue)
+	if w.isRunning {
+		<-w.done
+		w.isRunning = false
+	} else {
+		// Events can also be queued before Start.
+		for event := range w.queue {
+			w.writeEvent(event)
+		}
+	}
+	w.multiWriter.ResetWriter()
 }
 
 func (w *AsyncWriter) DoWrite(event *LogEvent) error {
 	w.locker.Lock()
-	defer w.locker.Unlock()
+	select {
+	case <-w.stop:
+		w.locker.Unlock()
+		return nil
+	default:
+	}
+	queue := w.queue
+	w.producers.Add(1)
+	w.locker.Unlock()
+	defer w.producers.Done()
 
-	if w.queue.RemainCapacity() <= 16 {
-		// discard
+	if event.LevelInt() <= InfoLevel && cap(queue)-len(queue) < cap(queue)/5 {
 		return nil
 	}
 
 	// copy a log event for further usage
-	w.queue.Put(event.Copy())
+	copied := event.Copy()
+	select {
+	case queue <- copied:
+	default:
+		// A full queue discards every level without waiting for space.
+		copied.Recycle()
+	}
 
 	return nil
 }
@@ -101,14 +149,14 @@ func (w *AsyncWriter) ResetWriter() {
 }
 
 func (w *AsyncWriter) startWorker() {
-	for {
-		if !w.isRunning {
-			break
-		}
+	defer close(w.done)
+	for event := range w.queue {
+		w.writeEvent(event)
+	}
+}
 
-		p := (w.queue.Take()).(*LogEvent)
-		if err := w.multiWriter.WriteEvent(p); err != nil {
-			Reportf("async writer write error: %v", err)
-		}
+func (w *AsyncWriter) writeEvent(event *LogEvent) {
+	if err := w.multiWriter.WriteEvent(event); err != nil {
+		Reportf("async writer write error: %v", err)
 	}
 }
