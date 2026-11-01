@@ -116,4 +116,35 @@ var _ = ginkgo.Describe("pattern encoder", func() {
 		Expect(err).To(BeNil())
 		Expect(out).To(Equal(result))
 	})
+
+	ginkgo.It("preserves preceding content when fields are empty", func() {
+		for _, tc := range []struct {
+			pattern string
+			fields  bool
+			want    string
+		}{
+			{"#fields", false, "\n"},
+			{"#fields #message", false, " hello\n"},
+			{"prefix#fields", false, "prefix\n"},
+			{"#message #fields", false, "hello \n"},
+			{"#fields #message", true, "key=value count=2 hello\n"},
+			{"#fields #fields", true, "key=value count=2 key=value count=2\n"},
+		} {
+			event := NewLogEvent()
+			event.appendMessage("hello")
+			if tc.fields {
+				event.appendString("key", "value")
+				event.appendInt("count", 2)
+			}
+			encoder := NewPatternEncoder(func(o *PatternEncoderOption) {
+				o.Pattern = tc.pattern
+			})
+			for i := 0; i < 2; i++ {
+				out, err := encoder.Encode(event)
+				Expect(err).To(Succeed())
+				Expect(string(out)).To(Equal(tc.want), tc.pattern)
+			}
+			event.Recycle()
+		}
+	})
 })
