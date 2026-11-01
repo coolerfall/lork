@@ -15,6 +15,10 @@
 package lork
 
 import (
+	"encoding/json"
+	"errors"
+	"strings"
+
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -31,6 +35,72 @@ var _ = ginkgo.Describe("json encoder", func() {
 		out, err := je.Encode(logEvent)
 		Expect(err).To(BeNil())
 		Expect(out).To(Equal(result))
+	})
+
+	ginkgo.It("escapes strings and preserves their values", func() {
+		controls := make([]byte, 32)
+		for i := range controls {
+			controls[i] = byte(i)
+		}
+		values := []string{
+			"plain", `say "hello"`, `C:\new\logs`, "hello\nworld",
+			string(controls), "中文😀\u2028\u2029", "bad\xff\xfeutf8",
+		}
+		encoder := NewJsonEncoder()
+		for _, value := range values {
+			event := NewLogEvent()
+			event.appendLogger([]byte(value))
+			event.appendMessage(value)
+			event.appendString(value, value)
+			event.appendStrings("strings", []string{value, ""})
+			event.appendErrors("errors", []error{errors.New(value)})
+			event.appendInt("number", 42)
+			out, err := encoder.Encode(event)
+			event.Recycle()
+			Expect(err).To(Succeed())
+			var decoded map[string]interface{}
+			Expect(json.Unmarshal(out, &decoded)).To(Succeed())
+			// Match encoding/json's replacement of malformed UTF-8 bytes.
+			canonical, err := json.Marshal(value)
+			Expect(err).To(Succeed())
+			var want string
+			Expect(json.Unmarshal(canonical, &want)).To(Succeed())
+			Expect(decoded[LoggerNameFieldKey]).To(Equal(want))
+			Expect(decoded[MessageFieldKey]).To(Equal(strings.TrimRight(want, "\n")))
+			Expect(decoded[want]).To(Equal(want))
+			Expect(decoded["strings"]).To(Equal([]interface{}{want, ""}))
+			Expect(decoded["errors"]).To(Equal([]interface{}{want}))
+			Expect(decoded["number"]).To(Equal(float64(42)))
+		}
+	})
+
+	ginkgo.It("decodes JSON strings once before encoding", func() {
+		input := []byte(`{"time":"2026-11-01T10:00:00Z","level":"\u0049NFO","logger_name":"a\\b\"c","message":"say \"hello\" at C:\\new\nline","a\"b":"c\\d\n","nested":{"text":"a\"b"},"array":["c\\d",1,true]}`)
+		var want map[string]interface{}
+		Expect(json.Unmarshal(input, &want)).To(Succeed())
+		encoder := NewJsonEncoder()
+		for i := 0; i < 3; i++ {
+			event := MakeEvent(input)
+			Expect(string(event.LoggerName())).To(Equal(want[LoggerNameFieldKey]))
+			Expect(string(event.Message())).To(Equal(want[MessageFieldKey]))
+			Expect(event.Fields(func(k, v []byte, isString bool) error {
+				if string(k) == `a"b` {
+					Expect(isString).To(BeTrue())
+					Expect(string(v)).To(Equal(want[`a"b`]))
+				}
+				return nil
+			})).To(Succeed())
+			out, err := encoder.Encode(event)
+			event.Recycle()
+			Expect(err).To(Succeed())
+			var decoded map[string]interface{}
+			Expect(json.Unmarshal(out, &decoded)).To(Succeed())
+			// Timestamp formatting is independent of string escaping.
+			delete(decoded, TimestampFieldKey)
+			delete(want, TimestampFieldKey)
+			Expect(decoded).To(Equal(want))
+			input = append(input[:0], out...)
+		}
 	})
 })
 
