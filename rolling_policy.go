@@ -119,30 +119,30 @@ func (rp *timeBasedRollingPolicy) Attach(w *fileWriter) {
 }
 
 func (rp *timeBasedRollingPolicy) ShouldTrigger(_ int64) bool {
-	if time.Now().After(rp.nextCheck) {
-		rp.calcNextCheck()
-		return true
-	}
-
-	return false
+	return time.Now().After(rp.nextCheck)
 }
 
 func (rp *timeBasedRollingPolicy) Rotate() error {
+	now := time.Now()
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	if len(rollingFilename) == 0 {
 		rollingFilename = fmt.Sprintf("lork-%s.log",
 			rp.timeInCurrentPeriod.Format("2006-01-02"))
 	}
 
-	rp.timeInCurrentPeriod = time.Now()
-
-	err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
-
-	if rp.archiveRemover != nil {
-		rp.archiveRemover.CleanAsync(time.Now())
+	if err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename); err != nil {
+		return err
 	}
 
-	return err
+	// Keep the old period retryable until its file has been archived.
+	rp.timeInCurrentPeriod = now
+	rp.nextCheck = rp.rollingDate.next(now)
+
+	if rp.archiveRemover != nil {
+		rp.archiveRemover.CleanAsync(now)
+	}
+
+	return nil
 }
 
 func (rp *timeBasedRollingPolicy) prepare(
@@ -167,10 +167,6 @@ func (rp *timeBasedRollingPolicy) prepare(
 	}
 
 	return nil
-}
-
-func (rp *timeBasedRollingPolicy) calcNextCheck() {
-	rp.nextCheck = rp.rollingDate.next(time.Now())
 }
 
 func (rp *timeBasedRollingPolicy) initNextCheck() {
