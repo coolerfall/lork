@@ -41,6 +41,20 @@ var _ = ginkgo.Describe("time based rolling policy", func() {
 })
 
 var _ = ginkgo.Describe("size and time based rolling policy", func() {
+	ginkgo.It("requires an index in archive filenames", func() {
+		dir := ginkgo.GinkgoT().TempDir()
+		policy := NewSizeAndTimeBasedRollingPolicy(func(o *SizeAndTimeBasedRPOption) {
+			o.FilenamePattern = filepath.Join(dir, "archive.#date{2006-01-02}.log")
+		})
+		_ = NewFileWriter(func(o *FileWriterOption) {
+			o.Filename = filepath.Join(dir, "active.log")
+			o.RollingPolicy = policy
+		})
+		Expect(policy.Prepare()).To(MatchError("invalid filename pattern, missing index pattern"))
+		_, err := os.Stat(filepath.Join(dir, "active.log"))
+		Expect(os.IsNotExist(err)).To(BeTrue())
+	})
+
 	ginkgo.It("should trigger", func() {
 		stbrp := NewSizeAndTimeBasedRollingPolicy(func(o *SizeAndTimeBasedRPOption) {
 			o.MaxFileSize = "10Kb"

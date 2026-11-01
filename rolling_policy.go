@@ -224,6 +224,9 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	if rp.fileWriter == nil {
 		return errors.New("rolling policy is not attached to a file writer")
 	}
+	if !rp.filenamePattern.hasIndexConverter() {
+		return errors.New("invalid filename pattern, missing index pattern")
+	}
 
 	if err := rp.prepare(newSizeAndTimeArchiveRemover); err != nil {
 		return err

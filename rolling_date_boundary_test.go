@@ -5,6 +5,55 @@ import (
 	"time"
 )
 
+func TestRollingDateNext(t *testing.T) {
+	for _, tc := range []struct {
+		name, pattern, now, zone, want string
+	}{
+		{"second", "2006-01-02-15-04-05", "2026-03-08T12:34:56.789Z", "UTC", "2026-03-08T12:34:57Z"},
+		{"minute", "2006-01-02-15-04", "2026-03-08T12:34:56.789Z", "UTC", "2026-03-08T12:35:00Z"},
+		{"local_hour", "2006-01-02-15", "2026-03-08T12:34:56+05:45", "Asia/Kathmandu", "2026-03-08T13:00:00+05:45"},
+		{"spring_hour", "2006-01-02-15", "2026-03-08T01:30:00-05:00", "America/New_York", "2026-03-08T03:00:00-04:00"},
+		{"spring_minute", "2006-01-02-15-04", "2026-03-08T01:59:30-05:00", "America/New_York", "2026-03-08T03:00:00-04:00"},
+		{"spring_second", "2006-01-02-15-04-05", "2026-03-08T01:59:59.789-05:00", "America/New_York", "2026-03-08T03:00:00-04:00"},
+		{"fall_first_hour", "2006-01-02-15", "2026-11-01T01:30:00-04:00", "America/New_York", "2026-11-01T02:00:00-05:00"},
+		{"fall_second_hour", "2006-01-02-15", "2026-11-01T01:30:00-05:00", "America/New_York", "2026-11-01T02:00:00-05:00"},
+		{"fall_first_minute", "2006-01-02-15-04", "2026-11-01T01:30:45-04:00", "America/New_York", "2026-11-01T01:31:00-04:00"},
+		{"fall_second_minute", "2006-01-02-15-04", "2026-11-01T01:30:45-05:00", "America/New_York", "2026-11-01T01:31:00-05:00"},
+		{"fall_second_second", "2006-01-02-15-04-05", "2026-11-01T01:30:45.789-05:00", "America/New_York", "2026-11-01T01:30:46-05:00"},
+		{"fall_berlin_minute", "2006-01-02-15-04", "2026-10-25T02:30:45+01:00", "Europe/Berlin", "2026-10-25T02:31:00+01:00"},
+		{"spring_day", "2006-01-02", "2026-03-08T12:00:00-04:00", "America/New_York", "2026-03-09T00:00:00-04:00"},
+		{"fall_day", "2006-01-02", "2026-11-01T12:00:00-05:00", "America/New_York", "2026-11-02T00:00:00-05:00"},
+		{"missing_midnight", "2006-01-02", "2018-11-03T12:00:00-03:00", "America/Sao_Paulo", "2018-11-04T01:00:00-02:00"},
+		{"before_missing_midnight", "2006-01-02", "2018-11-03T23:30:00-03:00", "America/Sao_Paulo", "2018-11-04T01:00:00-02:00"},
+		{"partial_hour", "2006-01-02-15", "2026-10-04T01:45:00+10:30", "Australia/Lord_Howe", "2026-10-04T02:30:00+11:00"},
+		{"missing_day", "2006-01-02", "2011-12-29T12:00:00-10:00", "Pacific/Apia", "2011-12-31T00:00:00+14:00"},
+		{"leap_month", "2006-01", "2024-02-29T23:59:59+08:00", "Asia/Shanghai", "2024-03-01T00:00:00+08:00"},
+		{"year", "2006-01", "2026-12-31T23:59:59Z", "UTC", "2027-01-01T00:00:00Z"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			location, err := time.LoadLocation(tc.zone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			now, err := time.Parse(time.RFC3339Nano, tc.now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := time.Parse(time.RFC3339, tc.want)
+			if err != nil {
+				t.Fatal(err)
+			}
+			next := newRollingDate(tc.pattern).next(now.In(location))
+			if !next.Equal(want) || !next.After(now) {
+				t.Fatalf("next rotation = %s, want %s after %s", next, want, now)
+			}
+			if next.Location() != location {
+				t.Fatalf("next rotation location = %s, want %s", next.Location(), location)
+			}
+		})
+	}
+}
+
 func TestRollingDateCleanupSupported(t *testing.T) {
 	for _, tc := range []struct {
 		layout string
