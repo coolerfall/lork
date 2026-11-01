@@ -456,10 +456,15 @@ func (e *LogEvent) appendDurations(key string, value []time.Duration) {
 
 func (e *LogEvent) appendErrors(key string, value []error) {
 	e.appendArray(key, len(value), func(data []byte, index int) ([]byte, bool) {
-		e.tmp.WriteString(value[index].Error())
+		err := value[index]
+		if err == nil {
+			e.tmp.WriteString("null")
+		} else {
+			e.tmp.WriteString(err.Error())
+		}
 		d := e.tmp.Bytes()
 		e.tmp.Reset()
-		return d, true
+		return d, err != nil
 	})
 }
 

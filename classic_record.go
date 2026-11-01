@@ -58,7 +58,9 @@ func (r *classicRecord) Bytes(key string, val []byte) Record {
 }
 
 func (r *classicRecord) Err(err error) Record {
-	r.event.appendString(ErrorFieldKey, err.Error())
+	if err != nil {
+		r.event.appendString(ErrorFieldKey, err.Error())
+	}
 	return r
 }
 
