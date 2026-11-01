@@ -45,7 +45,51 @@ type noneArchiver struct {
 }
 
 func (a *noneArchiver) Archive(filename, archiveFilename string) error {
-	return rename(filename, archiveFilename)
+	if err := mkdirIfNotExist(filepath.Dir(archiveFilename)); err != nil {
+		return err
+	}
+	info, err := os.Lstat(filename)
+	if err != nil {
+		return err
+	}
+	if info.Mode().IsRegular() {
+		// Link atomically claims an unused name without copying the log contents.
+		if err = os.Link(filename, archiveFilename); err == nil {
+			if err = os.Remove(filename); err != nil {
+				return errors.Join(err, os.Remove(archiveFilename))
+			}
+			return nil
+		} else if os.IsExist(err) {
+			return err
+		}
+	}
+
+	// Cross-filesystem moves and symlink sources need an exclusive copy.
+	source, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+	info, err = source.Stat()
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("archive source is not a regular file: %s", filename)
+	}
+	target, err := os.OpenFile(archiveFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(target, source)
+	err = errors.Join(copyErr, target.Close(), source.Close())
+	if err != nil {
+		return errors.Join(err, os.Remove(archiveFilename))
+	}
+	if err = os.Remove(filename); err != nil {
+		return errors.Join(err, os.Remove(archiveFilename))
+	}
+	return nil
 }
 
 type gzipArchiver struct {
