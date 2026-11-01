@@ -111,7 +111,19 @@ func (rd *rollingDate) endOfThisPeriod(pt periodicType, now time.Time) time.Time
 }
 
 func (rd *rollingDate) next(t time.Time) time.Time {
-	return rd.endOfNextNPeriod(t, 1)
+	next := rd.endOfNextNPeriod(t, 1)
+	if !next.After(t) {
+		// time.Date may select the earlier occurrence of a repeated local time.
+		_, offset := t.Zone()
+		_, nextOffset := next.Zone()
+		next = next.Add(time.Duration(nextOffset-offset) * time.Second)
+	}
+	if rd.periodIndex(next) <= rd.periodIndex(t) {
+		// A missing local boundary may normalize into the current period.
+		// The zone transition is the first valid instant of the next period.
+		_, next = next.ZoneBounds()
+	}
+	return next
 }
 
 func (rd *rollingDate) periodCrossed(start, end time.Time) int {
