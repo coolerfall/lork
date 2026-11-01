@@ -61,9 +61,10 @@ var _ = ginkgo.Describe("size and time based rolling policy", func() {
 		firstArchive := filepath.Join(dir, "archive.2000-12-31.0.log")
 		secondArchive := filepath.Join(dir, "archive.2000-12-31.1.log")
 		lastArchive := filepath.Join(dir, "archive.2000-12-31.2.log")
+		lastChunk := "last chunk"
 		Expect(os.WriteFile(firstArchive, []byte("first chunk"), 0600)).To(Succeed())
 		Expect(os.WriteFile(secondArchive, []byte("second chunk"), 0600)).To(Succeed())
-		Expect(os.WriteFile(filename, []byte("last chunk"), 0600)).To(Succeed())
+		Expect(os.WriteFile(filename, []byte(lastChunk), 0600)).To(Succeed())
 		previousPeriod := time.Date(2000, time.December, 31, 12, 0, 0, 0, time.Local)
 		Expect(os.Chtimes(filename, previousPeriod, previousPeriod)).To(Succeed())
 
@@ -82,7 +83,11 @@ var _ = ginkgo.Describe("size and time based rolling policy", func() {
 			period, deadline := policy.timeInCurrentPeriod, policy.nextCheck
 			Expect(os.Mkdir(lastArchive, 0755)).To(Succeed())
 			_, err := policy.fileWriter.Write([]byte("new period"))
-			Expect(err).To(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
+			lastChunk += "new period"
+			contents, err := os.ReadFile(filename)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(contents)).To(Equal(lastChunk))
 			Expect(policy.index).To(Equal(2))
 			Expect(policy.timeInCurrentPeriod).To(Equal(period))
 			Expect(policy.nextCheck).To(Equal(deadline))
@@ -99,7 +104,7 @@ var _ = ginkgo.Describe("size and time based rolling policy", func() {
 		Expect(string(contents)).To(Equal("second chunk"))
 		contents, err = os.ReadFile(lastArchive)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(contents)).To(Equal("last chunk"))
+		Expect(string(contents)).To(Equal(lastChunk))
 		contents, err = os.ReadFile(filename)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(contents)).To(Equal("new period"))
