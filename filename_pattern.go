@@ -54,6 +54,9 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 			break
 
 		case *indexConverter:
+			if gotIndex {
+				return nil, errors.New("invalid filename pattern, multiple index patterns")
+			}
 			gotIndex = true
 		}
 	}
