@@ -139,10 +139,10 @@ func rename(oldPath, newPath string) (err error) {
 // ReplaceJson replaces key/value with given search key.
 func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 	transform func(k, v []byte) (nk, kv []byte, e error)) error {
+	originalLen := buf.Len()
 	buf.WriteByte('{')
 	var start = false
-	var err error
-	_ = jsonparser.ObjectEach(p, func(key []byte, value []byte,
+	err := jsonparser.ObjectEach(p, func(key []byte, value []byte,
 		dataType jsonparser.ValueType, _ int) error {
 		if start {
 			buf.WriteByte(',')
@@ -151,15 +151,15 @@ func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 		}
 
 		if string(key) == searchKey {
+			var err error
 			key, value, err = transform(key, value)
 			if err != nil {
 				return err
 			}
 		}
 
-		buf.WriteByte('"')
-		buf.Write(key)
-		buf.WriteByte('"')
+		// ObjectEach unescapes keys but leaves string values escaped.
+		buf.Write(appendJSONString(buf.AvailableBuffer(), key))
 		buf.WriteByte(':')
 
 		switch dataType {
@@ -174,6 +174,10 @@ func ReplaceJson(p []byte, buf *bytes.Buffer, searchKey string,
 
 		return nil
 	})
+	if err != nil {
+		buf.Truncate(originalLen)
+		return err
+	}
 	buf.WriteByte('}')
 	buf.WriteByte('\n')
 

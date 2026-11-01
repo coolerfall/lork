@@ -50,8 +50,9 @@ func newTransformer(w *lork.MultiWriter) *transformer {
 func (t *transformer) Write(p []byte) (n int, err error) {
 	t.locker.Lock()
 	defer t.locker.Unlock()
+	defer t.buf.Reset()
 
-	_ = lork.ReplaceJson(p, t.buf, lork.LevelFieldKey,
+	err = lork.ReplaceJson(p, t.buf, lork.LevelFieldKey,
 		func(k, v []byte) ([]byte, []byte, error) {
 			lvl, err := logrus.ParseLevel(string(v))
 			if err != nil {
@@ -60,8 +61,12 @@ func (t *transformer) Write(p []byte) (n int, err error) {
 				return k, []byte(logrusLvlToLorkLvl[lvl].String()), nil
 			}
 		})
-	p = t.buf.Bytes()
-	t.buf.Reset()
+	if err != nil {
+		return 0, err
+	}
+	if _, err = t.multiWriter.Write(t.buf.Bytes()); err != nil {
+		return 0, err
+	}
 
-	return t.multiWriter.Write(p)
+	return len(p), nil
 }

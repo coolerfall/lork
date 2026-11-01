@@ -90,6 +90,26 @@ This writer is an implementation for syslog. It supports the following options:
 
 Lork provides some builtin encoders which can be configured in writers.
 
+Each JSON or Pattern encoder instance must belong to a single writer. These encoders
+reuse their output buffers; sharing an instance across writers is unsupported and
+can overwrite log contents during concurrent writes. The default console, file and
+socket writers each create an independent encoder.
+
+When configuring multiple writers explicitly, create a new encoder for each one,
+even when they use the same format:
+
+```go
+first := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Filename = "first.log"
+    o.Encoder = lork.NewJsonEncoder()
+})
+second := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Filename = "second.log"
+    o.Encoder = lork.NewJsonEncoder()
+})
+lork.Manual().AddWriter(first, second)
+```
+
 ### Pattern Encoder
 
 Encode logs with custom pattern format layout, for example:

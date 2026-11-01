@@ -19,6 +19,10 @@ Requires Go 1.23 or newer.
 
 Look at this [tutorial][1]
 
+Use a separate encoder instance for each writer. Built-in writers create their own
+encoders by default. When configuring encoders explicitly, call `NewJsonEncoder`
+or `NewPatternEncoder` separately for each writer; do not share an instance.
+
 Benchmarks
 ==========
 Benchmarks with complex log field, different encoder and writer.
