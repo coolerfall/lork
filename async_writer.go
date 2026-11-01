@@ -68,11 +68,7 @@ func (w *AsyncWriter) Start() {
 	case <-w.stop:
 		w.queue = make(chan *LogEvent, cap(w.queue))
 		w.stop = make(chan struct{})
-		for _, writer := range w.multiWriter.writers {
-			if lc, ok := writer.(Lifecycle); ok {
-				lc.Start()
-			}
-		}
+		w.multiWriter.startWriters()
 	default:
 	}
 	w.done = make(chan struct{})
@@ -103,11 +99,7 @@ func (w *AsyncWriter) Stop() {
 			w.writeEvent(event)
 		}
 	}
-	for _, writer := range w.multiWriter.writers {
-		if lc, ok := writer.(Lifecycle); ok {
-			lc.Stop()
-		}
-	}
+	w.multiWriter.stopWriters()
 }
 
 func (w *AsyncWriter) DoWrite(event *LogEvent) error {
@@ -150,7 +142,7 @@ func (w *AsyncWriter) AddWriter(writers ...Writer) {
 	select {
 	case <-w.stop:
 		// Newly attached writers stay stopped until the next Start.
-		w.multiWriter.writers = append(w.multiWriter.writers, writers...)
+		w.multiWriter.addWriters(false, writers...)
 	default:
 		w.multiWriter.AddWriter(writers...)
 	}
@@ -171,7 +163,7 @@ func (w *AsyncWriter) ResetWriter() {
 	select {
 	case <-w.stop:
 		// Existing writers are stopped; newly attached writers have not started.
-		w.multiWriter.writers = w.multiWriter.writers[:0]
+		w.multiWriter.resetWriters(false)
 	default:
 		w.multiWriter.ResetWriter()
 	}

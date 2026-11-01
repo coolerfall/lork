@@ -2,6 +2,15 @@
 
 Lork provides several writers for logging, and it supports to add multiple writers.
 
+Configure writer bindings during initialization where possible. `MultiWriter`
+supports concurrent output and binding changes. `ResetWriter()` waits for current
+writes, removes the bindings, then stops the old writers without holding the list
+lock. Configuration and lifecycle operations are serialized.
+
+Custom writer callbacks invoked during output or list queries must not call back
+into the same `MultiWriter`. Lifecycle callbacks may query the list, but must not
+modify its bindings.
+
 ### Console Writer
 
 This writer sends the logs to `Stdout` console. It supports the following options:
@@ -66,7 +75,7 @@ lork.Manual().AddWriter(aw)
 bindings. `Start()` restarts those writers before resuming background output.
 Writers added after `Stop()` start on the next `Start()`. Call `ResetWriter()` to
 remove the downstream writers explicitly. Configure bindings before the first
-`Start()` or while the asynchronous writer is stopped.
+`Start()` or while the asynchronous writer is stopped where possible.
 
 ### Socket Writer
 

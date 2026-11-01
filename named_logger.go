@@ -16,12 +16,13 @@ package lork
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 // namedLogger represents a logger with name which can be used as category.
 type namedLogger struct {
 	name  string
-	level Level
+	level atomic.Int32
 
 	realLogger ILogger
 	parent     ILogger
@@ -36,9 +37,9 @@ func newNamedLogger(name string, parent ILogger, writer *MultiWriter) *namedLogg
 	nl := &namedLogger{
 		name:        name,
 		parent:      parent,
-		level:       TraceLevel,
 		multiWriter: writer,
 	}
+	nl.level.Store(int32(TraceLevel))
 	nl.realLogger = nl.findRealLogger()
 
 	return nl
@@ -52,12 +53,12 @@ func (nl *namedLogger) SetLevel(lvl Level) {
 	nl.locker.Lock()
 	defer nl.locker.Unlock()
 
-	if nl.level == lvl {
+	if nl.level.Load() == int32(lvl) {
 		// nothing to do
 		return
 	}
 
-	nl.level = lvl
+	nl.level.Store(int32(lvl))
 
 	for _, child := range nl.children {
 		child.SetLevel(lvl)
@@ -134,14 +135,20 @@ func (nl *namedLogger) ResetWriter() {
 }
 
 func (nl *namedLogger) CreateChild(name string) *namedLogger {
+	nl.locker.Lock()
+	defer nl.locker.Unlock()
+
 	child := newNamedLogger(name, nl, nl.multiWriter)
 	nl.children = append(nl.children, child)
-	child.level = nl.level
+	child.level.Store(nl.level.Load())
 
 	return child
 }
 
 func (nl *namedLogger) FindChild(name string) *namedLogger {
+	nl.locker.Lock()
+	defer nl.locker.Unlock()
+
 	for _, child := range nl.children {
 		if child.Name() == name {
 			return child
@@ -167,7 +174,7 @@ func (nl *namedLogger) isRootLogger() bool {
 func (nl *namedLogger) makeRecord(lvl Level, newRecord func() Record) Record {
 	var record Record
 
-	if nl.level > lvl {
+	if Level(nl.level.Load()) > lvl {
 		record = newNoopRecord()
 	} else {
 		record = newRecord()
