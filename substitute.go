@@ -16,6 +16,7 @@ package lork
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 type substituteProvider struct {
@@ -46,6 +47,12 @@ func (p *substituteProvider) SubstLoggerFactory() *substituteFactory {
 type substituteFactory struct {
 	loggers    sync.Map
 	eventQueue *BlockingQueue
+	lock       sync.Mutex
+	delegate   atomic.Pointer[substituteDelegate]
+}
+
+type substituteDelegate struct {
+	factory ILoggerFactory
 }
 
 func newSubstituteFactory() *substituteFactory {
@@ -55,24 +62,37 @@ func newSubstituteFactory() *substituteFactory {
 }
 
 func (f *substituteFactory) Logger(name string) ILogger {
+	if delegate := f.delegate.Load(); delegate != nil {
+		return delegate.factory.Logger(name)
+	}
+	f.lock.Lock()
+	if delegate := f.delegate.Load(); delegate != nil {
+		f.lock.Unlock()
+		return delegate.factory.Logger(name)
+	}
+	defer f.lock.Unlock()
+
 	if logger, ok := f.loggers.Load(name); ok {
 		return logger.(ILogger)
 	}
 
-	logger := newSubstituteLogger(name, f.eventQueue)
+	logger := newSubstituteLogger(name, f)
 	f.loggers.Store(name, logger)
 
 	return logger
 }
 
-func (f *substituteFactory) Loggers() []*substituteLogger {
-	var loggers []*substituteLogger
-	f.loggers.Range(func(_, logger interface{}) bool {
-		loggers = append(loggers, logger.(*substituteLogger))
-		return true
-	})
+func (f *substituteFactory) activate(delegate ILoggerFactory) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	// Writers use this same lock: after publication, no event can enter the queue.
+	f.delegate.Store(&substituteDelegate{factory: delegate})
+}
 
-	return loggers
+func (f *substituteFactory) reset() {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	f.delegate.Store(nil)
 }
 
 func (f *substituteFactory) clear() {
@@ -81,17 +101,15 @@ func (f *substituteFactory) clear() {
 
 type substituteLogger struct {
 	name             string
-	delegateLogger   ILogger
-	eventQueue       *BlockingQueue
-	eventWriter      EventRecorder
+	factory          *substituteFactory
 	eventCacheLogger ILogger
 }
 
-func newSubstituteLogger(name string, eventQueue *BlockingQueue) ILogger {
+func newSubstituteLogger(name string, factory *substituteFactory) ILogger {
 	return &substituteLogger{
-		eventQueue:  eventQueue,
-		name:        name,
-		eventWriter: newSubstituteWriter(eventQueue),
+		name:             name,
+		factory:          factory,
+		eventCacheLogger: newEventCacheLogger(name, newSubstituteWriter(factory)),
 	}
 }
 
@@ -138,17 +156,9 @@ func (l *substituteLogger) Event(e *LogEvent) {
 	l.delegate().Event(e)
 }
 
-func (l *substituteLogger) SetDelegate(logger ILogger) {
-	l.delegateLogger = logger
-}
-
 func (l *substituteLogger) delegate() ILogger {
-	if l.delegateLogger != nil {
-		return l.delegateLogger
-	}
-
-	if l.eventCacheLogger == nil {
-		l.eventCacheLogger = newEventCacheLogger(l.name, l.eventWriter)
+	if delegate := l.factory.delegate.Load(); delegate != nil {
+		return delegate.factory.Logger(l.name)
 	}
 
 	return l.eventCacheLogger
@@ -216,17 +226,34 @@ func (l *eventCacheLogger) newRecord(lvl Level) Record {
 }
 
 type substituteWriter struct {
-	eventQueue *BlockingQueue
+	factory *substituteFactory
 }
 
-func newSubstituteWriter(eventQueue *BlockingQueue) EventRecorder {
+func newSubstituteWriter(factory *substituteFactory) EventRecorder {
 	return &substituteWriter{
-		eventQueue: eventQueue,
+		factory: factory,
 	}
 }
 
 func (w *substituteWriter) WriteEvent(event *LogEvent) error {
-	w.eventQueue.Put(event)
+	f := w.factory
+	f.lock.Lock()
+	delegate := f.delegate.Load()
+	if delegate == nil {
+		if f.eventQueue.RemainCapacity() != 0 {
+			f.eventQueue.Put(event)
+			f.lock.Unlock()
+			return nil
+		}
+		// Prepare may log synchronously; a full startup queue must not block it.
+		f.lock.Unlock()
+		event.Recycle()
+		return nil
+	}
+	f.lock.Unlock()
+
+	// Records created during Prepare may be completed after replay has finished.
+	delegate.factory.Logger(string(event.LoggerName())).Event(event)
 
 	return nil
 }
