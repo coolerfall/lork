@@ -62,6 +62,12 @@ aw.AddWriter(fw)
 lork.Manual().AddWriter(aw)
 ```
 
+`Stop()` drains pending events and stops downstream writers without removing their
+bindings. `Start()` restarts those writers before resuming background output.
+Writers added after `Stop()` start on the next `Start()`. Call `ResetWriter()` to
+remove the downstream writers explicitly. Configure bindings before the first
+`Start()` or while the asynchronous writer is stopped.
+
 ### Socket Writer
 
 This writer sends logs to remote server via socket. It supports the following options:

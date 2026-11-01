@@ -56,6 +56,7 @@ func NewAsyncWriter(options ...func(*AsyncWriterOption)) *AsyncWriter {
 	}
 }
 
+// Start begins consuming events, restarting retained downstream writers after Stop.
 func (w *AsyncWriter) Start() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
@@ -67,6 +68,11 @@ func (w *AsyncWriter) Start() {
 	case <-w.stop:
 		w.queue = make(chan *LogEvent, cap(w.queue))
 		w.stop = make(chan struct{})
+		for _, writer := range w.multiWriter.writers {
+			if lc, ok := writer.(Lifecycle); ok {
+				lc.Start()
+			}
+		}
 	default:
 	}
 	w.done = make(chan struct{})
@@ -74,6 +80,7 @@ func (w *AsyncWriter) Start() {
 	go w.startWorker()
 }
 
+// Stop drains pending events and stops downstream writers, retaining their bindings.
 func (w *AsyncWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
@@ -96,7 +103,11 @@ func (w *AsyncWriter) Stop() {
 			w.writeEvent(event)
 		}
 	}
-	w.multiWriter.ResetWriter()
+	for _, writer := range w.multiWriter.writers {
+		if lc, ok := writer.(Lifecycle); ok {
+			lc.Stop()
+		}
+	}
 }
 
 func (w *AsyncWriter) DoWrite(event *LogEvent) error {
@@ -133,7 +144,16 @@ func (w *AsyncWriter) Name() string {
 }
 
 func (w *AsyncWriter) AddWriter(writers ...Writer) {
-	w.multiWriter.AddWriter(writers...)
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	select {
+	case <-w.stop:
+		// Newly attached writers stay stopped until the next Start.
+		w.multiWriter.writers = append(w.multiWriter.writers, writers...)
+	default:
+		w.multiWriter.AddWriter(writers...)
+	}
 }
 
 func (w *AsyncWriter) GetWriter(name string) Writer {
@@ -145,7 +165,16 @@ func (w *AsyncWriter) Attached(writer Writer) bool {
 }
 
 func (w *AsyncWriter) ResetWriter() {
-	w.multiWriter.ResetWriter()
+	w.locker.Lock()
+	defer w.locker.Unlock()
+
+	select {
+	case <-w.stop:
+		// Existing writers are stopped; newly attached writers have not started.
+		w.multiWriter.writers = w.multiWriter.writers[:0]
+	default:
+		w.multiWriter.ResetWriter()
+	}
 }
 
 func (w *AsyncWriter) startWorker() {
