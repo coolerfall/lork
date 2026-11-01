@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,6 +12,16 @@ import (
 )
 
 func TestSizeAndTimeRollingAcrossDSTGap(t *testing.T) {
+	if os.Getenv("LORK_DST_GAP_SUBPROCESS") != "1" {
+		// Isolate time.Local from asynchronous cleanup left by other tests.
+		cmd := exec.Command(os.Args[0], "-test.run=^TestSizeAndTimeRollingAcrossDSTGap$", "-test.count=1", "-test.timeout=30s")
+		cmd.Env = append(os.Environ(), "LORK_DST_GAP_SUBPROCESS=1")
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("DST gap subprocess: %v\n%s", err, output)
+		}
+		return
+	}
+
 	// Put a spring-forward transition at the next real hour so the complete
 	// writer path can run before the gap without changing the system clock.
 	transition := time.Now().UTC().Truncate(time.Hour).Add(time.Hour)
@@ -31,9 +42,7 @@ func TestSizeAndTimeRollingAcrossDSTGap(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	previous := time.Local
 	time.Local = location
-	t.Cleanup(func() { time.Local = previous })
 
 	dir := t.TempDir()
 	policy := NewSizeAndTimeBasedRollingPolicy(func(o *SizeAndTimeBasedRPOption) {

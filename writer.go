@@ -82,9 +82,12 @@ type WriterAttachable interface {
 
 // MultiWriter represents multiple writer which implements EventWriter.
 // This writer is used as output which will implement ILogger.
+// Writer callbacks invoked under the list read lock must not re-enter this
+// MultiWriter. Lifecycle callbacks may query the list, but must not change it.
 type MultiWriter struct {
-	locker  sync.Mutex
-	writers []Writer
+	configLocker sync.Mutex
+	locker       sync.RWMutex
+	writers      []Writer
 }
 
 // NewMultiWriter creates a new multiple writer.
@@ -96,16 +99,30 @@ func NewMultiWriter() *MultiWriter {
 
 // AddWriter adds a lork writer into multi writer.
 func (mw *MultiWriter) AddWriter(writers ...Writer) {
+	mw.addWriters(true, writers...)
+}
+
+func (mw *MultiWriter) addWriters(start bool, writers ...Writer) {
+	mw.configLocker.Lock()
+	defer mw.configLocker.Unlock()
+
 	for _, w := range writers {
-		if lc, ok := w.(Lifecycle); ok {
-			lc.Start()
+		if start {
+			if lc, ok := w.(Lifecycle); ok {
+				lc.Start()
+			}
 		}
 
+		mw.locker.Lock()
 		mw.writers = append(mw.writers, w)
+		mw.locker.Unlock()
 	}
 }
 
 func (mw *MultiWriter) GetWriter(name string) Writer {
+	mw.locker.RLock()
+	defer mw.locker.RUnlock()
+
 	for _, w := range mw.writers {
 		if w.Name() == name {
 			return w
@@ -116,6 +133,9 @@ func (mw *MultiWriter) GetWriter(name string) Writer {
 }
 
 func (mw *MultiWriter) Attached(writer Writer) bool {
+	mw.locker.RLock()
+	defer mw.locker.RUnlock()
+
 	for _, w := range mw.writers {
 		if reflect.DeepEqual(w, writer) {
 			return true
@@ -126,32 +146,86 @@ func (mw *MultiWriter) Attached(writer Writer) bool {
 }
 
 func (mw *MultiWriter) ResetWriter() {
-	mw.locker.Lock()
-	defer mw.locker.Unlock()
+	mw.resetWriters(true)
+}
 
-	for _, w := range mw.writers {
+func (mw *MultiWriter) resetWriters(stop bool) {
+	mw.configLocker.Lock()
+	defer mw.configLocker.Unlock()
+
+	mw.locker.Lock()
+	writers := mw.writers
+	mw.writers = nil
+	mw.locker.Unlock()
+
+	if stop {
+		for _, w := range writers {
+			if lc, ok := w.(Lifecycle); ok {
+				lc.Stop()
+			}
+		}
+	}
+}
+
+// startWriters and stopWriters are used while AsyncWriter's worker is stopped.
+// Serialize configuration, but leave the list lock free during lifecycle calls.
+func (mw *MultiWriter) startWriters() {
+	mw.configLocker.Lock()
+	defer mw.configLocker.Unlock()
+
+	mw.locker.RLock()
+	writers := mw.writers
+	mw.locker.RUnlock()
+	for _, w := range writers {
+		if lc, ok := w.(Lifecycle); ok {
+			lc.Start()
+		}
+	}
+}
+
+func (mw *MultiWriter) stopWriters() {
+	mw.configLocker.Lock()
+	defer mw.configLocker.Unlock()
+
+	mw.locker.Lock()
+	writers := mw.writers
+	mw.locker.Unlock()
+	for _, w := range writers {
 		if lc, ok := w.(Lifecycle); ok {
 			lc.Stop()
 		}
 	}
-	mw.writers = mw.writers[:0]
 }
 
 func (mw *MultiWriter) Size() int {
+	mw.locker.RLock()
+	defer mw.locker.RUnlock()
+
 	return len(mw.writers)
 }
 
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
+	mw.locker.RLock()
+	defer mw.locker.RUnlock()
+
 	if len(mw.writers) == 0 {
 		return 0, nil
 	}
 
-	err = mw.WriteEvent(MakeEvent(p))
+	err = mw.writeEvent(MakeEvent(p))
 
 	return len(p), err
 }
 
 func (mw *MultiWriter) WriteEvent(event *LogEvent) (err error) {
+	mw.locker.RLock()
+	defer mw.locker.RUnlock()
+
+	return mw.writeEvent(event)
+}
+
+// writeEvent requires the list read lock and owns the event until recycling.
+func (mw *MultiWriter) writeEvent(event *LogEvent) (err error) {
 	defer event.Recycle()
 
 	for _, w := range mw.writers {
