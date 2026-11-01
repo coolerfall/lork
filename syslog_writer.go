@@ -18,17 +18,20 @@
 package lork
 
 import (
+	"errors"
 	"log/syslog"
 	"sync"
 )
+
+var errSyslogNotStarted = errors.New("syslog writer is not started")
 
 type syslogWriter struct {
 	sw   *syslog.Writer
 	opts *SyslogWriterOption
 
-	encoder   Encoder
-	locker    sync.Mutex
-	isStarted bool
+	encoder  Encoder
+	locker   sync.Mutex
+	startErr error
 }
 
 type SyslogWriterOption struct {
@@ -61,28 +64,42 @@ func (w *syslogWriter) Start() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
-	if w.isStarted {
+	if w.sw != nil {
 		return
 	}
 
-	sw, err := syslog.Dial(w.opts.Address, w.opts.Network, syslog.LOG_DEBUG, w.opts.Tag)
+	sw, err := syslog.Dial(w.opts.Network, w.opts.Address, syslog.LOG_DEBUG, w.opts.Tag)
 	if err != nil {
-		ReportfExit("failed to dial syslog: %v", err)
+		w.startErr = err
+		Reportf("failed to dial syslog: %v", err)
+		return
 	}
 
 	w.sw = sw
-	w.isStarted = true
+	w.startErr = nil
 }
 
 func (w *syslogWriter) Stop() {
 	w.locker.Lock()
 	defer w.locker.Unlock()
 
-	_ = w.sw.Close()
-	w.isStarted = false
+	if w.sw != nil {
+		_ = w.sw.Close()
+		w.sw = nil
+	}
+	w.startErr = nil
 }
 
 func (w *syslogWriter) Write(event *LogEvent) (err error) {
+	w.locker.Lock()
+	defer w.locker.Unlock()
+	if w.sw == nil {
+		if w.startErr != nil {
+			return w.startErr
+		}
+		return errSyslogNotStarted
+	}
+
 	data, err := w.encoder.Encode(event)
 	if err != nil {
 		return err
@@ -100,9 +117,6 @@ func (w *syslogWriter) Write(event *LogEvent) (err error) {
 		err = w.sw.Crit(msg)
 	case PanicLevel:
 		err = w.sw.Emerg(msg)
-	case DebugLevel:
-	case TraceLevel:
-		fallthrough
 	default:
 		err = w.sw.Debug(msg)
 	}
