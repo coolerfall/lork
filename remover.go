@@ -20,8 +20,12 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
+
+// Bound the first scan even for second- and minute-based archive patterns.
+const maxInitialCleanupPeriods = 14 * 24
 
 // ArchiveRemover represents a remover which removes archived logs.
 type ArchiveRemover interface {
@@ -32,13 +36,18 @@ type ArchiveRemover interface {
 	CleanAsync(now time.Time)
 }
 
+type archiveFileLister interface {
+	listFilesInPeriod(time.Time) []string
+}
+
 type timeBasedArchiveRemover struct {
 	fp          *filenamePattern
 	rd          *rollingDate
 	maxHistory  int
 	parentClean bool
 
-	lastClean int64
+	locker    sync.Mutex
+	lastClean time.Time
 }
 
 func newTimeBasedArchiveRemover(fp *filenamePattern, rd *rollingDate) ArchiveRemover {
@@ -53,50 +62,72 @@ func newTimeBasedArchiveRemover(fp *filenamePattern, rd *rollingDate) ArchiveRem
 }
 
 func (r *timeBasedArchiveRemover) MaxHistory(max int) {
+	r.locker.Lock()
+	defer r.locker.Unlock()
 	r.maxHistory = max
 }
 
 func (r *timeBasedArchiveRemover) CleanAsync(now time.Time) {
-	r.cleanAsync(now, r.listFilesInPeriod)
+	r.cleanAsync(now, r)
 }
 
 func (r *timeBasedArchiveRemover) cleanAsync(now time.Time,
-	listFilesInPeriod func(t time.Time) []string) {
-	go func() {
-		periodsElapsed := r.calcElapsedPeriods(now)
-		r.lastClean = time.Now().Unix()
-		for i := 0; i < periodsElapsed; i++ {
-			offset := -r.maxHistory - i
-			timeOfPeriodToClean := r.rd.endOfNextNPeriod(now, offset)
-			files := listFilesInPeriod(timeOfPeriodToClean)
-			if len(files) == 0 {
-				continue
-			}
+	lister archiveFileLister) {
+	r.locker.Lock()
+	if r.maxHistory <= 0 || !r.rd.cleanupSupported {
+		r.locker.Unlock()
+		return
+	}
+	periodsElapsed := r.calcElapsedPeriods(now)
+	if periodsElapsed <= 0 {
+		r.locker.Unlock()
+		return
+	}
+	// Reserve this range before launching a worker. Same-period calls neither
+	// advance the cursor nor allocate another goroutine.
+	r.lastClean = now
+	maxHistory := r.maxHistory
+	r.locker.Unlock()
 
-			// remove all log files
-			for _, fn := range files {
-				_ = os.Remove(fn)
-			}
+	go r.cleanPeriods(now, periodsElapsed, maxHistory, lister)
+}
 
-			// remove parent directory
-			if r.parentClean {
-				dir := filepath.Dir(files[0])
-				_ = os.Remove(dir)
-			}
+func (r *timeBasedArchiveRemover) cleanPeriods(now time.Time, periodsElapsed, maxHistory int,
+	lister archiveFileLister) {
+	// Repeating or incomplete date labels cannot distinguish expired files
+	// from retained files. Leave them untouched rather than risk data loss.
+	if !r.rd.cleanupSupported {
+		return
+	}
+	for i := 0; i < periodsElapsed; i++ {
+		offset := -maxHistory - i
+		timeOfPeriodToClean, exists := r.rd.periodForCleanup(now, offset)
+		if !exists {
+			continue
 		}
-	}()
+		files := lister.listFilesInPeriod(timeOfPeriodToClean)
+		if len(files) == 0 {
+			continue
+		}
+
+		// remove all log files
+		for _, fn := range files {
+			_ = os.Remove(fn)
+		}
+
+		// remove parent directory
+		if r.parentClean {
+			dir := filepath.Dir(files[0])
+			_ = os.Remove(dir)
+		}
+	}
 }
 
 func (r *timeBasedArchiveRemover) calcElapsedPeriods(now time.Time) int {
-	var periodsElapsed = 0
-	nowUnix := now.Unix()
-	if r.lastClean == 0 {
-		periodsElapsed = r.rd.periodCrossed(nowUnix, nowUnix+32*secondsInOneDay)
-	} else {
-		periodsElapsed = r.rd.periodCrossed(nowUnix, r.lastClean)
+	if r.lastClean.IsZero() {
+		return min(r.rd.periodCrossed(now, now.AddDate(0, 0, 32)), maxInitialCleanupPeriods)
 	}
-
-	return periodsElapsed
+	return r.rd.periodCrossed(r.lastClean, now)
 }
 
 func (r *timeBasedArchiveRemover) calcParentCleanFlag() bool {
@@ -133,6 +164,9 @@ func (r *timeBasedArchiveRemover) listFilesInPeriod(t time.Time) []string {
 
 	filename := r.fp.convert(t, -1)
 	matchingFiles = append(matchingFiles, filename)
+	if originalFilename := uncompressedArchiveFilename(filename); originalFilename != filename {
+		matchingFiles = append(matchingFiles, originalFilename)
+	}
 
 	return matchingFiles
 }
@@ -149,7 +183,7 @@ func newSizeAndTimeArchiveRemover(fp *filenamePattern, rd *rollingDate) ArchiveR
 }
 
 func (r *sizeAndTimeArchiveRemover) CleanAsync(now time.Time) {
-	r.timeBasedArchiveRemover.cleanAsync(now, r.listFilesInPeriod)
+	r.timeBasedArchiveRemover.cleanAsync(now, r)
 }
 
 func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
@@ -157,9 +191,9 @@ func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
 
 	filename := r.fp.convert(t, 0)
 	dir := filepath.Dir(filename)
-	reg := r.fp.toFilenameRegexForFixed(t)
+	reg := r.fp.toArchiveFilenameRegexForFixed(t)
 	reg = afterLastSlash(reg)
-	filenameRegex, err := regexp.Compile(reg)
+	filenameRegex, err := regexp.Compile("^" + reg + "$")
 	if err != nil {
 		return matchingFiles
 	}
@@ -169,11 +203,11 @@ func (r *sizeAndTimeArchiveRemover) listFilesInPeriod(t time.Time) []string {
 	}
 
 	for _, file := range files {
-		if !filenameRegex.MatchString(file.Name()) {
+		if file.IsDir() || !filenameRegex.MatchString(file.Name()) {
 			continue
 		}
 
-		fn, err := filepath.Abs(file.Name())
+		fn, err := filepath.Abs(filepath.Join(dir, file.Name()))
 		if err != nil {
 			continue
 		}

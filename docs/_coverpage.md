@@ -1,6 +1,6 @@
 <!-- _coverpage.md -->
 
-# Lork <small>0.7.0</small>
+# Lork <small>1.0.0</small>
 
 > The flexible, extensible and structured logging for Go.
 - Zero allocation

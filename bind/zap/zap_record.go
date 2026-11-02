@@ -130,7 +130,7 @@ func (r *zapRecord) Ints64(key string, val []int64) lork.Record {
 }
 
 func (r *zapRecord) Uint(key string, val uint) lork.Record {
-	r.logger.With(zap.Uint(key, val))
+	r.logger = r.logger.With(zap.Uint(key, val))
 	return r
 }
 

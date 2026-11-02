@@ -122,10 +122,6 @@ func (p *patternParser) Parse() (*node, error) {
 			} else {
 				buf.WriteString(value)
 			}
-		case ",":
-			if compositeStart {
-				buf.WriteString(value)
-			}
 		default:
 			if compositeStart || optionStart {
 				buf.WriteString(value)

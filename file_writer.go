@@ -15,6 +15,7 @@
 package lork
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -90,9 +91,9 @@ func (fw *fileWriter) Write(p []byte) (n int, err error) {
 
 	if fw.opts.RollingPolicy.ShouldTrigger(fw.size + int64(writeLen)) {
 		if err = fw.rotate(); err != nil {
-			return
-		} else {
-			if err = fw.openNew(); err != nil {
+			Reportf("file writer rotate error: %v", err)
+			if reopenErr := fw.openExistingOrNew(); reopenErr != nil {
+				err = errors.Join(err, reopenErr)
 				return
 			}
 		}
@@ -150,25 +151,21 @@ func (fw *fileWriter) openNew() error {
 	return nil
 }
 
-// openExistingOrNew opens the logfile if it exists and if the current write
-// would not put it over MaxSize.  If there is no such file or write would
-// put it over the MaxSize, a new file is created.
+// openExistingOrNew opens the logfile for append, creating it if needed.
+// This method assumes the file has already been closed.
 func (fw *fileWriter) openExistingOrNew() error {
-	filename := fw.opts.Filename
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return fw.openNew()
+	if err := os.MkdirAll(fw.dir(), 0755); err != nil {
+		return fmt.Errorf("can't make directories for logfile: %w", err)
 	}
 
+	file, err := os.OpenFile(fw.opts.Filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
-		return fmt.Errorf("error getting log file info: %s", err)
+		return fmt.Errorf("can't open logfile for append: %w", err)
 	}
-
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0644)
+	info, err := file.Stat()
 	if err != nil {
-		// if we fail to open the old log file for some reason, just ignore
-		// it and open a new log file.
-		return fw.openNew()
+		_ = file.Close()
+		return fmt.Errorf("error getting log file info: %w", err)
 	}
 	fw.file = file
 	fw.size = info.Size()

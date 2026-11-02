@@ -17,6 +17,7 @@ package lork
 import (
 	"bytes"
 	"sync"
+	"unicode/utf8"
 )
 
 // jsonEncoder encodes logging event into json format.
@@ -71,17 +72,61 @@ func (je *jsonEncoder) Encode(e *LogEvent) ([]byte, error) {
 }
 
 func (je *jsonEncoder) writeKeyAndValue(key string, value []byte, isString bool) {
-	je.buf.WriteByte('"')
-	je.buf.WriteString(key)
-	je.buf.WriteByte('"')
+	je.buf.Write(appendJSONString(je.buf.AvailableBuffer(), key))
 	je.buf.WriteByte(':')
 
 	if isString {
-		je.buf.WriteByte('"')
-	}
-	je.buf.Write(value)
-	if isString {
-		je.buf.WriteByte('"')
+		je.buf.Write(appendJSONString(je.buf.AvailableBuffer(), value))
+	} else {
+		je.buf.Write(value)
 	}
 	je.buf.WriteByte(',')
+}
+
+// appendJSONString quotes a string directly into reusable buffer storage.
+func appendJSONString[S string | []byte](dst []byte, value S) []byte {
+	const hex = "0123456789abcdef"
+	dst = append(dst, '"')
+	start := 0
+	for i := 0; i < len(value); {
+		c := value[i]
+		if c >= utf8.RuneSelf {
+			end := i + min(len(value)-i, utf8.UTFMax)
+			r, size := utf8.DecodeRuneInString(string(value[i:end]))
+			if r == utf8.RuneError && size == 1 {
+				dst = append(dst, value[start:i]...)
+				dst = append(dst, `\ufffd`...)
+				i++
+				start = i
+				continue
+			}
+			i += size
+			continue
+		}
+		if c >= 0x20 && c != '"' && c != '\\' {
+			i++
+			continue
+		}
+		dst = append(dst, value[start:i]...)
+		switch c {
+		case '"', '\\':
+			dst = append(dst, '\\', c)
+		case '\b':
+			dst = append(dst, `\b`...)
+		case '\f':
+			dst = append(dst, `\f`...)
+		case '\n':
+			dst = append(dst, `\n`...)
+		case '\r':
+			dst = append(dst, `\r`...)
+		case '\t':
+			dst = append(dst, `\t`...)
+		default:
+			dst = append(dst, '\\', 'u', '0', '0', hex[c>>4], hex[c&0xf])
+		}
+		i++
+		start = i
+	}
+	dst = append(dst, value[start:]...)
+	return append(dst, '"')
 }

@@ -427,6 +427,7 @@ func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return
 	}
 
+	start := buf.Len()
 	_ = e.Fields(func(k, v []byte, isString bool) error {
 		buf.Write(k)
 		buf.WriteString("=")
@@ -435,6 +436,8 @@ func (fc *fieldsConverter) Convert(origin interface{}, buf *bytes.Buffer) {
 		return nil
 	})
 
-	// remove last space
-	buf.Truncate(buf.Len() - 1)
+	// Remove the trailing space only when fields were appended.
+	if buf.Len() > start {
+		buf.Truncate(buf.Len() - 1)
+	}
 }

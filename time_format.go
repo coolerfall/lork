@@ -552,8 +552,13 @@ func appendFormatUnix(b []byte, utcUnixNano int64, layout string) ([]byte, error
 			b = appendInt(b, int(month), 0)
 		case stdZeroMonth:
 			b = appendInt(b, int(month), 2)
-		case stdWeekDay:
-		case stdLongWeekDay:
+		case stdWeekDay, stdLongWeekDay:
+			// Absolute day zero is a Monday, as in Go's time package.
+			weekday := time.Weekday((abs/secondsPerDay + uint64(time.Monday)) % 7).String()
+			if std&stdMask == stdWeekDay {
+				weekday = weekday[:3]
+			}
+			b = append(b, weekday...)
 		case stdDay:
 			b = appendInt(b, day, 0)
 		case stdUnderDay:

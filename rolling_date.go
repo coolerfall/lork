@@ -41,8 +41,9 @@ var (
 type periodicType int8
 
 type rollingDate struct {
-	datePattern string
-	_type       periodicType
+	datePattern      string
+	_type            periodicType
+	cleanupSupported bool
 }
 
 func newRollingDate(datePattern string) *rollingDate {
@@ -50,12 +51,19 @@ func newRollingDate(datePattern string) *rollingDate {
 		datePattern: datePattern,
 	}
 	rd._type = rd.calcPeriodType()
+	// Every field needed to identify a period must survive formatting and
+	// parsing. Use non-default fields and an afternoon hour to reject missing
+	// dates and ambiguous 12-hour clocks. The year rejects two-digit layouts.
+	reference := time.Date(2100, time.November, 23, 17, 43, 51, 0, time.UTC)
+	parsed, err := time.Parse(datePattern, reference.Format(datePattern))
+	rd.cleanupSupported = err == nil && rd.periodIndex(parsed) == rd.periodIndex(reference)
 
 	return rd
 }
 
 func (rd *rollingDate) calcPeriodType() periodicType {
-	now := time.Now()
+	// Use a fixed baseline so a smaller period cannot cross a larger boundary.
+	now := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 	for _, t := range periods {
 		tl := now.Format(rd.datePattern)
 		next := rd.endOfThisPeriod(t, now)
@@ -103,29 +111,70 @@ func (rd *rollingDate) endOfThisPeriod(pt periodicType, now time.Time) time.Time
 }
 
 func (rd *rollingDate) next(t time.Time) time.Time {
-	return rd.endOfNextNPeriod(t, 1)
+	next := rd.endOfNextNPeriod(t, 1)
+	if !next.After(t) {
+		// time.Date may select the earlier occurrence of a repeated local time.
+		_, offset := t.Zone()
+		_, nextOffset := next.Zone()
+		next = next.Add(time.Duration(nextOffset-offset) * time.Second)
+	}
+	if rd.periodIndex(next) <= rd.periodIndex(t) {
+		// A missing local boundary may normalize into the current period.
+		// The zone transition is the first valid instant of the next period.
+		_, next = next.ZoneBounds()
+	}
+	return next
 }
 
-func (rd *rollingDate) periodCrossed(start int64, end int64) int {
-	diff := end - start
+func (rd *rollingDate) periodCrossed(start, end time.Time) int {
+	if end.Before(start) {
+		return 0
+	}
+	// Count calendar boundaries in the archive's location, rather than complete
+	// elapsed durations. A local day can contain 23 or 25 hours.
+	return max(0, int(rd.periodIndex(end)-rd.periodIndex(start.In(end.Location()))))
+}
+
+func (rd *rollingDate) periodIndex(t time.Time) int64 {
+	year, month, day := t.Date()
+	hour, minute, second := t.Clock()
 	switch rd._type {
+	case topOfSecond:
+		return time.Date(year, month, day, hour, minute, second, 0, time.UTC).Unix()
 	case topOfMinute:
-		return int(diff / secondsInOneMinute)
-
+		return time.Date(year, month, day, hour, minute, 0, 0, time.UTC).Unix() / secondsInOneMinute
 	case topOfHour:
-		return int(diff / secondsInOneHour)
-
+		return time.Date(year, month, day, hour, 0, 0, 0, time.UTC).Unix() / secondsInOneHour
 	case topOfDay:
-		return int(diff / secondsInOneDay)
-
+		return time.Date(year, month, day, 0, 0, 0, 0, time.UTC).Unix() / secondsInOneDay
 	case topOfMonth:
-		startTime := time.Unix(start, 0)
-		endTime := time.Unix(end, 0)
-		yearDiff := endTime.Year() - startTime.Year()
-		monthDiff := endTime.Month() - startTime.Month()
-		return yearDiff*12 + int(monthDiff)
-
+		return int64(year)*12 + int64(month-1)
 	default:
 		return 0
 	}
+}
+
+func (rd *rollingDate) periodForCleanup(now time.Time, offset int) (time.Time, bool) {
+	// Enumerate calendar labels in UTC so nonexistent local times cannot
+	// normalize into another, possibly retained, period during a DST change.
+	year, month, day := now.Date()
+	hour, minute, second := now.Clock()
+	calendar := time.Date(year, month, day, hour, minute, second, 0, time.UTC)
+	calendar = rd.endOfNextNPeriod(calendar, offset)
+	year, month, day = calendar.Date()
+	hour, minute, second = calendar.Clock()
+	local := time.Date(year, month, day, hour, minute, second, 0, now.Location())
+	index := rd.periodIndex(calendar)
+	if rd.periodIndex(local) == index {
+		return local, true
+	}
+	// Some zones skip midnight or part of an hour. Use the transition itself
+	// if the calendar period exists; skip periods that never occurred.
+	start, end := local.ZoneBounds()
+	for _, candidate := range [...]time.Time{start, end} {
+		if !candidate.IsZero() && rd.periodIndex(candidate) == index {
+			return candidate, true
+		}
+	}
+	return time.Time{}, false
 }

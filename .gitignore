@@ -1,4 +1,5 @@
 .idea
+.codegraph/
 vendor
 *.log
 *.log.zip

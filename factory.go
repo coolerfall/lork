@@ -16,6 +16,7 @@ package lork
 
 import (
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -32,7 +33,7 @@ var (
 )
 
 type loggerFactory struct {
-	initialState  int
+	initialState  atomic.Int32
 	lock          sync.Mutex
 	boundProvider Provider
 	substProvider *substituteProvider
@@ -73,20 +74,23 @@ func (f *loggerFactory) Reset() {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	f.initialState = stateUninitialized
+	f.substProvider.factory.reset()
+	f.initialState.Store(stateUninitialized)
 }
 
 func (f *loggerFactory) provider() Provider {
-	if f.initialState == stateUninitialized {
+	state := f.initialState.Load()
+	if state == stateUninitialized {
 		f.lock.Lock()
-		if f.initialState == stateUninitialized {
-			f.initialState = stateInitializing
+		if f.initialState.Load() == stateUninitialized {
+			f.initialState.Store(stateInitializing)
+			f.bind()
 		}
-		f.bind()
+		state = f.initialState.Load()
 		f.lock.Unlock()
 	}
 
-	switch f.initialState {
+	switch state {
 	case stateSuccess:
 		return f.boundProvider
 	case stateInitializing:
@@ -120,7 +124,7 @@ func (f *loggerFactory) bind() {
 
 	provider.Prepare()
 	// the provider has been initialized successfully
-	f.initialState = stateSuccess
+	f.initialState.Store(stateSuccess)
 
 	LoggerC().Debug().Msg("lork provider has been initialized")
 
@@ -130,10 +134,7 @@ func (f *loggerFactory) bind() {
 }
 
 func (f *loggerFactory) fixSubstLoggers() {
-	loggers := f.substProvider.SubstLoggerFactory().Loggers()
-	for _, logger := range loggers {
-		logger.SetDelegate(f.Logger(logger.Name()))
-	}
+	f.substProvider.SubstLoggerFactory().activate(f.boundProvider.LoggerFactory())
 }
 
 func (f *loggerFactory) replayEvents() {

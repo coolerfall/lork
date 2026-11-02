@@ -17,9 +17,11 @@ package lork
 import (
 	"archive/zip"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -43,7 +45,51 @@ type noneArchiver struct {
 }
 
 func (a *noneArchiver) Archive(filename, archiveFilename string) error {
-	return rename(filename, archiveFilename)
+	if err := mkdirIfNotExist(filepath.Dir(archiveFilename)); err != nil {
+		return err
+	}
+	info, err := os.Lstat(filename)
+	if err != nil {
+		return err
+	}
+	if info.Mode().IsRegular() {
+		// Link atomically claims an unused name without copying the log contents.
+		if err = os.Link(filename, archiveFilename); err == nil {
+			if err = os.Remove(filename); err != nil {
+				return errors.Join(err, os.Remove(archiveFilename))
+			}
+			return nil
+		} else if os.IsExist(err) {
+			return err
+		}
+	}
+
+	// Cross-filesystem moves and symlink sources need an exclusive copy.
+	source, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+	info, err = source.Stat()
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("archive source is not a regular file: %s", filename)
+	}
+	target, err := os.OpenFile(archiveFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	_, copyErr := io.Copy(target, source)
+	err = errors.Join(copyErr, target.Close(), source.Close())
+	if err != nil {
+		return errors.Join(err, os.Remove(archiveFilename))
+	}
+	if err = os.Remove(filename); err != nil {
+		return errors.Join(err, os.Remove(archiveFilename))
+	}
+	return nil
 }
 
 type gzipArchiver struct {
@@ -60,14 +106,7 @@ func (a *gzipArchiver) Archive(filename, archiveFilename string) error {
 		ModTime: time.Now(),
 		Name:    strings.TrimSuffix(archiveFilename, ".gz"),
 	}
-	go func() {
-		_, _ = io.Copy(w, origin)
-		_ = w.Close()
-		_ = origin.Close()
-		if err = os.Remove(origin.Name()); err != nil {
-			Reportf("archiver remove file error: %v", err)
-		}
-	}()
+	go compressArchive(origin, target, w, w)
 
 	return nil
 }
@@ -89,31 +128,97 @@ func (a *zipArchiver) Archive(filename, archiveFilename string) error {
 		Method:   zip.Deflate,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("archiver create zip entry error; original retained at %s: %w",
+			origin.Name(), errors.Join(err, zw.Close(), target.Close(), origin.Close()))
 	}
-	go func() {
-		_, _ = io.Copy(w, origin)
-		_ = zw.Close()
-		_ = origin.Close()
-		if err = os.Remove(origin.Name()); err != nil {
-			Reportf("archiver remove file error: %v", err)
-		}
-	}()
+	go compressArchive(origin, target, w, zw)
 
 	return nil
 }
 
-func renameOpenFile(filename, archiveFilename string) (*os.File, *os.File, error) {
-	tmpFilename := fmt.Sprintf("%s-%v.%s", archiveFilename, time.Now().UnixNano(), "tmp")
-	if err := rename(filename, tmpFilename); err != nil {
-		return nil, nil, err
+func compressArchive(origin, target *os.File, writer io.Writer, compressor io.Closer) {
+	_, err := io.Copy(writer, origin)
+	err = errors.Join(err, compressor.Close(), target.Close(), origin.Close())
+	if err != nil {
+		Reportf("archiver compress %s error; original retained at %s: %v",
+			target.Name(), origin.Name(), err)
+		return
 	}
 
-	origin, err := os.Open(tmpFilename)
+	if err := os.Remove(origin.Name()); err != nil {
+		Reportf("archiver remove file %s error: %v", origin.Name(), err)
+	}
+}
+
+func archiveCompressionSuffix(filename string) string {
+	for _, suffix := range []string{".gz", ".zip", "gz", "zip"} {
+		if strings.HasSuffix(filename, suffix) {
+			return suffix
+		}
+	}
+	return ""
+}
+
+func uncompressedArchiveFilename(filename string) string {
+	return strings.TrimSuffix(filename, archiveCompressionSuffix(filename))
+}
+
+func renameOpenFile(filename, archiveFilename string) (*os.File, *os.File, error) {
+	originalFilename := uncompressedArchiveFilename(archiveFilename)
+	if originalFilename == "" || originalFilename == archiveFilename {
+		return nil, nil, fmt.Errorf("invalid compressed archive filename: %s", archiveFilename)
+	}
+	sourcePath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, nil, err
 	}
-	target, err := os.OpenFile(archiveFilename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	originalPath, err := filepath.Abs(originalFilename)
+	if err != nil {
+		return nil, nil, err
+	}
+	if sourcePath == originalPath {
+		return nil, nil, fmt.Errorf("uncompressed archive conflicts with active log: %s", originalFilename)
+	}
+	info, err := os.Stat(filename)
+	if err != nil {
+		return nil, nil, err
+	}
+	mode := info.Mode().Perm()
+	if err := mkdirIfNotExist(filepath.Dir(archiveFilename)); err != nil {
+		return nil, nil, err
+	}
+	target, err := os.OpenFile(archiveFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return nil, nil, err
+	}
+	ready := false
+	defer func() {
+		if !ready {
+			_ = target.Close()
+			_ = os.Remove(archiveFilename)
+		}
+	}()
 
-	return origin, target, err
+	// Reserve the uncompressed name so a retained original is never overwritten.
+	// A cross-filesystem copy writes into this reservation, so preserve permissions here too.
+	reservation, err := os.OpenFile(originalFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := reservation.Close(); err != nil {
+		_ = os.Remove(originalFilename)
+		return nil, nil, err
+	}
+	if err := rename(filename, originalFilename); err != nil {
+		_ = os.Remove(originalFilename)
+		return nil, nil, err
+	}
+
+	origin, err := os.Open(originalFilename)
+	if err != nil {
+		return nil, nil, fmt.Errorf("archiver open original retained at %s: %w", originalFilename, err)
+	}
+
+	ready = true
+	return origin, target, nil
 }

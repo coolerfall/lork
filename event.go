@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -72,11 +73,11 @@ func MakeEvent(p []byte) *LogEvent {
 		dataType jsonparser.ValueType, _ int) error {
 		switch string(k) {
 		case TimestampFieldKey:
-			event.appendRFC3999Nano(v)
+			event.appendRFC3999Nano(event.unescapeString(v))
 		case LevelFieldKey:
-			event.appendLevelBytes(v)
+			event.appendLevelBytes(event.unescapeString(v))
 		case LoggerNameFieldKey:
-			event.appendLogger(v)
+			event.appendLogger(event.unescapeString(v))
 		case MessageFieldKey:
 			event.appendMessageBytes(v)
 
@@ -182,6 +183,9 @@ func (e *LogEvent) appendLogger(v []byte) {
 }
 
 func (e *LogEvent) makeFields(k, v []byte, isString bool) {
+	if isString {
+		v = e.unescapeString(v)
+	}
 	e.fields.Write(k)
 	e.fields.Write(v)
 	e.fieldsIndex.WriteString(strconv.Itoa(len(k)))
@@ -208,17 +212,24 @@ func (e *LogEvent) appendRFC3999Nano(rfc3339Nano []byte) {
 }
 
 func (e *LogEvent) appendMessageBytes(msg []byte) {
-	e.message.Grow(len(msg))
-	temp := e.message.Bytes()
-	m, _ := jsonparser.Unescape(msg, temp)
-	e.message.Write(bytes.TrimRight(m, "\n"))
+	e.message.Write(bytes.TrimRight(e.unescapeString(msg), "\n"))
 }
 
 func (e *LogEvent) appendMessage(msg string) {
-	e.message.WriteString(msg)
-	v := e.message.Bytes()
-	e.message.Reset()
-	e.appendMessageBytes(v)
+	e.message.WriteString(strings.TrimRight(msg, "\n"))
+}
+
+// unescapeString decodes JSON input into scratch storage, consumed before reuse.
+func (e *LogEvent) unescapeString(value []byte) []byte {
+	if bytes.IndexByte(value, '\\') < 0 {
+		return value
+	}
+	e.tmp.Grow(len(value))
+	decoded, err := jsonparser.Unescape(value, e.tmp.AvailableBuffer())
+	if err != nil {
+		return value
+	}
+	return decoded
 }
 
 func (e *LogEvent) appendKeyValue(key string, value []byte, isString bool) {
@@ -244,11 +255,9 @@ func (e *LogEvent) appendArray(key string, len int, f func(data []byte, index in
 		}
 		d, isString := f(data[:0], i)
 		if isString {
-			e.appender.WriteByte('"')
-		}
-		e.appender.Write(d)
-		if isString {
-			e.appender.WriteByte('"')
+			e.appender.Write(appendJSONString(e.appender.AvailableBuffer(), d))
+		} else {
+			e.appender.Write(d)
 		}
 	}
 	e.appender.WriteString("]")
@@ -447,10 +456,15 @@ func (e *LogEvent) appendDurations(key string, value []time.Duration) {
 
 func (e *LogEvent) appendErrors(key string, value []error) {
 	e.appendArray(key, len(value), func(data []byte, index int) ([]byte, bool) {
-		e.tmp.WriteString(value[index].Error())
+		err := value[index]
+		if err == nil {
+			e.tmp.WriteString("null")
+		} else {
+			e.tmp.WriteString(err.Error())
+		}
 		d := e.tmp.Bytes()
 		e.tmp.Reset()
-		return d, true
+		return d, err != nil
 	})
 }
 

@@ -2,6 +2,15 @@
 
 Lork provides several writers for logging, and it supports to add multiple writers.
 
+Configure writer bindings during initialization where possible. `MultiWriter`
+supports concurrent output and binding changes. `ResetWriter()` waits for current
+writes, removes the bindings, then stops the old writers without holding the list
+lock. Configuration and lifecycle operations are serialized.
+
+Custom writer callbacks invoked during output or list queries must not call back
+into the same `MultiWriter`. Lifecycle callbacks may query the list, but must not
+modify its bindings.
+
 ### Console Writer
 
 This writer sends the logs to `Stdout` console. It supports the following options:
@@ -62,13 +71,19 @@ aw.AddWriter(fw)
 lork.Manual().AddWriter(aw)
 ```
 
+`Stop()` drains pending events and stops downstream writers without removing their
+bindings. `Start()` restarts those writers before resuming background output.
+Writers added after `Stop()` start on the next `Start()`. Call `ResetWriter()` to
+remove the downstream writers explicitly. Configure bindings before the first
+`Start()` or while the asynchronous writer is stopped where possible.
+
 ### Socket Writer
 
 This writer sends logs to remote server via socket. It supports the following options:
 
 * `RemoteUrl`, url of remote server
 * `QueueSize`, the size of queue
-* `ReconnectionDelay`, delay milliseconds when reconnecting server
+* `ReconnectionDelay`, delay before reconnecting (`time.Duration`, defaults to `5 * time.Second`). For example, use `500 * time.Millisecond` for a 500 ms delay. Non-positive values use the default.
 * `Filter`, filters of logs
 
 The server should start `Socket Reader`to receive logs, and it supports the following
@@ -90,6 +105,26 @@ This writer is an implementation for syslog. It supports the following options:
 
 Lork provides some builtin encoders which can be configured in writers.
 
+Each JSON or Pattern encoder instance must belong to a single writer. These encoders
+reuse their output buffers; sharing an instance across writers is unsupported and
+can overwrite log contents during concurrent writes. The default console, file and
+socket writers each create an independent encoder.
+
+When configuring multiple writers explicitly, create a new encoder for each one,
+even when they use the same format:
+
+```go
+first := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Filename = "first.log"
+    o.Encoder = lork.NewJsonEncoder()
+})
+second := lork.NewFileWriter(func(o *lork.FileWriterOption) {
+    o.Filename = "second.log"
+    o.Encoder = lork.NewJsonEncoder()
+})
+lork.Manual().AddWriter(first, second)
+```
+
 ### Pattern Encoder
 
 Encode logs with custom pattern format layout, for example:
@@ -97,6 +132,10 @@ Encode logs with custom pattern format layout, for example:
 ```text
 #color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) #color([#logger{16}]){magenta} : #message #fields
 ```
+
+Date layouts use Go's reference time, for example
+`#date{Monday 2006-01-02 15:04:05}`. Use `Mon` for an abbreviated weekday
+(`Sun`) or `Monday` for its full name (`Sunday`).
 
 #### color
 

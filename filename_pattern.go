@@ -17,6 +17,8 @@ package lork
 import (
 	"bytes"
 	"errors"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -52,6 +54,9 @@ func newFilenamePattern(pattern string) (*filenamePattern, error) {
 			break
 
 		case *indexConverter:
+			if gotIndex {
+				return nil, errors.New("invalid filename pattern, multiple index patterns")
+			}
 			gotIndex = true
 		}
 	}
@@ -69,13 +74,12 @@ func (fp *filenamePattern) convert(current time.Time, index int) string {
 	buf := new(bytes.Buffer)
 
 	for c := fp.converter; c != nil; c = c.Next() {
-		switch c.(type) {
+		switch c := c.(type) {
 		case *literalConverter:
 			c.Convert(nil, buf)
 
 		case *dateConverter:
-			ts := current.Format(time.RFC3339)
-			c.Convert([]byte(ts), buf)
+			buf.Write(current.Truncate(time.Second).AppendFormat(buf.AvailableBuffer(), c.DatePattern()))
 
 		case *indexConverter:
 			c.Convert(index, buf)
@@ -92,13 +96,12 @@ func (fp *filenamePattern) toFilenameRegex() string {
 func (fp *filenamePattern) toFilenameRegexForFixed(t time.Time) string {
 	var buf = new(bytes.Buffer)
 	for c := fp.converter; c != nil; c = c.Next() {
-		switch c.(type) {
+		switch c := c.(type) {
 		case *literalConverter:
 			c.Convert(nil, buf)
 
 		case *dateConverter:
-			ts := t.Format(time.RFC3339)
-			c.Convert([]byte(ts), buf)
+			buf.Write(t.Truncate(time.Second).AppendFormat(buf.AvailableBuffer(), c.DatePattern()))
 
 		case *indexConverter:
 			buf.WriteString("(\\d{1,3})")
@@ -108,6 +111,30 @@ func (fp *filenamePattern) toFilenameRegexForFixed(t time.Time) string {
 	reg := buf.String()
 	buf.Reset()
 
+	return reg
+}
+
+func (fp *filenamePattern) toArchiveFilenameRegexForFixed(t time.Time) string {
+	var buf, value bytes.Buffer
+	for c := fp.converter; c != nil; c = c.Next() {
+		value.Reset()
+		switch c := c.(type) {
+		case *literalConverter:
+			c.Convert(nil, &value)
+		case *dateConverter:
+			value.Write(t.Truncate(time.Second).AppendFormat(value.AvailableBuffer(), c.DatePattern()))
+		case *indexConverter:
+			buf.WriteString("(\\d+)")
+			continue
+		}
+		buf.WriteString(regexp.QuoteMeta(value.String()))
+	}
+
+	reg := buf.String()
+	if suffix := archiveCompressionSuffix(fp.convert(t, 0)); suffix != "" {
+		escapedSuffix := regexp.QuoteMeta(suffix)
+		reg = strings.TrimSuffix(reg, escapedSuffix) + "(?:" + escapedSuffix + ")?"
+	}
 	return reg
 }
 

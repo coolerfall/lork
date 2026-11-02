@@ -119,30 +119,30 @@ func (rp *timeBasedRollingPolicy) Attach(w *fileWriter) {
 }
 
 func (rp *timeBasedRollingPolicy) ShouldTrigger(_ int64) bool {
-	if time.Now().After(rp.nextCheck) {
-		rp.calcNextCheck()
-		return true
-	}
-
-	return false
+	return time.Now().After(rp.nextCheck)
 }
 
 func (rp *timeBasedRollingPolicy) Rotate() error {
+	now := time.Now()
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
 	if len(rollingFilename) == 0 {
 		rollingFilename = fmt.Sprintf("lork-%s.log",
 			rp.timeInCurrentPeriod.Format("2006-01-02"))
 	}
 
-	rp.timeInCurrentPeriod = time.Now()
-
-	err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename)
-
-	if rp.archiveRemover != nil {
-		rp.archiveRemover.CleanAsync(time.Now())
+	if err := rp.archiver.Archive(rp.fileWriter.RawFilename(), rollingFilename); err != nil {
+		return err
 	}
 
-	return err
+	// Keep the old period retryable until its file has been archived.
+	rp.timeInCurrentPeriod = now
+	rp.nextCheck = rp.rollingDate.next(now)
+
+	if rp.archiveRemover != nil {
+		rp.archiveRemover.CleanAsync(now)
+	}
+
+	return nil
 }
 
 func (rp *timeBasedRollingPolicy) prepare(
@@ -167,10 +167,6 @@ func (rp *timeBasedRollingPolicy) prepare(
 	}
 
 	return nil
-}
-
-func (rp *timeBasedRollingPolicy) calcNextCheck() {
-	rp.nextCheck = rp.rollingDate.next(time.Now())
 }
 
 func (rp *timeBasedRollingPolicy) initNextCheck() {
@@ -224,6 +220,9 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 	if rp.fileWriter == nil {
 		return errors.New("rolling policy is not attached to a file writer")
 	}
+	if !rp.filenamePattern.hasIndexConverter() {
+		return errors.New("invalid filename pattern, missing index pattern")
+	}
 
 	if err := rp.prepare(newSizeAndTimeArchiveRemover); err != nil {
 		return err
@@ -233,19 +232,22 @@ func (rp *sizeAndTimeBasedRollingPolicy) Prepare() error {
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) ShouldTrigger(fileSize int64) bool {
-	if rp.timeBasedRollingPolicy.ShouldTrigger(fileSize) {
-		rp.index = 0
-		return true
-	}
-
-	if fileSize >= rp.triggerSize {
-		return true
-	}
-
-	return false
+	return time.Now().After(rp.nextCheck) || fileSize >= rp.triggerSize
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
+	now := time.Now()
+	nextCheck, nextIndex := rp.nextCheck, rp.index+1
+	if now.After(rp.nextCheck) {
+		nextCheck = rp.rollingDate.next(now)
+		nextIndex, err = rp.indexForPeriod(now)
+		if err != nil {
+			return err
+		}
+	} else if nextIndex < 0 {
+		return errors.New("archive index overflow")
+	}
+
 	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, rp.index)
 	if len(rollingFilename) == 0 {
 		rollingFilename = fmt.Sprintf("lork-%s.%v.log",
@@ -258,37 +260,46 @@ func (rp *sizeAndTimeBasedRollingPolicy) Rotate() (err error) {
 		return
 	}
 
-	rp.timeInCurrentPeriod = time.Now()
-	rp.index++
+	// Advance the period only after the old file has been archived.
+	rp.nextCheck = nextCheck
+	rp.index = nextIndex
+	rp.timeInCurrentPeriod = now
 
 	if rp.archiveRemover != nil {
-		rp.archiveRemover.CleanAsync(time.Now())
+		rp.archiveRemover.CleanAsync(now)
 	}
 
 	return
 }
 
 func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
-	rollingFilename := rp.filenamePattern.convert(rp.timeInCurrentPeriod, 0)
+	index, err := rp.indexForPeriod(rp.timeInCurrentPeriod)
+	if err == nil {
+		rp.index = index
+	}
+	return err
+}
+
+func (rp *sizeAndTimeBasedRollingPolicy) indexForPeriod(period time.Time) (int, error) {
+	rollingFilename := rp.filenamePattern.convert(period, 0)
 	parentDir := filepath.Dir(rollingFilename)
 	files, err := os.ReadDir(parentDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			rp.index = 0
-			return nil
+			return 0, nil
 		} else {
-			return err
+			return 0, err
 		}
 	}
 
-	reg := rp.filenamePattern.toFilenameRegex()
+	reg := rp.filenamePattern.toArchiveFilenameRegexForFixed(period)
 	reg = afterLastSlash(reg)
-	filenameRegex, err := regexp.Compile(reg)
+	filenameRegex, err := regexp.Compile("^" + reg + "$")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	var latestIndex = 0
+	latestIndex := -1
 	for _, f := range files {
 		if f.IsDir() {
 			continue
@@ -308,7 +319,8 @@ func (rp *sizeAndTimeBasedRollingPolicy) calcIndex() error {
 		}
 	}
 
-	rp.index = latestIndex + 1
-
-	return nil
+	if latestIndex == int(^uint(0)>>1) {
+		return 0, errors.New("archive index overflow")
+	}
+	return latestIndex + 1, nil
 }
