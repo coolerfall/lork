@@ -27,6 +27,7 @@ var (
 		logrus.WarnLevel:  lork.WarnLevel,
 		logrus.ErrorLevel: lork.ErrorLevel,
 		logrus.FatalLevel: lork.FatalLevel,
+		logrus.PanicLevel: lork.PanicLevel,
 	}
 )
 
