@@ -29,6 +29,7 @@ var (
 		zerolog.WarnLevel:  lork.WarnLevel,
 		zerolog.ErrorLevel: lork.ErrorLevel,
 		zerolog.FatalLevel: lork.FatalLevel,
+		zerolog.PanicLevel: lork.PanicLevel,
 	}
 )
 

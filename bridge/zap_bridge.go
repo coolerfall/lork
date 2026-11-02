@@ -24,11 +24,13 @@ import (
 
 var (
 	zapLvlToLorkLvl = map[zapcore.Level]lork.Level{
-		zapcore.DebugLevel: lork.DebugLevel,
-		zapcore.InfoLevel:  lork.InfoLevel,
-		zapcore.WarnLevel:  lork.WarnLevel,
-		zapcore.ErrorLevel: lork.ErrorLevel,
-		zapcore.FatalLevel: lork.FatalLevel,
+		zapcore.DebugLevel:  lork.DebugLevel,
+		zapcore.InfoLevel:   lork.InfoLevel,
+		zapcore.WarnLevel:   lork.WarnLevel,
+		zapcore.ErrorLevel:  lork.ErrorLevel,
+		zapcore.FatalLevel:  lork.FatalLevel,
+		zapcore.PanicLevel:  lork.PanicLevel,
+		zapcore.DPanicLevel: lork.PanicLevel,
 	}
 )
 
