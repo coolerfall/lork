@@ -133,6 +133,10 @@ Encode logs with custom pattern format layout, for example:
 #color(#date{2006-01-02T15:04:05.000Z07:00}){cyan} #color(#level) #color([#logger{16}]){magenta} : #message #fields
 ```
 
+Date layouts use Go's reference time, for example
+`#date{Monday 2006-01-02 15:04:05}`. Use `Mon` for an abbreviated weekday
+(`Sun`) or `Monday` for its full name (`Sunday`).
+
 #### color
 
 This pattern adds specified color the content. This only works in console writer.
