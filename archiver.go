@@ -179,10 +179,15 @@ func renameOpenFile(filename, archiveFilename string) (*os.File, *os.File, error
 	if sourcePath == originalPath {
 		return nil, nil, fmt.Errorf("uncompressed archive conflicts with active log: %s", originalFilename)
 	}
+	info, err := os.Stat(filename)
+	if err != nil {
+		return nil, nil, err
+	}
+	mode := info.Mode().Perm()
 	if err := mkdirIfNotExist(filepath.Dir(archiveFilename)); err != nil {
 		return nil, nil, err
 	}
-	target, err := os.OpenFile(archiveFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, os.ModePerm)
+	target, err := os.OpenFile(archiveFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -195,7 +200,8 @@ func renameOpenFile(filename, archiveFilename string) (*os.File, *os.File, error
 	}()
 
 	// Reserve the uncompressed name so a retained original is never overwritten.
-	reservation, err := os.OpenFile(originalFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, os.ModePerm)
+	// A cross-filesystem copy writes into this reservation, so preserve permissions here too.
+	reservation, err := os.OpenFile(originalFilename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
 	if err != nil {
 		return nil, nil, err
 	}

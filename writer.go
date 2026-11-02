@@ -41,7 +41,8 @@ type EventWriter interface {
 	// Filter returns filter used in current writer.
 	Filter() Filter
 
-	// Synchronized should this writer write data synchronously or not.
+	// Synchronized requests serialized filtering and writes.
+	// NewEventWriter reads this setting once during construction.
 	Synchronized() bool
 }
 
@@ -238,13 +239,16 @@ func (mw *MultiWriter) writeEvent(event *LogEvent) (err error) {
 }
 
 type eventWriter struct {
-	ref EventWriter
+	ref          EventWriter
+	synchronized bool
+	locker       sync.Mutex
 }
 
 // NewEventWriter creates a Writer with given EventWriter.
 func NewEventWriter(w EventWriter) Writer {
 	return &eventWriter{
-		ref: w,
+		ref:          w,
+		synchronized: w.Synchronized(),
 	}
 }
 
@@ -265,6 +269,11 @@ func (w *eventWriter) Name() string {
 }
 
 func (w *eventWriter) DoWrite(event *LogEvent) error {
+	if w.synchronized {
+		w.locker.Lock()
+		defer w.locker.Unlock()
+	}
+
 	if w.ref.Filter() != nil && w.ref.Filter().Do(event) == Deny {
 		return nil
 	}
