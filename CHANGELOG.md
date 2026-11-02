@@ -1,3 +1,16 @@
+# 1.0.0
+* Require Go 1.23 or later and update dependencies.
+* Preserve zero-allocation logging while escaping JSON and Logrus strings correctly.
+* Fix rolling file period indexes, rotation deadlines, retries and archive collisions.
+* Preserve source logs on compression failure and retain archive permissions.
+* Fix archive retention progress and file handling during rotation failures.
+* Fix asynchronous writer shutdown, restart and queue overflow behavior. Full queues discard all log levels without waiting for space.
+* Synchronize logger levels and writer bindings, and harden socket, syslog, reader and provider lifecycles.
+* Fix empty Pattern fields, literal commas, weekday formatting and timezone handling.
+* Fix nil error handling, Zap unsigned integer fields and bridge panic severity mapping.
+* Use a five-second default socket reconnection delay. ReconnectionDelay accepts time.Duration; specify units explicitly.
+* Document encoder ownership: use an independent JSON or Pattern encoder for each writer.
+
 # 0.7.0
 * Add configurator to add manual config with new api.
 * Add logger provider.
