@@ -28,7 +28,7 @@ import (
 
 const (
 	defaultSocketQueueSize   = 128
-	defaultReconnectionDelay = 5_000
+	defaultReconnectionDelay = 5 * time.Second
 )
 
 type SocketWriterOption struct {

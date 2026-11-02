@@ -83,7 +83,7 @@ This writer sends logs to remote server via socket. It supports the following op
 
 * `RemoteUrl`, url of remote server
 * `QueueSize`, the size of queue
-* `ReconnectionDelay`, delay milliseconds when reconnecting server
+* `ReconnectionDelay`, delay before reconnecting (`time.Duration`, defaults to `5 * time.Second`). For example, use `500 * time.Millisecond` for a 500 ms delay. Non-positive values use the default.
 * `Filter`, filters of logs
 
 The server should start `Socket Reader`to receive logs, and it supports the following
