@@ -79,10 +79,12 @@ Verify the zero-allocation logging requirement with the minimum supported Go
 version, using the existing benchmark and the same setup as the baseline:
 
 ```bash
-rtk proxy go test -run '^$' -bench '^BenchmarkPatternFileWriter$' -benchmem -count=3 .
+rtk proxy go test -run '^$' -bench '^BenchmarkPatternFileWriter$' -benchmem -count=3 ./example/bench
 ```
 
-The existing Pattern writer benchmark must retain `0 B/op` and `0 allocs/op`.
+Confirm the output includes `BenchmarkPatternFileWriter`; a successful command
+without benchmark results does not validate allocations. The existing Pattern
+writer benchmark must retain `0 B/op` and `0 allocs/op`.
 Check relevant existing benchmarks too if release fixes affect other logging
 paths. Investigate timing regressions against a comparable baseline; do not
 claim performance from a single noisy timing result.
